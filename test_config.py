@@ -2,8 +2,8 @@ import os
 
 import pytest
 
-from launch.config import get_validated_config, LaunchValidator
-from launch.util import get_temp_config_path, LauncherError
+from dcos_launch.config import get_validated_config, LaunchValidator
+from dcos_launch.util import get_temp_config_path, LauncherError
 
 
 @pytest.fixture

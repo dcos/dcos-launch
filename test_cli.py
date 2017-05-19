@@ -3,7 +3,7 @@ import shutil
 import pytest
 from docopt import DocoptExit
 
-from launch.cli import main
+from dcos_launch.cli import main
 
 
 def test_no_files_specified(tmpdir, aws_cf_config_path):

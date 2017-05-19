@@ -8,8 +8,8 @@ import pkg_resources
 import retrying
 from dcos_test_utils.helpers import Url
 
-import launch.aws
-import launch.util
+import dcos_launch.aws
+import dcos_launch.util
 
 log = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def check_ssh(ssher, host, port):
     ssher.get_home_dir(host, port)
 
 
-class OnpremLauncher(launch.util.AbstractLauncher):
+class OnpremLauncher(dcos_launch.util.AbstractLauncher):
     def __init__(self, config):
         # can only be set during the wait command
         self.bootstrap_host = None
@@ -38,9 +38,9 @@ class OnpremLauncher(launch.util.AbstractLauncher):
 
     def get_bare_cluster_launcher(self):
         if self.config['platform'] == 'aws':
-            return launch.aws.BareClusterLauncher(self.config)
+            return dcos_launch.aws.BareClusterLauncher(self.config)
         else:
-            raise launch.util.LauncherError('Platform currently not supported for onprem: {}'.format(
+            raise dcos_launch.util.LauncherError('Platform currently not supported for onprem: {}'.format(
                 self.config['platform']))
 
     def get_onprem_cluster(self):
@@ -73,9 +73,9 @@ class OnpremLauncher(launch.util.AbstractLauncher):
                 continue
             new_key_name = key_name.replace('_filename', '_contents')
             if new_key_name in onprem_config:
-                raise launch.util.LauncherError(
+                raise dcos_launch.util.LauncherError(
                     'InvalidDcosConfig', 'Cannot set *_filename and *_contents simultaneously!')
-            onprem_config[new_key_name] = launch.util.read_file(onprem_config[key_name])
+            onprem_config[new_key_name] = dcos_launch.util.read_file(onprem_config[key_name])
             del onprem_config[key_name]
         # set the simple default IP detect script if not provided
         # currently, only AWS is supported, but when support changes, this will have to update
@@ -128,7 +128,7 @@ class OnpremLauncher(launch.util.AbstractLauncher):
             last_complete = 'POSTFLIGHT'
             self.post_state(last_complete)
         if last_complete != 'POSTFLIGHT':
-            raise launch.util.LauncherError('InconsistentState', 'State on bootstrap host is: ' + last_complete)
+            raise dcos_launch.util.LauncherError('InconsistentState', 'State on bootstrap host is: ' + last_complete)
 
     def describe(self):
         """ returns host information stored in the config as
@@ -136,10 +136,10 @@ class OnpremLauncher(launch.util.AbstractLauncher):
         """
         cluster = self.get_onprem_cluster()
         extra_info = {
-            'bootstrap_host': launch.util.convert_host_list([cluster.bootstrap_host])[0],
-            'masters': launch.util.convert_host_list(cluster.get_master_ips()),
-            'private_agents': launch.util.convert_host_list(cluster.get_private_agent_ips()),
-            'public_agents': launch.util.convert_host_list(cluster.get_public_agent_ips())}
+            'bootstrap_host': dcos_launch.util.convert_host_list([cluster.bootstrap_host])[0],
+            'masters': dcos_launch.util.convert_host_list(cluster.get_master_ips()),
+            'private_agents': dcos_launch.util.convert_host_list(cluster.get_private_agent_ips()),
+            'public_agents': dcos_launch.util.convert_host_list(cluster.get_public_agent_ips())}
         desc = copy.copy(self.config)
         desc.update(extra_info)
         # blackout unwanted fields

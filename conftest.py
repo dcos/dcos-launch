@@ -7,10 +7,10 @@ import dcos_test_utils.ssher
 import pytest
 from dcos_test_utils.helpers import Host
 
-import launch
-import launch.cli
-import launch.config
-from launch.util import get_temp_config_path, stub
+import dcos_launch
+import dcos_launch.cli
+import dcos_launch.config
+from dcos_launch.util import get_temp_config_path, stub
 
 
 @contextmanager
@@ -23,7 +23,7 @@ def mocked_context(*args, **kwargs):
 
 @pytest.fixture
 def mocked_test_runner(monkeypatch):
-    monkeypatch.setattr(launch.util, 'try_to_output_unbuffered', stub(0))
+    monkeypatch.setattr(dcos_launch.util, 'try_to_output_unbuffered', stub(0))
 
 
 @pytest.fixture
@@ -36,13 +36,13 @@ def mock_ssher(monkeypatch):
 @pytest.fixture
 def ssh_key_path(tmpdir):
     ssh_key_path = tmpdir.join('ssh_key')
-    ssh_key_path.write(launch.util.MOCK_SSH_KEY_DATA)
+    ssh_key_path.write(dcos_launch.util.MOCK_SSH_KEY_DATA)
     return str(ssh_key_path)
 
 
 class MockStack:
     def __init__(self):
-        self.stack_id = launch.util.MOCK_STACK_ID
+        self.stack_id = dcos_launch.util.MOCK_STACK_ID
 
 
 mock_pub_priv_host = Host('127.0.0.1', '12.34.56')
@@ -71,7 +71,7 @@ def mocked_aws_cf(monkeypatch, mocked_test_runner):
     monkeypatch.setattr(dcos_test_utils.aws.DcosCfStack, 'delete', stub(None))
     monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'delete_key_pair', stub(None))
     # mock config
-    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'create_key_pair', stub(launch.util.MOCK_SSH_KEY_DATA))
+    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'create_key_pair', stub(dcos_launch.util.MOCK_SSH_KEY_DATA))
 
 
 @pytest.fixture
@@ -80,10 +80,10 @@ def mocked_aws_zen_cf(monkeypatch, mocked_aws_cf):
     monkeypatch.setattr(
         dcos_test_utils.aws, 'fetch_stack', lambda stack_name, bw: dcos_test_utils.aws.DcosZenCfStack(stack_name, bw))
     # mock create
-    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'create_vpc_tagged', stub(launch.util.MOCK_VPC_ID))
+    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'create_vpc_tagged', stub(dcos_launch.util.MOCK_VPC_ID))
     monkeypatch.setattr(
-        dcos_test_utils.aws.BotoWrapper, 'create_internet_gateway_tagged', stub(launch.util.MOCK_GATEWAY_ID))
-    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'create_subnet_tagged', stub(launch.util.MOCK_SUBNET_ID))
+        dcos_test_utils.aws.BotoWrapper, 'create_internet_gateway_tagged', stub(dcos_launch.util.MOCK_GATEWAY_ID))
+    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'create_subnet_tagged', stub(dcos_launch.util.MOCK_SUBNET_ID))
     # mock delete
     monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'delete_subnet', stub(None))
     monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'delete_vpc', stub(None))
@@ -157,7 +157,7 @@ def mock_bare_cluster_hosts(monkeypatch, mocked_aws_cf, mock_ssher):
     monkeypatch.setattr(dcos_test_utils.onprem.OnpremCluster, 'setup_installer_server', stub(None))
     monkeypatch.setattr(dcos_test_utils.onprem.OnpremCluster, 'start_bootstrap_zk', stub(None))
     monkeypatch.setattr(dcos_test_utils.onprem, 'DcosInstallerApiSession', MockInstaller)
-    monkeypatch.setattr(launch.onprem.OnpremLauncher, 'get_last_state', stub(None))
+    monkeypatch.setattr(dcos_launch.onprem.OnpremLauncher, 'get_last_state', stub(None))
 
 
 @pytest.fixture
@@ -202,7 +202,7 @@ def aws_onprem_with_helper_config_path(tmpdir, mock_bare_cluster_hosts):
 
 
 def check_cli(cmd):
-    assert launch.cli.main(cmd) == 0, 'Command failed! {}'.format(' '.join(cmd))
+    assert dcos_launch.cli.main(cmd) == 0, 'Command failed! {}'.format(' '.join(cmd))
 
 
 def check_success(capsys, tmpdir, config_path):
@@ -214,11 +214,11 @@ def check_success(capsys, tmpdir, config_path):
     info JSON and stdout description JSON for more specific checks
     """
     # Test launcher directly first
-    config = launch.config.get_validated_config(config_path)
-    launcher = launch.get_launcher(config)
+    config = dcos_launch.config.get_validated_config(config_path)
+    launcher = dcos_launch.get_launcher(config)
     info = launcher.create()
     # Grab the launcher again with the output from create
-    launcher = launch.get_launcher(info)
+    launcher = dcos_launch.get_launcher(info)
     launcher.wait()
     launcher.describe()
     launcher.test([], {})

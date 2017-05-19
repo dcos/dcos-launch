@@ -3,12 +3,12 @@ import logging
 
 import dcos_test_utils.aws
 
-import launch.util
+import dcos_launch.util
 
 log = logging.getLogger(__name__)
 
 
-class DcosCloudformationLauncher(launch.util.AbstractLauncher):
+class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
     def __init__(self, config: dict):
         self.boto_wrapper = dcos_test_utils.aws.BotoWrapper(
             config['aws_region'], config['aws_access_key_id'], config['aws_secret_access_key'])
@@ -33,7 +33,7 @@ class DcosCloudformationLauncher(launch.util.AbstractLauncher):
                 template_body=self.config.get('template_body'))
         except Exception as ex:
             self.delete_temp_resources(temp_resources)
-            raise launch.util.LauncherError('ProviderError', None) from ex
+            raise dcos_launch.util.LauncherError('ProviderError', None) from ex
         info = copy.deepcopy(self.config)
         info.update({
             'stack_id': stack.stack_id,
@@ -76,9 +76,9 @@ class DcosCloudformationLauncher(launch.util.AbstractLauncher):
 
     def describe(self):
         return {
-            'masters': launch.util.convert_host_list(self.stack.get_master_ips()),
-            'private_agents': launch.util.convert_host_list(self.stack.get_private_agent_ips()),
-            'public_agents': launch.util.convert_host_list(self.stack.get_public_agent_ips())}
+            'masters': dcos_launch.util.convert_host_list(self.stack.get_master_ips()),
+            'private_agents': dcos_launch.util.convert_host_list(self.stack.get_private_agent_ips()),
+            'public_agents': dcos_launch.util.convert_host_list(self.stack.get_public_agent_ips())}
 
     def delete(self):
         self.stack.delete()
@@ -108,7 +108,7 @@ class DcosCloudformationLauncher(launch.util.AbstractLauncher):
         if not self.config['key_helper']:
             return {}
         if 'KeyName' in self.config['template_parameters']:
-            raise launch.util.LauncherError('KeyHelperError', 'KeyName cannot be set in '
+            raise dcos_launch.util.LauncherError('KeyHelperError', 'KeyName cannot be set in '
                                             'template_parameters when key_helper is true')
         key_name = self.config['deployment_name']
         private_key = self.boto_wrapper.create_key_pair(key_name)
@@ -121,7 +121,7 @@ class DcosCloudformationLauncher(launch.util.AbstractLauncher):
         try:
             return dcos_test_utils.aws.fetch_stack(self.config['stack_id'], self.boto_wrapper)
         except Exception as ex:
-            raise launch.util.LauncherError('StackNotFound', None) from ex
+            raise dcos_launch.util.LauncherError('StackNotFound', None) from ex
 
 
 class BareClusterLauncher(DcosCloudformationLauncher):
@@ -148,7 +148,7 @@ class BareClusterLauncher(DcosCloudformationLauncher):
         return self.stack.get_host_ips()
 
     def describe(self):
-        return {'host_list': launch.util.convert_host_list(self.get_hosts())}
+        return {'host_list': dcos_launch.util.convert_host_list(self.get_hosts())}
 
     def test(self, args, env):
         raise NotImplementedError('Bare clusters cannot be tested!')

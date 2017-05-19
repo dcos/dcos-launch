@@ -5,7 +5,7 @@ import dcos_test_utils.helpers
 import cerberus
 import yaml
 
-import launch.util
+import dcos_launch.util
 
 
 def expand_path(path: str, relative_dir: str) -> str:
@@ -26,9 +26,9 @@ def load_config(config_path: str) -> dict:
         with open(config_path) as f:
             return yaml.safe_load(f)
     except yaml.YAMLError as ex:
-        raise launch.util.LauncherError('InvalidYaml', None) from ex
+        raise dcos_launch.util.LauncherError('InvalidYaml', None) from ex
     except FileNotFoundError as ex:
-        raise launch.util.LauncherError('MissingConfig', None) from ex
+        raise dcos_launch.util.LauncherError('MissingConfig', None) from ex
 
 
 def validate_url(field, value, error):
@@ -40,8 +40,8 @@ def load_ssh_private_key(doc):
     if doc.get('key_helper') == 'true':
         return 'unset'
     if 'ssh_private_key_filename' not in doc:
-        return launch.util.NO_TEST_FLAG
-    return launch.util.read_file(doc['ssh_private_key_filename'])
+        return dcos_launch.util.NO_TEST_FLAG
+    return dcos_launch.util.read_file(doc['ssh_private_key_filename'])
 
 
 class LaunchValidator(cerberus.Validator):
@@ -74,7 +74,7 @@ def _expand_error_dict(errors: dict) -> str:
 
 def _raise_errors(validator: LaunchValidator):
     message = _expand_error_dict(validator.errors)
-    raise launch.util.LauncherError('ValidationError', message)
+    raise dcos_launch.util.LauncherError('ValidationError', message)
 
 
 def get_validated_config(config_path: str) -> dict:

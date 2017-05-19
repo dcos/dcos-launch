@@ -31,18 +31,41 @@ Options:
             One of: critical, error, warning, info, debug, and trace
             [default: info].
 """
+import json
 import logging
 import os
 import sys
 
 from docopt import docopt
 
-import launch
-import launch.config
-import launch.util
-from pkgpanda.util import json_prettyprint, load_json, write_json
+import dcos_launch
+import dcos_launch.config
+import dcos_launch.util
 
 LOGGING_FORMAT = '[%(asctime)s|%(name)s|%(levelname)s]: %(message)s'
+
+json_prettyprint_args = {
+    "sort_keys": True,
+    "indent": 2,
+    "separators": (',', ':')
+}
+
+
+def write_json(filename, data):
+    with open(filename, "w+") as f:
+        return json.dump(data, f, **json_prettyprint_args)
+
+
+def json_prettyprint(data):
+    return json.dumps(data, **json_prettyprint_args)
+
+
+def load_json(filename):
+    try:
+        with open(filename) as f:
+            return json.load(f)
+    except ValueError as ex:
+        raise ValueError("Invalid JSON in {0}: {1}".format(filename, ex)) from ex
 
 
 def _handle_logging(log_level_str):
@@ -57,7 +80,7 @@ def _handle_logging(log_level_str):
     elif log_level_str == 'DEBUG' or log_level_str == 'TRACE':
         log_level = logging.DEBUG
     else:
-        raise launch.util.LauncherError('InvalidOption', '{} is not a valid log level'.format(log_level_str))
+        raise dcos_launch.util.LauncherError('InvalidOption', '{} is not a valid log level'.format(log_level_str))
     logging.basicConfig(format=LOGGING_FORMAT, level=log_level)
     if log_level_str in ('TRACE', 'CRITICAL'):
         return
@@ -71,19 +94,19 @@ def do_main(args):
 
     config_path = args['--config-path']
     if args['create']:
-        config = launch.config.get_validated_config(config_path)
+        config = dcos_launch.config.get_validated_config(config_path)
         info_path = args['--info-path']
         if os.path.exists(info_path):
-            raise launch.util.LauncherError('InputConflict', 'Target info path already exists!')
-        write_json(info_path, launch.get_launcher(config).create())
+            raise dcos_launch.util.LauncherError('InputConflict', 'Target info path already exists!')
+        write_json(info_path, dcos_launch.get_launcher(config).create())
         return 0
 
     try:
         info = load_json(args['--info-path'])
     except FileNotFoundError as ex:
-        raise launch.util.LauncherError('MissingInfoJSON', None) from ex
+        raise dcos_launch.util.LauncherError('MissingInfoJSON', None) from ex
 
-    launcher = launch.get_launcher(info)
+    launcher = dcos_launch.get_launcher(info)
 
     if args['wait']:
         launcher.wait()
@@ -99,13 +122,13 @@ def do_main(args):
         if args['--env'] is not None:
             if '=' in args['--env']:
                 # User is attempting to do an assigment with the option
-                raise launch.util.LauncherError(
+                raise dcos_launch.util.LauncherError(
                     'OptionError', "The '--env' option can only pass through environment variables "
                     "from the current environment. Set variables according to the shell being used.")
             var_list = args['--env'].split(',')
             missing = [v for v in var_list if v not in os.environ]
             if len(missing) > 0:
-                raise launch.util.LauncherError(
+                raise dcos_launch.util.LauncherError(
                     'MissingInput', 'Environment variable arguments have been indicated '
                     'but not set: {}'.format(repr(missing)))
         env_dict = {e: os.environ[e] for e in var_list}
@@ -121,7 +144,7 @@ def main(argv=None):
 
     try:
         return do_main(args)
-    except launch.util.LauncherError as ex:
+    except dcos_launch.util.LauncherError as ex:
         print('DC/OS Launch encountered an error!')
         print(repr(ex))
         return 1
