@@ -9,7 +9,7 @@ import requests
 from retrying import retry
 
 from ssh.ssher import Ssher
-from test_util.helpers import ApiClientSession, Host, Url
+from dcos_test_utils.helpers import ApiClientSession, Host, Url
 
 
 log = logging.getLogger(__name__)

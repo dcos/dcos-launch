@@ -4,7 +4,7 @@ DC/OS integration tests, see: packages/dcos-integration-tests/extra
 import pytest
 import requests
 
-from test_util.dcos_api_session import DcosApiSession, DcosUser
+from dcos_test_utils.dcos_api_session import DcosApiSession, DcosUser
 
 
 class MockResponse:

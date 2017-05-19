@@ -1,5 +1,5 @@
-"""Tests for test_util.helpers."""
-from test_util import helpers
+"""Tests for dcos_test_utils.helpers."""
+from dcos_test_utils import helpers
 
 
 def test_marathon_app_id_to_mesos_dns_subdomain():

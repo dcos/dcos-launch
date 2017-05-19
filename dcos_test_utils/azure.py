@@ -19,7 +19,7 @@ from azure.mgmt.resource.resources.models import (DeploymentMode,
                                                   DeploymentProperties,
                                                   ResourceGroup)
 
-from test_util.helpers import Host
+from dcos_test_utils.helpers import Host
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class AzureWrapper:
             tenant=tenant_id)
         self.rmc = ResourceManagementClient(self.credentials, subscription_id)
         self.nmc = NetworkManagementClient(self.credentials, subscription_id)
-        # location is included to keep a similar model as test_util.aws.BotoWrapper
+        # location is included to keep a similar model as dcos_test_utils.aws.BotoWrapper
         self.location = location
 
     def deploy_template_to_new_resource_group(self, template_url, group_name, parameters):

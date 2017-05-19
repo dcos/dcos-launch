@@ -22,16 +22,16 @@ import pkg_resources
 import retrying
 from botocore.exceptions import ClientError
 
-from test_util.helpers import Host, retry_boto_rate_limits, SshInfo
+from dcos_test_utils.helpers import Host, retry_boto_rate_limits, SshInfo
 
 log = logging.getLogger(__name__)
 
 
 def template_by_instance_type(instance_type):
     if instance_type.split('.')[0] in ('c4', 't2', 'm4'):
-        template = pkg_resources.resource_string('test_util', 'templates/vpc-ebs-only-cluster-template.json')
+        template = pkg_resources.resource_string('dcos_test_utils', 'templates/vpc-ebs-only-cluster-template.json')
     else:
-        template = pkg_resources.resource_string('test_util', 'templates/vpc-cluster-template.json')
+        template = pkg_resources.resource_string('dcos_test_utils', 'templates/vpc-cluster-template.json')
     return template.decode('utf-8')
 
 

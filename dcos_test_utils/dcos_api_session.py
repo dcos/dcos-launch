@@ -14,8 +14,8 @@ from typing import List, Optional
 import requests
 import retrying
 
-import test_util.marathon
-from test_util.helpers import ApiClientSession, RetryCommonHttpErrorsMixin, Url
+import dcos_test_utils.marathon
+from dcos_test_utils.helpers import ApiClientSession, RetryCommonHttpErrorsMixin, Url
 
 
 class DcosUser:
@@ -375,7 +375,7 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
 
     @property
     def marathon(self):
-        return test_util.marathon.Marathon(
+        return dcos_test_utils.marathon.Marathon(
             default_url=self.default_url.copy(path='marathon'),
             default_os_user=self.default_os_user,
             session=self.copy().session)
