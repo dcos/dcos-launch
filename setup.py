@@ -2,9 +2,9 @@ from setuptools import setup
 
 
 setup(
-    name='dcos_test_utils',
+    name='dcos-test-utils',
     version='0.1',
-    description='DC/OS test orchestration and lower-level cluster interface',
+    description='DC/OS cluster provisioning and orchestration utilities',
     url='https://dcos.io',
     author='Mesosphere, Inc.',
     author_email='help@dcos.io',
@@ -15,26 +15,40 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
     ],
-    packages=['dcos_test_utils'],
+    packages=['dcos_launch', 'dcos_test_utils'],
     install_requires=[
         # Pins taken from 'azure==2.0.0rc4'
-        'msrest==0.4.0',
-        'msrestazure==0.4.1',
         'azure-common==1.1.4',
         'azure-storage==0.32.0',
         'azure-mgmt-network==0.30.0rc4',
         'azure-mgmt-resource==0.30.0rc4',
         'boto3',
         'botocore',
-        'pytest',
-        'pyyaml',
-        'requests==2.10.0',
-        'retrying'],
+        'cerberus',
+        'docopt',
+        'msrest==0.4.0',
+        'msrestazure==0.4.1',
+        'requests'
+        'retrying',
+        'pyinstaller==3.2',
+        'pytest'
+        'pyyaml'],
+    entry_points={
+        'console_scripts': [
+            'dcos-launch=dcos_launch.cli:main',
+        ],
+    },
     package_data={
+        'dcos_launch': [
+            'ip-detect/aws.sh',
+            'ip-detect/aws_public.sh',
+            'sample_configs/*.yaml',
+            'dcos-launch.spec'
+        ],
         'dcos_test_utils': [
             'templates/vpc-cluster-template.json',
             'templates/vpc-ebs-only-cluster-template.json'
-        ]
+        ],
     },
     zip_safe=False
 )
