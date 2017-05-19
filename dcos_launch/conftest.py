@@ -10,6 +10,7 @@ from dcos_test_utils.helpers import Host
 import dcos_launch
 import dcos_launch.cli
 import dcos_launch.config
+import dcos_launch.onprem
 from dcos_launch.util import get_temp_config_path, stub
 
 
@@ -147,7 +148,7 @@ class MockInstaller(dcos_test_utils.onprem.DcosInstallerApiSession):
 
 
 @pytest.fixture
-def mock_bare_cluster_hosts(monkeypatch, mocked_aws_cf, mock_ssher):
+def mock_bare_cluster_hosts(monkeypatch, mocked_aws_cf, mocked_test_runner, mock_ssher):
     monkeypatch.setattr(dcos_test_utils.aws.BareClusterCfStack, '__init__', stub(None))
     monkeypatch.setattr(dcos_test_utils.aws.BareClusterCfStack, 'delete', stub(None))
     monkeypatch.setattr(dcos_test_utils.aws.BareClusterCfStack, 'get_host_ips', stub([mock_pub_priv_host] * 4))

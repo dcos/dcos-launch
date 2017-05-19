@@ -1,7 +1,7 @@
-import launch.aws
-import launch.azure
-import launch.onprem
-import launch.util
+import dcos_launch.aws
+import dcos_launch.azure
+import dcos_launch.onprem
+import dcos_launch.util
 
 
 def get_launcher(config):
@@ -11,9 +11,9 @@ def get_launcher(config):
     provider = config['provider']
     if platform == 'aws':
         if provider == 'aws':
-            return launch.aws.DcosCloudformationLauncher(config)
+            return dcos_launch.aws.DcosCloudformationLauncher(config)
         if provider == 'onprem':
-            return launch.onprem.OnpremLauncher(config)
+            return dcos_launch.onprem.OnpremLauncher(config)
     if platform == 'azure':
-        return launch.azure.AzureResourceGroupLauncher(config)
-    raise launch.util.LauncherError('UnsupportedAction', 'Launch platform not supported: {}'.format(platform))
+        return dcos_launch.azure.AzureResourceGroupLauncher(config)
+    raise dcos_launch.util.LauncherError('UnsupportedAction', 'Launch platform not supported: {}'.format(platform))

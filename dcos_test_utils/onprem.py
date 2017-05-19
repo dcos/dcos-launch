@@ -8,7 +8,7 @@ from typing import List
 import requests
 from retrying import retry
 
-from ssh.ssher import Ssher
+from dcos_test_utils.ssher import Ssher
 from dcos_test_utils.helpers import ApiClientSession, Host, Url
 
 

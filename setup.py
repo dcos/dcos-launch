@@ -18,20 +18,25 @@ setup(
     packages=['dcos_launch', 'dcos_test_utils'],
     install_requires=[
         # Pins taken from 'azure==2.0.0rc4'
-        'azure-common==1.1.4',
-        'azure-storage==0.32.0',
-        'azure-mgmt-network==0.30.0rc4',
-        'azure-mgmt-resource==0.30.0rc4',
+        #'azure-common==1.1.4',
+        #'azure-storage==0.32.0',
+        #'azure-mgmt-network==0.30.0rc4',
+        #'azure-mgmt-resource==0.30.0rc4',
+        #'msrestazure',
+        'azure-storage',
+        'azure-mgmt-network',
+        'azure-mgmt-resource',
         'boto3',
         'botocore',
         'cerberus',
         'docopt',
-        'msrest==0.4.0',
-        'msrestazure==0.4.1',
-        'requests'
+        #'msrest==0.4.4',
+        #'msrestazure==0.4.7',
+        'requests',
         'retrying',
         'pyinstaller==3.2',
-        'pytest'
+        'py',
+        'pytest',
         'pyyaml'],
     entry_points={
         'console_scripts': [
