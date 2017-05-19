@@ -81,10 +81,10 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         # currently, only AWS is supported, but when support changes, this will have to update
         if 'ip_detect_contents' not in onprem_config:
             onprem_config['ip_detect_contents'] = pkg_resources.resource_string(
-                'launch', 'ip-detect/aws.sh').decode('utf-8')
+                'dcos_launch', 'ip-detect/aws.sh').decode('utf-8')
         if 'ip_detect_contents' not in onprem_config:
             onprem_config['ip_detect_public_contents'] = pkg_resources.resource_string(
-                'launch', 'ip-detect/aws_public.sh').decode('utf-8')
+                'dcos_launch', 'ip-detect/aws_public.sh').decode('utf-8')
         # For no good reason the installer uses 'ip_detect_script' instead of 'ip_detect_contents'
         onprem_config['ip_detect_script'] = self.config['dcos_config']['ip_detect_contents']
         del onprem_config['ip_detect_contents']
