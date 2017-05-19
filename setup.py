@@ -2,7 +2,7 @@ from setuptools import setup
 
 
 setup(
-    name='dcos_test_util',
+    name='dcos_test_utils',
     version='0.1',
     description='DC/OS test orchestration and lower-level cluster interface',
     url='https://dcos.io',
@@ -15,7 +15,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
     ],
-    packages=['test_util'],
+    packages=['dcos_test_utils'],
     install_requires=[
         # Pins taken from 'azure==2.0.0rc4'
         'msrest==0.4.0',
@@ -31,7 +31,7 @@ setup(
         'requests==2.10.0',
         'retrying'],
     package_data={
-        'test_util': [
+        'dcos_test_utils': [
             'templates/vpc-cluster-template.json',
             'templates/vpc-ebs-only-cluster-template.json'
         ]
