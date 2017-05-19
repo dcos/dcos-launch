@@ -7,8 +7,6 @@ import tempfile
 from contextlib import contextmanager
 from subprocess import check_call, check_output
 
-from pkgpanda.util import write_string
-
 log = logging.getLogger(__name__)
 
 
@@ -63,7 +61,8 @@ def temp_data(key: str) -> (str, str):
     temp_dir = tempfile.mkdtemp()
     socket_path = temp_dir + '/control_socket'
     key_path = temp_dir + '/key'
-    write_string(key_path, key)
+    with open(key_path, "w+") as f:
+        f.write(key)
     os.chmod(key_path, stat.S_IREAD | stat.S_IWRITE)
     yield (socket_path, key_path)
     os.remove(key_path)
@@ -91,6 +90,7 @@ def open_tunnel(user: str, key: str, host: str, port: int=22) -> Tunnelled:
             '-oControlPath=' + temp_paths[0],
             '-oStrictHostKeyChecking=no',
             '-oUserKnownHostsFile=/dev/null',
+            '-oLogLevel=ERROR',
             '-oBatchMode=yes',
             '-oPasswordAuthentication=no',
             '-p', str(port)]
