@@ -1,0 +1,14 @@
+azure-storage
+azure-mgmt-network
+azure-mgmt-resource
+boto3
+botocore
+cerberus
+docopt
+requests
+retrying
+tox
+pyinstaller==3.2
+py
+pytest
+pyyaml

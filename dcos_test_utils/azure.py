@@ -16,8 +16,8 @@ from azure.common.exceptions import CloudError
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource.resources.v2016_02_01 import ResourceManagementClient
 from azure.mgmt.resource.resources.v2016_02_01.models import (DeploymentMode,
-                                                  DeploymentProperties,
-                                                  ResourceGroup)
+                                                              DeploymentProperties,
+                                                              ResourceGroup)
 
 from dcos_test_utils.helpers import Host
 

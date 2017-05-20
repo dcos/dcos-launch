@@ -109,7 +109,7 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
             return {}
         if 'KeyName' in self.config['template_parameters']:
             raise dcos_launch.util.LauncherError('KeyHelperError', 'KeyName cannot be set in '
-                                            'template_parameters when key_helper is true')
+                                                 'template_parameters when key_helper is true')
         key_name = self.config['deployment_name']
         private_key = self.boto_wrapper.create_key_pair(key_name)
         self.config.update({'ssh_private_key': private_key})
