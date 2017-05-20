@@ -17,8 +17,8 @@ STATE_FILE = 'LAST_COMPLETED_STAGE'
 
 
 @retrying.retry(wait_fixed=1000, stop_max_delay=120000)
-def check_ssh(ssher, host, port):
-    ssher.get_home_dir(host, port)
+def check_ssh(ssh_client, host, port):
+    ssh_client.get_home_dir(host, port)
 
 
 class OnpremLauncher(dcos_launch.util.AbstractLauncher):
@@ -31,10 +31,10 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         return self.get_bare_cluster_launcher().create()
 
     def post_state(self, state):
-        self.get_ssher().command(self.bootstrap_host, ['printf', state, '>', STATE_FILE])
+        self.get_ssh_client().command(self.bootstrap_host, ['printf', state, '>', STATE_FILE])
 
     def get_last_state(self):
-        return self.get_ssher().command(self.bootstrap_host, ['cat', STATE_FILE]).decode().strip()
+        return self.get_ssh_client().command(self.bootstrap_host, ['cat', STATE_FILE]).decode().strip()
 
     def get_bare_cluster_launcher(self):
         if self.config['platform'] == 'aws':
@@ -45,7 +45,7 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
 
     def get_onprem_cluster(self):
         return dcos_test_utils.onprem.OnpremCluster.from_hosts(
-            ssher=self.get_ssher(),
+            ssh_client=self.get_ssh_client(),
             hosts=self.get_bare_cluster_launcher().get_hosts(),
             num_masters=int(self.config['num_masters']),
             num_private_agents=int(self.config['num_private_agents']),
@@ -97,9 +97,9 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         cluster = self.get_onprem_cluster()
         self.bootstrap_host = cluster.bootstrap_host.public_ip
         log.info('Waiting for SSH connectivity to bootstrap host...')
-        check_ssh(self.get_ssher(), self.bootstrap_host, self.config['ssh_port'])
+        check_ssh(self.get_ssh_client(), self.bootstrap_host, self.config['ssh_port'])
         try:
-            self.get_ssher().command(self.bootstrap_host, ['test', '-f', STATE_FILE])
+            self.get_ssh_client().command(self.bootstrap_host, ['test', '-f', STATE_FILE])
             last_complete = self.get_last_state()
         except subprocess.CalledProcessError:
             last_complete = None

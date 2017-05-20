@@ -107,7 +107,7 @@ def open_tunnel(user: str, key: str, host: str, port: int=22) -> Tunnelled:
         check_call(close_tunnel)
 
 
-class Ssher:
+class SshClient:
     """ class for binding SSH user and key to tunnel
     """
     def __init__(self, user: str, key: str):

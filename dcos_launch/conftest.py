@@ -3,7 +3,7 @@ import json
 from contextlib import contextmanager
 
 import dcos_test_utils
-import dcos_test_utils.ssher
+import dcos_test_utils.ssh_client
 import pytest
 from dcos_test_utils.helpers import Host
 
@@ -28,10 +28,10 @@ def mocked_test_runner(monkeypatch):
 
 
 @pytest.fixture
-def mock_ssher(monkeypatch):
-    monkeypatch.setattr(dcos_test_utils.ssher, 'open_tunnel', mocked_context)
-    monkeypatch.setattr(dcos_test_utils.ssher.Ssher, 'command', stub(b''))
-    monkeypatch.setattr(dcos_test_utils.ssher.Ssher, 'get_home_dir', stub(b''))
+def mock_ssh_client(monkeypatch):
+    monkeypatch.setattr(dcos_test_utils.ssh_client, 'open_tunnel', mocked_context)
+    monkeypatch.setattr(dcos_test_utils.ssh_client.SshClient, 'command', stub(b''))
+    monkeypatch.setattr(dcos_test_utils.ssh_client.SshClient, 'get_home_dir', stub(b''))
 
 
 @pytest.fixture
@@ -148,7 +148,7 @@ class MockInstaller(dcos_test_utils.onprem.DcosInstallerApiSession):
 
 
 @pytest.fixture
-def mock_bare_cluster_hosts(monkeypatch, mocked_aws_cf, mocked_test_runner, mock_ssher):
+def mock_bare_cluster_hosts(monkeypatch, mocked_aws_cf, mocked_test_runner, mock_ssh_client):
     monkeypatch.setattr(dcos_test_utils.aws.BareClusterCfStack, '__init__', stub(None))
     monkeypatch.setattr(dcos_test_utils.aws.BareClusterCfStack, 'delete', stub(None))
     monkeypatch.setattr(dcos_test_utils.aws.BareClusterCfStack, 'get_host_ips', stub([mock_pub_priv_host] * 4))
