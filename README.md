@@ -22,7 +22,7 @@ This module is the backend for the `dcos_api_session` object used as a test harn
 * local SSH client at /usr/bin/ssh
 
 ## Developing
-Additional requiremnts to develop and/or build this library:
+Additional requirements to develop and/or build this library:
 * tox
 * virtualenv
 * OpenSSL 1.0.2g or greater (for exporting the dcos-launch binary)
@@ -37,6 +37,8 @@ python setup.py develop
 
 ## Running Tests with tox
 Simply run `tox` and the following will be executed:
-* flake8 for style-errors
-* pytest for unittests
+* flake8 for style errors
+* pytest for unit tests
 * pyinstaller for packaging dcos-launch
+
+Note: these can be triggered individually by supplying the `-e` option to `tox`
