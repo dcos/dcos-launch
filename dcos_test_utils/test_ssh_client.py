@@ -8,7 +8,7 @@ from contextlib import contextmanager
 import pytest
 from retrying import retry
 
-from dcos_test_utils.ssher import open_tunnel, Ssher
+from dcos_test_utils.ssh_client import open_tunnel, SshClient
 
 
 def can_connect(port):
@@ -94,7 +94,7 @@ def tunnel_args(sshd_manager):
             'port': sshd_ports[0]}
 
 
-def test_ssh_tunnel(tunnel_args, tmpdir):
+def test_ssh_client(tunnel_args, tmpdir):
     """ Copies data to 'remote' (localhost) and then commands to cat that data back
     """
     src_text = str(uuid.uuid4())
@@ -107,6 +107,6 @@ def test_ssh_tunnel(tunnel_args, tmpdir):
         dst_text = t.command(read_cmd).decode().strip()
     assert dst_text == src_text, 'retrieved destination file did not match source!'
 
-    ssher = Ssher(tunnel_args['user'], tunnel_args['key'])
-    ssher_out = ssher.command(tunnel_args['host'], read_cmd, port=tunnel_args['port']).decode().strip()
-    assert ssher_out == src_text, 'Ssher did not produce the expected result!'
+    ssh_client = SshClient(tunnel_args['user'], tunnel_args['key'])
+    ssh_client_out = ssh_client.command(tunnel_args['host'], read_cmd, port=tunnel_args['port']).decode().strip()
+    assert ssh_client_out == src_text, 'SshClient did not produce the expected result!'

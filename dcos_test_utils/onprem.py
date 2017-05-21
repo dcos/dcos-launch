@@ -8,7 +8,7 @@ from typing import List
 import requests
 from retrying import retry
 
-from dcos_test_utils.ssher import Ssher
+from dcos_test_utils.ssh_client import SshClient
 from dcos_test_utils.helpers import ApiClientSession, Host, Url
 
 
@@ -25,7 +25,7 @@ class OnpremCluster:
 
     def __init__(
             self,
-            ssher: Ssher,
+            ssh_client: SshClient,
             masters: List[Host],
             private_agents: List[Host],
             public_agents: List[Host],
@@ -33,14 +33,14 @@ class OnpremCluster:
         """ An abstration for an arbitrary group of servers to be used
         as bootstrapping node and deployment nodes for DC/OS
         Args:
-            ssher: Ssher object for accessing any given node in the cluster
+            ssh_client: SshClient object for accessing any given node in the cluster
             masters: list of Hosts tuples to be used as masters
             private_agents: list of Host tuples to be used as private agents
             public_agents: list of Host tuples to be used as public agents
             bootstrap_host: Host tuple for the bootstrap host I.E. has installer
                 downloaded to it and perhaps hosts a bootstrap ZooKeeper
         """
-        self.ssher = ssher
+        self.ssh_client = ssh_client
         self.masters = masters
         self.private_agents = private_agents
         self.public_agents = public_agents
@@ -59,12 +59,12 @@ class OnpremCluster:
         return copy.copy(self.public_agents)
 
     @classmethod
-    def from_hosts(cls, ssher, hosts, num_masters, num_private_agents, num_public_agents):
+    def from_hosts(cls, ssh_client, hosts, num_masters, num_private_agents, num_public_agents):
         bootstrap_host, masters, private_agents, public_agents = (
             cls.partition_cluster(hosts, num_masters, num_private_agents, num_public_agents))
 
         return cls(
-            ssher=ssher,
+            ssh_client=ssh_client,
             masters=masters,
             private_agents=private_agents,
             public_agents=public_agents,
@@ -94,7 +94,7 @@ class OnpremCluster:
 
     def start_bootstrap_zk(self):
         zk_host = self.bootstrap_host.private_ip + ':2181'
-        self.ssher.command(
+        self.ssh_client.command(
             self.bootsrap_host.private_ip,
             ['docker', 'run', '--name', 'dcos-bootstrap-zk', '--detach=true',
              '--publish=2181:2181', '--publish=2888:2888', '--publish=3888:3888', 'jplock/zookeeper'])
@@ -103,19 +103,19 @@ class OnpremCluster:
     def setup_installer_server(self, installer_url: str, offline_mode: bool):
         log.info('Setting up installer on bootstrap host')
         return DcosInstallerApiSession.api_session_from_host(
-            self.ssher, self.bootstrap_host.public_ip, installer_url, offline_mode)
+            self.ssh_client, self.bootstrap_host.public_ip, installer_url, offline_mode)
 
 
 @retry(wait_fixed=3000, stop_max_delay=300 * 1000)
-def _download_dcos_installer(ssher, host, installer_path, download_url):
+def _download_dcos_installer(ssh_client, host, installer_path, download_url):
     """Response status 403 is fatal for curl's retry. Additionally, S3 buckets
     have been returning 403 for valid uploads for 10-15 minutes after CI finished build
     Therefore, give a five minute buffer to help stabilize CI
     """
     log.info('Attempting to download installer from: ' + download_url)
     try:
-        ssher.command(host, ['curl', '-fLsSv', '--retry', '20', '-Y', '100000', '-y', '60',
-                      '--create-dirs', '-o', installer_path, download_url])
+        ssh_client.command(host, ['curl', '-fLsSv', '--retry', '20', '-Y', '100000', '-y', '60',
+                                  '--create-dirs', '-o', installer_path, download_url])
     except:
         log.exception('Download failed!')
         raise
@@ -125,7 +125,7 @@ class DcosInstallerApiSession(ApiClientSession):
     @classmethod
     def api_session_from_host(
             cls,
-            ssher: Ssher,
+            ssh_client: SshClient,
             host: str,
             installer_url: str,
             offline_mode: bool,
@@ -134,25 +134,25 @@ class DcosInstallerApiSession(ApiClientSession):
         DcosInstallerApiSession to interact with it
 
         Args:
-            ssher: Ssher object to access the server hosting the installer
+            ssh_client: SshClient object to access the server hosting the installer
             host: IP address of the target host server
             installer_url: URL to pull the installer from relative to the host
             offline_mode: if True, installer will start with the --offline-mode
                 option which disables installing pre-requisites from the internet
             port: the installer can run on an arbitrary port but defaults to 9000
         """
-        ssher.command(host, ['sudo', 'usermod', '-aG', 'docker', ssher.user])
+        ssh_client.command(host, ['sudo', 'usermod', '-aG', 'docker', ssh_client.user])
 
-        host_home = ssher.get_home_dir(host)
+        host_home = ssh_client.get_home_dir(host)
         installer_path = host_home + '/dcos_generate_config.sh'
 
-        _download_dcos_installer(ssher, host, installer_path, installer_url)
+        _download_dcos_installer(ssh_client, host, installer_path, installer_url)
 
         log.info('Starting installer server at: {}:{}'.format(host, port))
         cmd = ['DCOS_INSTALLER_DAEMONIZE=true', 'bash', installer_path, '--web', '-p', str(port)]
         if offline_mode:
             cmd.append('--offline')
-        ssher.command(host, cmd)
+        ssh_client.command(host, cmd)
 
         api = cls(Url('http', host, '', '', '', port))
 

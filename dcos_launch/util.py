@@ -56,8 +56,8 @@ class LauncherError(Exception):
 
 
 class AbstractLauncher(metaclass=abc.ABCMeta):
-    def get_ssher(self):
-        return dcos_test_utils.ssher.Ssher(self.config['ssh_user'], self.config['ssh_private_key'])
+    def get_ssh_client(self):
+        return dcos_test_utils.ssh_client.SshClient(self.config['ssh_user'], self.config['ssh_private_key'])
 
     def __init__(self, config: dict):
         raise NotImplementedError()
@@ -110,9 +110,9 @@ cd /opt/mesosphere/active/dcos-integration-test &&
 def try_to_output_unbuffered(info, test_host, pytest_cmd):
     """ Writing straight to STDOUT buffer does not work with syscap so mock this function out
     """
-    ssher = dcos_test_utils.ssher.Ssher(info['ssh_user'], info['ssh_private_key'])
+    ssh_client = dcos_test_utils.ssh_client.SshClient(info['ssh_user'], info['ssh_private_key'])
     try:
-        ssher.command(test_host, ['bash', '-c', pytest_cmd], stdout=sys.stdout.buffer)
+        ssh_client.command(test_host, ['bash', '-c', pytest_cmd], stdout=sys.stdout.buffer)
     except subprocess.CalledProcessError as e:
         log.exception('Test run failed!')
         return e.returncode
