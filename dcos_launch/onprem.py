@@ -5,7 +5,6 @@ import subprocess
 import dcos_test_utils.aws
 import dcos_test_utils.onprem
 import pkg_resources
-import retrying
 from dcos_test_utils.helpers import Url
 
 import dcos_launch.aws
@@ -14,11 +13,6 @@ import dcos_launch.util
 log = logging.getLogger(__name__)
 
 STATE_FILE = 'LAST_COMPLETED_STAGE'
-
-
-@retrying.retry(wait_fixed=1000, stop_max_delay=120000)
-def check_ssh(ssh_client, host, port):
-    ssh_client.get_home_dir(host, port)
 
 
 class OnpremLauncher(dcos_launch.util.AbstractLauncher):
@@ -97,7 +91,7 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         cluster = self.get_onprem_cluster()
         self.bootstrap_host = cluster.bootstrap_host.public_ip
         log.info('Waiting for SSH connectivity to bootstrap host...')
-        check_ssh(self.get_ssh_client(), self.bootstrap_host, self.config['ssh_port'])
+        cluster.ssh_client.wait_for_ssh_connection(cluster.bootstrap_host.public_ip, self.config['ssh_port'])
         try:
             self.get_ssh_client().command(self.bootstrap_host, ['test', '-f', STATE_FILE])
             last_complete = self.get_last_state()

@@ -1,6 +1,5 @@
 """ Launcher functionality for the Azure Resource Manager (ARM)
 """
-import copy
 import logging
 
 import dcos_test_utils.arm
@@ -24,8 +23,7 @@ class AzureResourceGroupLauncher(dcos_launch.util.AbstractLauncher):
             self.config['template_url'],
             self.config['deployment_name'],
             self.config['template_parameters'])
-        info = copy.deepcopy(self.config)
-        return info
+        return self.config
 
     def wait(self):
         self.resource_group.wait_for_deployment()

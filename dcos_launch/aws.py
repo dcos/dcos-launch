@@ -1,4 +1,3 @@
-import copy
 import logging
 
 import dcos_test_utils.aws
@@ -34,11 +33,10 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
         except Exception as ex:
             self.delete_temp_resources(temp_resources)
             raise dcos_launch.util.LauncherError('ProviderError', None) from ex
-        info = copy.deepcopy(self.config)
-        info.update({
+        self.config.update({
             'stack_id': stack.stack_id,
             'temp_resources': temp_resources})
-        return info
+        return self.config
 
     def zen_helper(self):
         """

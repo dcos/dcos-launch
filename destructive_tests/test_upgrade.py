@@ -11,6 +11,7 @@ Upgrade the cluster using launch config to identify bootstrap nodes, ssh user, a
 
 Check the cluster workload
 """
+import json
 import logging
 import os
 import pprint
@@ -18,13 +19,16 @@ import random
 import uuid
 
 import dcos_launch
+import dcos_launch.config
 import dcos_test_utils
+import dcos_test_utils.dcos_api_session
 import pkg_resources
 import pytest
 import retrying
 import yaml
 from dcos_test_utils.helpers import CI_CREDENTIALS, marathon_app_id_to_mesos_dns_subdomain, session_tempfile
 
+logging.basicConfig(format='[%(asctime)s|%(name)s|%(levelname)s]: %(message)s', level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 TEST_APP_NAME_FMT = 'upgrade-{}'
@@ -46,21 +50,26 @@ def upgrade_dcos(
         user_config: dict,
         platform: str):
     assert platform == 'aws', 'AWS is the only supported platform backend currently'
+
     ssh_client = onprem_cluster.ssh_client
-    # check to see if previous installer is running and terminate if necessary
     version = dcos_api_session.get_version()
+
     # kill previous genconf on bootstrap host if it is still running
     bootstrap_host = onprem_cluster.bootstrap_host.public_ip
+    log.info('Killing any previous installer before starting upgrade')
     ssh_client.command(
         bootstrap_host,
         ['bash', '-c', "'docker ps -a | grep dcos-genconf | xargs docker kill'"])
+
     bootstrap_home = ssh_client.get_home_dir(bootstrap_host)
     installer_path = os.path.join(bootstrap_home, 'dcos_generate_config.sh')
     dcos_test_utils.onprem.download_dcos_installer(ssh_client, bootstrap_host, installer_path, installer_url)
-    # start the bootstrap zk to support upgrade
+
+    log.info('Starting ZooKeeper on the bootstrap node')
     zk_host = onprem_cluster.start_bootstrap_zk()
     # start the nginx that will host the bootstrap files
     bootstrap_url = 'http://' + onprem_cluster.start_bootstrap_nginx()
+
     with ssh_client.tunnel(bootstrap_host) as tunnel:
         upgrade_config = {
             'cluster_name': 'My Upgraded DC/OS',
@@ -74,6 +83,7 @@ def upgrade_dcos(
             'master_list': [h.private_ip for h in onprem_cluster.masters],
             'agent_list': [h.private_ip for h in onprem_cluster.private_agents],
             'public_agent_list': [h.private_ip for h in onprem_cluster.public_agents]}
+        upgrade_config.update(user_config)
         tunnel.command(['mkdir', '-p', 'genconf'])
         tunnel.copy_file(session_tempfile(upgrade_config), os.path.join(bootstrap_home, 'genconf/config.yaml'))
         tunnel.copy_file(session_tempfile(ssh_client.key), os.path.join(bootstrap_home, 'genconf/ssh_key'))
@@ -277,16 +287,29 @@ done
 @pytest.fixture(scope='session')
 def launcher():
     assert 'TEST_UPGRADE_LAUNCH_CONFIG_PATH' in os.environ
-    return dcos_launch.get_launcher(os.environ['TEST_UPGRADE_LAUNCH_CONFIG_PATH'])
+    return dcos_launch.get_launcher(
+        dcos_launch.config.get_validated_config(os.environ['TEST_UPGRADE_LAUNCH_CONFIG_PATH']), strict=False)
 
 
 @pytest.fixture(scope='session')
-def onprem_cluster(launcher):
+def onprem_cluster(launcher, installer_url):
+    # installer_url is not a required fixture but it is used to ensure that the launcher is not
+    # created when an installer target has not even been specified
     assert launcher.config['provider'] == 'onprem', 'Only onprem provider is supported for upgrades!'
-    if not os.environ.get('TEST_UPGRADE_PROVIDE_CLUSTER') == 'true':
-        launcher.create()
+    if os.environ.get('TEST_UPGRADE_CREATE_CLUSTER') == 'true':
+        info = launcher.create()
+        with open('upgrade_test_info.json', 'w') as f:
+            json.dump(info, f)
         launcher.wait()
-    return launcher.get_onprem_cluster()
+    else:
+        try:
+            launcher.wait()
+        except dcos_launch.util.LauncherError:
+            raise AssertionError(
+                'Cluster creation was not specified with TEST_UPGRADE_CREATE_CLUSTER, yet launcher '
+                'cannot reach the speficied cluster')
+    cluster = launcher.get_onprem_cluster()
+    return cluster
 
 
 @pytest.fixture(scope='session')
@@ -387,9 +410,11 @@ def installer_url():
 
 @pytest.fixture(scope='session')
 def upgrade_user_config():
-    assert 'TEST_UPGRADE_DCOS_CONFIG_PATH' in os.environ
-    with open(os.environ['TEST_UPGRADE_DCOS_CONFIG_PATH'], 'r') as f:
-        return yaml.load(f.read())
+    if 'TEST_UPGRADE_DCOS_CONFIG_PATH' in os.environ:
+        with open(os.environ['TEST_UPGRADE_DCOS_CONFIG_PATH'], 'r') as f:
+            return yaml.load(f.read())
+    else:
+        return {}
 
 
 @pytest.fixture(scope='session')

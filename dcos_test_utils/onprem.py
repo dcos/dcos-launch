@@ -114,7 +114,7 @@ class OnpremCluster:
         self.ssh_client.add_ssh_user_to_docker_users(self.bootstrap_host.public_ip)
         # Check if bootstrap ZK is running before starting
         run_status = self.ssh_client.command(
-            self.bootstrap_host.public,
+            self.bootstrap_host.public_ip,
             ['docker', 'ps', '-q', '--filter', 'name=' + docker_name, '--filter', 'status=running']).decode().strip()
         if run_status != '':
             log.warn('Using currently running {name} container: {status}'.format(
@@ -165,7 +165,7 @@ class DcosInstallerApiSession(ApiClientSession):
                 option which disables installing pre-requisites from the internet
             port: the installer can run on an arbitrary port but defaults to 9000
         """
-        ssh_client.add_ssh_user_to_docker_users(host, port)
+        ssh_client.add_ssh_user_to_docker_users(host)
 
         host_home = ssh_client.get_home_dir(host)
         installer_path = host_home + '/dcos_generate_config.sh'
