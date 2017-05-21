@@ -3,6 +3,7 @@
 import copy
 import itertools
 import logging
+import os
 from typing import List
 
 import requests
@@ -92,13 +93,36 @@ class OnpremCluster:
             list(itertools.islice(hosts_iter, num_public_agents)),
         )
 
-    def start_bootstrap_zk(self):
-        zk_host = self.bootstrap_host.private_ip + ':2181'
+    def start_bootstrap_zk(self) -> str:
+        self.check_or_start_bootstrap_docker_service(
+            'dcos-bootstrap-zk',
+            ['--publish=2181:2181', '--publish=2888:2888', '--publish=3888:3888', 'jplock/zookeeper'])
+        return self.bootstrap_host.private_ip + ':2181'
+
+    def start_bootstrap_nginx(self) -> str:
+        host_share_path = os.path.join(self.ssh_client.get_home_dir(self.bootstrap_host.public_ip), 'genconf/serve')
+        volume_mount = host_share_path + ':/usr/share/nginx/html:ro'
+        self.check_or_start_bootstrap_docker_service(
+            'dcos-bootstrap-nginx',
+            ['--publish=80:80', '--volume=' + volume_mount, 'nginx'])
+        return self.bootstrap_host.private_ip + ':80'
+
+    def check_or_start_bootstrap_docker_service(self, docker_name, docker_args):
+        """ Checks to see if a given docker service is running on the bootstrap
+        host. If not, the service will be started
+        """
+        self.ssh_client.add_ssh_user_to_docker_users(self.bootstrap_host.public_ip)
+        # Check if bootstrap ZK is running before starting
+        run_status = self.ssh_client.command(
+            self.bootstrap_host.public,
+            ['docker', 'ps', '-q', '--filter', 'name=' + docker_name, '--filter', 'status=running']).decode().strip()
+        if run_status != '':
+            log.warn('Using currently running {name} container: {status}'.format(
+                name=docker_name, status=run_status))
+            return
         self.ssh_client.command(
-            self.bootsrap_host.private_ip,
-            ['docker', 'run', '--name', 'dcos-bootstrap-zk', '--detach=true',
-             '--publish=2181:2181', '--publish=2888:2888', '--publish=3888:3888', 'jplock/zookeeper'])
-        return zk_host
+            self.bootsrap_host.public_ip,
+            ['docker', 'run', '--name', docker_name, '--detach=true', docker_args])
 
     def setup_installer_server(self, installer_url: str, offline_mode: bool):
         log.info('Setting up installer on bootstrap host')
@@ -141,7 +165,7 @@ class DcosInstallerApiSession(ApiClientSession):
                 option which disables installing pre-requisites from the internet
             port: the installer can run on an arbitrary port but defaults to 9000
         """
-        ssh_client.command(host, ['sudo', 'usermod', '-aG', 'docker', ssh_client.user])
+        ssh_client.add_ssh_user_to_docker_users(host, port)
 
         host_home = ssh_client.get_home_dir(host)
         installer_path = host_home + '/dcos_generate_config.sh'

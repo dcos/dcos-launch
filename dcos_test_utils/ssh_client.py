@@ -7,6 +7,8 @@ import tempfile
 from contextlib import contextmanager
 from subprocess import check_call, check_output
 
+import retrying
+
 log = logging.getLogger(__name__)
 
 
@@ -114,11 +116,23 @@ class SshClient:
         self.user = user
         self.key = key
 
+    def tunnel(self, host: str, port: int=22):
+        return open_tunnel(self.user, self.key, host, port)
+
     def command(self, host: str, cmd: list, port: int=22, **kwargs) -> bytes:
-        with open_tunnel(self.user, self.key, host, port) as tunnel:
-            return tunnel.command(cmd, **kwargs)
+        with self.tunnel(host, port) as t:
+            return t.command(cmd, **kwargs)
 
     def get_home_dir(self, host: str, port: int=22) -> str:
         """ Returns the SSH home dir
         """
         return self.command(host, ['pwd'], port=port).decode().strip()
+
+    @retrying.retry(wait_fixed=1000)
+    def wait_for_ssh_connection(self, host: str, port: int=22) -> None:
+        """ Blocks until SSH connection can be established
+        """
+        self.get_home_dir(host, port)
+
+    def add_ssh_user_to_docker_users(self, host: str, port: int=22):
+        self.command(host, ['sudo', 'usermod', '-aG', 'docker', self.user], port=port)
