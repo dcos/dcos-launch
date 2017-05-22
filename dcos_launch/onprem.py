@@ -95,7 +95,10 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         try:
             self.get_ssh_client().command(self.bootstrap_host, ['test', '-f', STATE_FILE])
             last_complete = self.get_last_state()
+            log.info('Detected previous launch state, continuing '
+                     'from last complete stage ({})'.format(last_complete))
         except subprocess.CalledProcessError:
+            log.info('No installation state file detected; beginning fresh install...')
             last_complete = None
 
         if last_complete is None:

@@ -4,6 +4,7 @@ import copy
 import itertools
 import logging
 import os
+import pprint
 from typing import List
 
 import requests
@@ -101,13 +102,13 @@ class OnpremCluster:
 
     def start_bootstrap_nginx(self) -> str:
         host_share_path = os.path.join(self.ssh_client.get_home_dir(self.bootstrap_host.public_ip), 'genconf/serve')
-        volume_mount = host_share_path + ':/usr/share/nginx/html:ro'
+        volume_mount = host_share_path + ':/usr/share/nginx/html'
         self.check_or_start_bootstrap_docker_service(
             'dcos-bootstrap-nginx',
             ['--publish=80:80', '--volume=' + volume_mount, 'nginx'])
         return self.bootstrap_host.private_ip + ':80'
 
-    def check_or_start_bootstrap_docker_service(self, docker_name, docker_args):
+    def check_or_start_bootstrap_docker_service(self, docker_name: str, docker_args: list):
         """ Checks to see if a given docker service is running on the bootstrap
         host. If not, the service will be started
         """
@@ -121,8 +122,8 @@ class OnpremCluster:
                 name=docker_name, status=run_status))
             return
         self.ssh_client.command(
-            self.bootsrap_host.public_ip,
-            ['docker', 'run', '--name', docker_name, '--detach=true', docker_args])
+            self.bootstrap_host.public_ip,
+            ['docker', 'run', '--name', docker_name, '--detach=true'] + docker_args)
 
     def setup_installer_server(self, installer_url: str, offline_mode: bool):
         log.info('Setting up installer on bootstrap host')
@@ -131,7 +132,7 @@ class OnpremCluster:
 
 
 @retry(wait_fixed=3000, stop_max_delay=300 * 1000)
-def _download_dcos_installer(ssh_client, host, installer_path, download_url):
+def download_dcos_installer(ssh_client, host, installer_path, download_url):
     """Response status 403 is fatal for curl's retry. Additionally, S3 buckets
     have been returning 403 for valid uploads for 10-15 minutes after CI finished build
     Therefore, give a five minute buffer to help stabilize CI
@@ -170,7 +171,7 @@ class DcosInstallerApiSession(ApiClientSession):
         host_home = ssh_client.get_home_dir(host)
         installer_path = host_home + '/dcos_generate_config.sh'
 
-        _download_dcos_installer(ssh_client, host, installer_path, installer_url)
+        download_dcos_installer(ssh_client, host, installer_path, installer_url)
 
         log.info('Starting installer server at: {}:{}'.format(host, port))
         cmd = ['DCOS_INSTALLER_DAEMONIZE=true', 'bash', installer_path, '--web', '-p', str(port)]
@@ -193,11 +194,10 @@ class DcosInstallerApiSession(ApiClientSession):
         log.info('Generating configuration on installer server...')
         response = self.post('/api/v1/configure', json=config)
         log_and_raise_if_not_ok(response)
-        response_json = response.json()
-        if 'error' in response_json:
-            # genconf was unsuccessful
-            raise Exception('Error generating configuration: {}'.format(response_json['error']))
-        return response_json
+        validation_response_json = self.get('api/v1/configure/status').json()
+        if len(validation_response_json.items()) > 0:
+            log.error('Configuration validation failed! Errors returned: {}'.format(validation_response_json))
+            raise Exception('Error while generating configuration: {}'.format(validation_response_json))
 
     def preflight(self) -> None:
         log.info('Starting preflight...')
@@ -245,7 +245,13 @@ class DcosInstallerApiSession(ApiClientSession):
             if host_data[host]['host_status'] != 'success':
                 failures.append(host_data[host])
         if len(failures) > 0:
-            raise Exception("Failures detected in {}: {}".format(action, failures))
+            errors = list()
+            for f in failures:
+                for c in f['commands']:
+                    if c['returncode'] != 0:
+                        errors.append(c)
+
+            raise Exception("Failures detected in {}: {}".format(action, pprint.pformat(errors)))
 
     def start_action(self, action: str) -> None:
         """Args:

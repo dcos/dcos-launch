@@ -28,7 +28,7 @@ import retrying
 import yaml
 from dcos_test_utils.helpers import CI_CREDENTIALS, marathon_app_id_to_mesos_dns_subdomain, session_tempfile
 
-logging.basicConfig(format='[%(asctime)s|%(name)s|%(levelname)s]: %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='[%(asctime)s|%(name)s|%(levelname)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
 TEST_APP_NAME_FMT = 'upgrade-{}'
@@ -41,6 +41,9 @@ def wait_for_mesos_metric(cluster, host, key, value):
     """Return True when host's Mesos metric key is equal to value."""
     response = cluster.get('/metrics/snapshot', mesos_node=host)
     return response.json().get(key) == value
+
+
+# FIXME: Add mesos node stuff
 
 
 def upgrade_dcos(
@@ -57,11 +60,20 @@ def upgrade_dcos(
     # kill previous genconf on bootstrap host if it is still running
     bootstrap_host = onprem_cluster.bootstrap_host.public_ip
     log.info('Killing any previous installer before starting upgrade')
-    ssh_client.command(
+    previous_installer = ssh_client.command(
         bootstrap_host,
-        ['bash', '-c', "'docker ps -a | grep dcos-genconf | xargs docker kill'"])
+        ['docker', 'ps', '--quiet', '--filter', 'name=dcos-genconf', '--filter', 'status=running']).decode().strip()
+    if previous_installer:
+        ssh_client.command(
+            bootstrap_host,
+            ['docker', 'kill', previous_installer])
 
     bootstrap_home = ssh_client.get_home_dir(bootstrap_host)
+
+    log.info('Clearing out old installation files')
+    genconf_dir = os.path.join(bootstrap_home, 'genconf')
+    ssh_client.command(bootstrap_host, ['sudo', 'rm', '-rf', genconf_dir])
+    ssh_client.command(bootstrap_host, ['mkdir', genconf_dir])
     installer_path = os.path.join(bootstrap_home, 'dcos_generate_config.sh')
     dcos_test_utils.onprem.download_dcos_installer(ssh_client, bootstrap_host, installer_path, installer_url)
 
@@ -71,9 +83,11 @@ def upgrade_dcos(
     bootstrap_url = 'http://' + onprem_cluster.start_bootstrap_nginx()
 
     with ssh_client.tunnel(bootstrap_host) as tunnel:
+        log.info('Setting up upgrade config on bootstrap host')
         upgrade_config = {
             'cluster_name': 'My Upgraded DC/OS',
             'ssh_user': ssh_client.user,
+            'master_discovery': 'static',
             'exhibitor_storage_backend': 'zookeeper',
             'exhibitor_zk_hosts': zk_host,
             'exhibitor_zk_path': '/exhibitor',
@@ -84,16 +98,25 @@ def upgrade_dcos(
             'agent_list': [h.private_ip for h in onprem_cluster.private_agents],
             'public_agent_list': [h.private_ip for h in onprem_cluster.public_agents]}
         upgrade_config.update(user_config)
-        tunnel.command(['mkdir', '-p', 'genconf'])
-        tunnel.copy_file(session_tempfile(upgrade_config), os.path.join(bootstrap_home, 'genconf/config.yaml'))
-        tunnel.copy_file(session_tempfile(ssh_client.key), os.path.join(bootstrap_home, 'genconf/ssh_key'))
-        tunnel.command(['chmod', '600', os.path.join(bootstrap_home, 'genconf/ssh_key')])
-        ip_detect_script = pkg_resources.resource_string('dcos_launch/ip-detect/{}.sh'.format(platform)).decode('utf-8')
-        tunnel.copy_file(session_tempfile(ip_detect_script), os.path.join(bootstrap_home, 'genconf/ip-detect'))
+
         # transfer ip-detect and ssh key
+        tunnel.copy_file(
+            session_tempfile(
+                yaml.dump(upgrade_config).encode()), os.path.join(bootstrap_home, 'genconf/config.yaml'))
+        tunnel.copy_file(
+            session_tempfile(
+                ssh_client.key.encode()), os.path.join(bootstrap_home, 'genconf/ssh_key'))
+        tunnel.command(['chmod', '600', os.path.join(bootstrap_home, 'genconf/ssh_key')])
+        ip_detect_script = pkg_resources.resource_string(
+            'dcos_launch', 'ip-detect/{}.sh'.format(platform)).decode('utf-8')
+        tunnel.copy_file(session_tempfile(ip_detect_script.encode()), os.path.join(bootstrap_home, 'genconf/ip-detect'))
+
+        log.info('Generating node upgrade script')
         upgrade_script_path = tunnel.command(
             ['bash', installer_path, '--generate-node-upgrade-script ' + version]
         ).decode('utf-8').splitlines()[-1].split("Node upgrade script URL: ", 1)[1]
+
+        log.info('Editing node upgrade script...')
         # Remove docker (and associated journald) restart from the install
         # script. This prevents Docker-containerized tasks from being killed
         # during agent upgrades.
@@ -102,6 +125,7 @@ def upgrade_dcos(
             '-e', '"s/systemctl restart systemd-journald//g"',
             '-e', '"s/systemctl restart docker//g"',
             bootstrap_home + '/genconf/serve/dcos_install.sh'])
+        tunnel.command(['docker', 'restart', 'dcos-bootstrap-nginx'])
     # upgrading can finally start
     master_list = [host.public_ip for host in onprem_cluster.masters]
     private_agent_list = [host.public_ip for host in onprem_cluster.private_agents]
@@ -147,6 +171,7 @@ def upgrade_dcos(
                     'Timed out waiting for {} to rejoin the cluster after upgrade: {}'.
                     format(role_name, repr(host))
                 ) from exc
+    dcos_api_session.wait_for_dcos()
 
 
 @pytest.fixture(scope='session')
@@ -288,7 +313,7 @@ done
 def launcher():
     assert 'TEST_UPGRADE_LAUNCH_CONFIG_PATH' in os.environ
     return dcos_launch.get_launcher(
-        dcos_launch.config.get_validated_config(os.environ['TEST_UPGRADE_LAUNCH_CONFIG_PATH']), strict=False)
+        dcos_launch.config.get_validated_config(os.environ['TEST_UPGRADE_LAUNCH_CONFIG_PATH'], strict=False))
 
 
 @pytest.fixture(scope='session')
@@ -313,15 +338,17 @@ def onprem_cluster(launcher, installer_url):
 
 
 @pytest.fixture(scope='session')
-def dcos_api_session(onprem_cluster):
-    return dcos_test_utils.dcos_api_session.DcosApiSession(
-        onprem_cluster.masters[0].public_ip,
+def dcos_api_session(onprem_cluster, launcher):
+    session = dcos_test_utils.dcos_api_session.DcosApiSession(
+        'http://' + onprem_cluster.masters[0].public_ip,
         [m.public_ip for m in onprem_cluster.masters],
         [m.public_ip for m in onprem_cluster.private_agents],
         [m.public_ip for m in onprem_cluster.public_agents],
         'root',
         dcos_test_utils.dcos_api_session.DcosUser(CI_CREDENTIALS),
         exhibitor_admin_password=launcher.config.get('dcos_config').get('exhibitor_admin_password'))
+    session.wait_for_dcos()
+    return session
 
 
 @retrying.retry(

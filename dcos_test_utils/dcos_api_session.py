@@ -213,7 +213,8 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         status = r.json()
         logging.info('Exhibitor cluster status: {}'.format(status))
         zk_nodes = sorted([n['hostname'] for n in status])
-        assert zk_nodes == self.masters, 'ZooKeeper has not formed the expected quorum'
+        # zk nodes will be private but masters can be public
+        assert len(zk_nodes) == len(self.masters), 'ZooKeeper has not formed the expected quorum'
 
     @retrying.retry(wait_fixed=1000,
                     retry_on_result=lambda ret: ret is False,
