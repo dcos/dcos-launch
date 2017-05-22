@@ -86,12 +86,14 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         return onprem_config
 
     def wait(self):
+        # FIXME: this starts too soon and some machines get weird SSH failures
         log.info('Waiting for bare cluster provisioning status..')
         self.get_bare_cluster_launcher().wait()
         cluster = self.get_onprem_cluster()
         self.bootstrap_host = cluster.bootstrap_host.public_ip
         log.info('Waiting for SSH connectivity to bootstrap host...')
-        cluster.ssh_client.wait_for_ssh_connection(cluster.bootstrap_host.public_ip, self.config['ssh_port'])
+        for host in cluster.masters + cluster.private_agents + cluster.public_agents:
+            cluster.ssh_client.wait_for_ssh_connection(host.public_ip, self.config['ssh_port'])
         try:
             self.get_ssh_client().command(self.bootstrap_host, ['test', '-f', STATE_FILE])
             last_complete = self.get_last_state()
