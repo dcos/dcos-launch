@@ -102,21 +102,20 @@ def mocked_aws_zen_cf(monkeypatch, mocked_aws_cf):
 
 @pytest.fixture
 def mocked_azure(monkeypatch, mocked_test_runner):
-    monkeypatch.setattr(dcos_test_utils.azure.ServicePrincipalCredentials, '__init__', stub(None))
-    monkeypatch.setattr(dcos_test_utils.azure.ResourceManagementClient, '__init__', stub(None))
-    monkeypatch.setattr(dcos_test_utils.azure.NetworkManagementClient, '__init__', stub(None))
-
-    monkeypatch.setattr(dcos_test_utils.azure.AzureWrapper, 'deploy_template_to_new_resource_group', stub(None))
-    monkeypatch.setattr(dcos_test_utils.azure.DcosAzureResourceGroup, 'wait_for_deployment', stub(None))
-    monkeypatch.setattr(dcos_test_utils.azure.DcosAzureResourceGroup, 'delete', stub(None))
-    monkeypatch.setattr(dcos_test_utils.azure.DcosAzureResourceGroup, 'get_master_ips',
+    monkeypatch.setattr(dcos_test_utils.arm.ServicePrincipalCredentials, '__init__', stub(None))
+    monkeypatch.setattr(dcos_test_utils.arm.ResourceManagementClient, '__init__', stub(None))
+    monkeypatch.setattr(dcos_test_utils.arm.NetworkManagementClient, '__init__', stub(None))
+    monkeypatch.setattr(dcos_test_utils.arm.AzureWrapper, 'deploy_template_to_new_resource_group', stub(None))
+    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'wait_for_deployment', stub(None))
+    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'delete', stub(None))
+    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'get_master_ips',
                         stub([mock_pub_priv_host]))
-    monkeypatch.setattr(dcos_test_utils.azure.DcosAzureResourceGroup, 'get_private_agent_ips',
+    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'get_private_agent_ips',
                         stub([mock_priv_host]))
-    monkeypatch.setattr(dcos_test_utils.azure.DcosAzureResourceGroup, 'get_public_agent_ips',
+    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'get_public_agent_ips',
                         stub([mock_pub_priv_host]))
-    monkeypatch.setattr(dcos_test_utils.azure.DcosAzureResourceGroup, 'public_agent_lb_fqdn', 'abc-foo-bar')
-    monkeypatch.setattr(dcos_test_utils.azure.DcosAzureResourceGroup, 'public_master_lb_fqdn', 'dead-beef')
+    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'public_agent_lb_fqdn', 'abc-foo-bar')
+    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'public_master_lb_fqdn', 'dead-beef')
 
 
 class MockInstaller(dcos_test_utils.onprem.DcosInstallerApiSession):

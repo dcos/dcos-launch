@@ -1,6 +1,6 @@
 """ This module is intended to allow deploying of arbitrary Azure Resource
-Manager templates. For more information on how to configure and interpret these
-templates, see:
+Manager (ARM) templates and describe the provided DC/OS cluster. For more
+information on how to configure and interpret these templates, see:
 
 https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-authoring-templates
 """

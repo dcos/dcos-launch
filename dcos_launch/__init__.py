@@ -1,5 +1,5 @@
 import dcos_launch.aws
-import dcos_launch.azure
+import dcos_launch.arm
 import dcos_launch.onprem
 import dcos_launch.util
 
@@ -15,5 +15,5 @@ def get_launcher(config):
         if provider == 'onprem':
             return dcos_launch.onprem.OnpremLauncher(config)
     if platform == 'azure':
-        return dcos_launch.azure.AzureResourceGroupLauncher(config)
+        return dcos_launch.arm.AzureResourceGroupLauncher(config)
     raise dcos_launch.util.LauncherError('UnsupportedAction', 'Launch platform not supported: {}'.format(platform))
