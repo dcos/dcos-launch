@@ -1,7 +1,9 @@
+""" Launcher functionality for the Azure Resource Manager (ARM)
+"""
 import copy
 import logging
 
-import dcos_test_utils.azure
+import dcos_test_utils.arm
 
 import dcos_launch.util
 
@@ -10,7 +12,7 @@ log = logging.getLogger(__name__)
 
 class AzureResourceGroupLauncher(dcos_launch.util.AbstractLauncher):
     def __init__(self, config: dict):
-        self.azure_wrapper = dcos_test_utils.azure.AzureWrapper(
+        self.azure_wrapper = dcos_test_utils.arm.AzureWrapper(
             config['azure_location'], config['azure_subscription_id'], config['azure_client_id'],
             config['azure_client_secret'], config['azure_tenant_id'])
         self.config = config
@@ -55,7 +57,7 @@ class AzureResourceGroupLauncher(dcos_launch.util.AbstractLauncher):
     @property
     def resource_group(self):
         try:
-            return dcos_test_utils.azure.DcosAzureResourceGroup(self.config['deployment_name'], self.azure_wrapper)
+            return dcos_test_utils.arm.DcosAzureResourceGroup(self.config['deployment_name'], self.azure_wrapper)
         except Exception as ex:
             raise dcos_launch.util.LauncherError('GroupNotFound', None) from ex
 
