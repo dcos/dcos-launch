@@ -178,6 +178,7 @@ def is_retryable_exception(exception: Exception) -> bool:
     """
     for ex in [requests.exceptions.ConnectionError, requests.exceptions.Timeout]:
         if isinstance(exception, ex):
+            log.exception('Retrying common HTTP error...')
             return True
     return False
 
@@ -199,11 +200,7 @@ class RetryCommonHttpErrorsMixin:
             stop_max_delay=retry_timeout * 1000,
             retry_on_exception=is_retryable_exception)
         def retry_errors():
-            try:
-                return super(RetryCommonHttpErrorsMixin, self).api_request(*args, **kwargs)
-            except:
-                log.exception('Retrying common HTTP error...')
-                raise
+            return super(RetryCommonHttpErrorsMixin, self).api_request(*args, **kwargs)
 
         return retry_errors()
 

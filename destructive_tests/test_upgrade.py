@@ -39,11 +39,8 @@ TEST_APP_NAME_FMT = 'upgrade-{}'
     retry_on_result=lambda result: result is False)
 def wait_for_mesos_metric(cluster, host, key, value):
     """Return True when host's Mesos metric key is equal to value."""
-    response = cluster.get('/metrics/snapshot', mesos_node=host)
+    response = cluster.get('/metrics/snapshot', node=host)
     return response.json().get(key) == value
-
-
-# FIXME: Add mesos node stuff
 
 
 def upgrade_dcos(
