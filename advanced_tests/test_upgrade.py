@@ -32,7 +32,7 @@ import retrying
 import yaml
 from dcos_test_utils.helpers import CI_CREDENTIALS, marathon_app_id_to_mesos_dns_subdomain, session_tempfile
 
-logging.basicConfig(format='[%(asctime)s|%(name)s|%(levelname)s]: %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='[%(asctime)s|%(name)s|%(levelname)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
 TEST_APP_NAME_FMT = 'upgrade-{}'
