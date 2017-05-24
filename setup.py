@@ -37,15 +37,13 @@ setup(
     },
     package_data={
         'dcos_launch': [
-            'ip-detect/aws.sh',
-            'ip-detect/aws_public.sh',
-            'sample_configs/*.yaml',
-            'dcos-launch.spec'
+            'sample_configs/*.yaml'
         ],
         'dcos_test_utils': [
+            'ip-detect/aws.sh',
+            'ip-detect/aws_public.sh',
             'templates/vpc-cluster-template.json',
             'templates/vpc-ebs-only-cluster-template.json'
         ],
-    },
-    zip_safe=False
+    }
 )
