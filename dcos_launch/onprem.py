@@ -5,7 +5,6 @@ import subprocess
 import dcos_test_utils.aws
 import dcos_test_utils.onprem
 import pkg_resources
-import retrying
 from dcos_test_utils.helpers import Url
 
 import dcos_launch.aws
@@ -14,11 +13,6 @@ import dcos_launch.util
 log = logging.getLogger(__name__)
 
 STATE_FILE = 'LAST_COMPLETED_STAGE'
-
-
-@retrying.retry(wait_fixed=1000, stop_max_delay=120000)
-def check_ssh(ssh_client, host, port):
-    ssh_client.get_home_dir(host, port)
 
 
 class OnpremLauncher(dcos_launch.util.AbstractLauncher):
@@ -81,10 +75,10 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         # currently, only AWS is supported, but when support changes, this will have to update
         if 'ip_detect_contents' not in onprem_config:
             onprem_config['ip_detect_contents'] = pkg_resources.resource_string(
-                'dcos_launch', 'ip-detect/aws.sh').decode('utf-8')
-        if 'ip_detect_contents' not in onprem_config:
+                'dcos_test_utils', 'ip-detect/aws.sh').decode('utf-8')
+        if 'ip_detect_public_contents' not in onprem_config:
             onprem_config['ip_detect_public_contents'] = pkg_resources.resource_string(
-                'dcos_launch', 'ip-detect/aws_public.sh').decode('utf-8')
+                'dcos_test_utils', 'ip-detect/aws_public.sh').decode('utf-8')
         # For no good reason the installer uses 'ip_detect_script' instead of 'ip_detect_contents'
         onprem_config['ip_detect_script'] = self.config['dcos_config']['ip_detect_contents']
         del onprem_config['ip_detect_contents']
@@ -95,13 +89,18 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         log.info('Waiting for bare cluster provisioning status..')
         self.get_bare_cluster_launcher().wait()
         cluster = self.get_onprem_cluster()
+        log.info('Waiting for SSH connectivity to cluster host...')
+        for host in cluster.hosts:
+            cluster.ssh_client.wait_for_ssh_connection(host.public_ip, self.config['ssh_port'])
+
         self.bootstrap_host = cluster.bootstrap_host.public_ip
-        log.info('Waiting for SSH connectivity to bootstrap host...')
-        check_ssh(self.get_ssh_client(), self.bootstrap_host, self.config['ssh_port'])
         try:
             self.get_ssh_client().command(self.bootstrap_host, ['test', '-f', STATE_FILE])
             last_complete = self.get_last_state()
+            log.info('Detected previous launch state, continuing '
+                     'from last complete stage ({})'.format(last_complete))
         except subprocess.CalledProcessError:
+            log.info('No installation state file detected; beginning fresh install...')
             last_complete = None
 
         if last_complete is None:
