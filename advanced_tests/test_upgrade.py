@@ -285,7 +285,6 @@ def setup_workload(dcos_api_session, viptalk_app, viplisten_app, healthcheck_app
     # See this issue for why we check for a difference:
     # https://issues.apache.org/jira/browse/MESOS-1718
     task_state_start = get_master_task_state(dcos_api_session, tasks_start[test_app_ids[0]][0])
-
     return test_app_ids, tasks_start, task_state_start
 
 
@@ -320,7 +319,7 @@ class TestUpgrade:
     def test_mesos_task_state_remains_consistent(self, dcos_api_session, setup_workload):
         test_app_ids, tasks_start, task_state_start = setup_workload
         task_state_end = get_master_task_state(dcos_api_session, tasks_start[test_app_ids[0]][0])
-        assert task_state_start == task_state_end
+        assert all(item in task_state_end.items() for item in task_state_start.items())
 
     def test_app_dns_survive(self, dcos_api_session, dns_app):
         marathon_framework_id = dcos_api_session.marathon.get('/v2/info').json()['frameworkId']
