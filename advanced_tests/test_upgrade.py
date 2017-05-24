@@ -28,18 +28,22 @@ import retrying
 import yaml
 from dcos_test_utils.helpers import CI_CREDENTIALS, marathon_app_id_to_mesos_dns_subdomain, session_tempfile
 
-logging.basicConfig(format='[%(asctime)s|%(name)s|%(levelname)s]: %(message)s', level=logging.INFO)
+logging.basicConfig(format='[%(asctime)s|%(name)s|%(levelname)s]: %(message)s', level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 TEST_APP_NAME_FMT = 'upgrade-{}'
 
 
 @retrying.retry(
-    wait_fixed=1000 * 5,
+    wait_fixed=1000 * 10,
     retry_on_result=lambda result: result is False)
 def wait_for_mesos_metric(cluster, host, key, value):
     """Return True when host's Mesos metric key is equal to value."""
-    response = cluster.get('/metrics/snapshot', node=host)
+    if host in cluster.masters:
+        port = 5050
+    else:
+        port = 5051
+    response = cluster.get('/metrics/snapshot', host=host, port=port)
     return response.json().get(key) == value
 
 

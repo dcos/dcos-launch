@@ -178,7 +178,7 @@ def is_retryable_exception(exception: Exception) -> bool:
     """
     for ex in [requests.exceptions.ConnectionError, requests.exceptions.Timeout]:
         if isinstance(exception, ex):
-            log.exception('Retrying common HTTP error...')
+            log.debug('Retrying common HTTP error: {}'.format(ex.__name__))
             return True
     return False
 
@@ -197,6 +197,7 @@ class RetryCommonHttpErrorsMixin:
                 the initial exception was raised
         """
         @retrying.retry(
+            wait_fixed=1000,
             stop_max_delay=retry_timeout * 1000,
             retry_on_exception=is_retryable_exception)
         def retry_errors():
