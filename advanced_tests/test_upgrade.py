@@ -457,7 +457,7 @@ def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster, in
 
 @pytest.mark.usefixtures('upgraded_dcos')
 @pytest.mark.skipif(
-    'TEST_UPGRADE_INSTALLER_URL' not in os.environ or 'TEST_UPGRADE_DCOS_CONFIG_PATH' not in os.environ,
+    'TEST_UPGRADE_INSTALLER_URL' not in os.environ or 'TEST_UPGRADE_LAUNCH_CONFIG_PATH' not in os.environ,
     reason='This test must have targets specified to be run!')
 class TestUpgrade:
     def test_marathon_app_tasks_survive(self, dcos_api_session, setup_workload):
