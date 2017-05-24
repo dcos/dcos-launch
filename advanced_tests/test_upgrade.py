@@ -1,15 +1,19 @@
-""" Steps:
-Setup:
-- Input launch config (or launch info for clusters that already exist)
-- Launch cluster if it does not exist
-- Input target installer artifact
-- Optionally provide path to config add-ins
+"""
 
-Setup the cluster workload
+WARNGING: This is a destructive process and you cannot go back
 
-Upgrade the cluster using launch config to identify bootstrap nodes, ssh user, and ssh key
-
-Check the cluster workload
+=========================================================
+This test has 4 input parameters (set in the environment)
+=========================================================
+Required:
+  TEST_UPGRADE_LAUNCH_CONFIG_PATH: path to a dcos-launch config for the cluster that will be upgraded.
+      This cluster may or may not exist yet
+  TEST_UPGRADE_INSTALLER_URL: The installer pulled from this URL will upgrade the aforementioned cluster.
+Optional
+  TEST_UPGRADE_CREATE_CLUSTER: if set to `true`, a cluster will be created. Otherwise it will be assumed
+      the provided launch config is a dcos-launch artifact
+  TEST_UPGRADE_DCOS_CONFIG_PATH: path to a YAML file for injecting parameters into the config to be
+      used in generating the upgrade script
 """
 import json
 import logging
@@ -52,7 +56,20 @@ def upgrade_dcos(
         onprem_cluster: dcos_test_utils.onprem.OnpremCluster,
         installer_url: str,
         user_config: dict,
-        platform: str):
+        platform: str) -> None:
+    """ This method performs the documented upgrade process on a cluster
+    that has presumably been setup by dcos-launch.
+
+    Note: this is intended for testing purposes only and is an irreversible process
+
+    Args:
+        dcos_api_session: authenticated API session for the cluster being upgraded
+        onprem_cluster: SSH-backed onprem abstraction for the cluster to be upgraded
+        installer_url: URL for the installer to drive the upgrade
+        user_config: this function already creates a viable upgrade config based on
+            the onprem_cluster, but overrides can be provided via this dict
+        platform: this must be `aws` as no other platform is currently supported
+    """
     assert platform == 'aws', 'AWS is the only supported platform backend currently'
 
     ssh_client = onprem_cluster.ssh_client
@@ -460,13 +477,15 @@ def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster, in
     reason='This test must have targets specified to be run!')
 class TestUpgrade:
     def test_marathon_app_tasks_survive(self, dcos_api_session, setup_workload):
-        tasks_end = {app_id: sorted(app_task_ids(dcos_api_session, app_id)) for app_id in setup_workload[0]}
+        test_app_ids, tasks_start, _ = setup_workload
+        tasks_end = {app_id: sorted(app_task_ids(dcos_api_session, app_id)) for app_id in test_app_ids}
         log.debug('Test app tasks at end:\n' + pprint.pformat(tasks_end))
-        assert setup_workload[1] == tasks_end
+        assert tasks_start == tasks_end
 
     def test_mesos_task_state_remains_consistent(self, dcos_api_session, setup_workload):
-        task_state_end = self.get_master_task_state(dcos_api_session, self.tasks_start[self.test_app_ids[0]][0])
-        assert setup_workload[2] == task_state_end
+        test_app_ids, tasks_start, task_state_start = setup_workload
+        task_state_end = get_master_task_state(dcos_api_session, tasks_start[test_app_ids[0]][0])
+        assert task_state_start == task_state_end
 
     def test_app_dns_survive(self, dcos_api_session, dns_app):
         marathon_framework_id = dcos_api_session.marathon.get('/v2/info').json()['frameworkId']
