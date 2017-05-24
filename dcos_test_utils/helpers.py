@@ -5,15 +5,12 @@ import copy
 import functools
 import logging
 import os
-import random
-import string
 import tempfile
 import time
 from collections import namedtuple
 from typing import Union
 from urllib.parse import urlsplit, urlunsplit
 
-import pkg_resources
 import requests
 import retrying
 from botocore.exceptions import ClientError, WaiterError
@@ -242,19 +239,6 @@ def retry_boto_rate_limits(boto_fn, wait=2, timeout=60 * 60):
     return ignore_rate_errors
 
 
-def wait_for_pong(url, timeout):
-    """continually GETs /ping expecting JSON pong:true return
-    Does not stop on exception as connection error may be expected
-    """
-    @retrying.retry(wait_fixed=3000, stop_max_delay=timeout * 1000)
-    def ping_app():
-        log.info('Attempting to ping test application')
-        r = requests.get('http://{}/ping'.format(url), timeout=10)
-        r.raise_for_status()
-        assert r.json() == {"pong": True}, 'Unexpected response from server: ' + repr(r.json())
-    ping_app()
-
-
 def session_tempfile(data):
     """Writes bytes to a named temp file and returns its path
     the temp file will be removed when the interpreter exits
@@ -284,14 +268,3 @@ def marathon_app_id_to_mesos_dns_subdomain(app_id):
 
     """
     return '-'.join(reversed(app_id.strip('/').split('/')))
-
-
-def random_id(n):
-    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(n))
-
-
-def ip_detect_script(preset_name):
-    try:
-        return pkg_resources.resource_string('gen', 'ip-detect/{}.sh'.format(preset_name)).decode('utf-8')
-    except OSError as exc:
-        raise Exception('Failed to read ip-detect script preset {}: {}'.format(preset_name, exc)) from exc
