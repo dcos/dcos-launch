@@ -312,7 +312,6 @@ done
 
 @pytest.fixture(scope='session')
 def launcher():
-    assert 'TEST_UPGRADE_LAUNCH_CONFIG_PATH' in os.environ
     return dcos_launch.get_launcher(
         dcos_launch.config.get_validated_config(os.environ['TEST_UPGRADE_LAUNCH_CONFIG_PATH'], strict=False))
 
