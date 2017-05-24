@@ -194,10 +194,12 @@ class DcosInstallerApiSession(ApiClientSession):
         log.info('Generating configuration on installer server...')
         response = self.post('/api/v1/configure', json=config)
         log_and_raise_if_not_ok(response)
-        validation_response_json = self.get('api/v1/configure/status').json()
+        response = self.get('api/v1/configure/status')
+        validation_response_json = response.json()
         if len(validation_response_json.items()) > 0:
             log.error('Configuration validation failed! Errors returned: {}'.format(validation_response_json))
             raise Exception('Error while generating configuration: {}'.format(validation_response_json))
+        log_and_raise_if_not_ok(response)
 
     def preflight(self) -> None:
         log.info('Starting preflight...')
