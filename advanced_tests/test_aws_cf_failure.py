@@ -11,17 +11,15 @@ import dcos_test_utils.marathon
 log = logging.getLogger(__name__)
 
 
-def wait_for_pong(url, timeout):
+@retrying.retry(wait_fixed=10 * 1000)
+def wait_for_pong(url):
     """continually GETs /ping expecting JSON pong:true return
     Does not stop on exception as connection error may be expected
     """
-    @retrying.retry(wait_fixed=3000, stop_max_delay=timeout * 1000)
-    def ping_app():
-        log.info('Attempting to ping test application')
-        r = requests.get('http://{}/ping'.format(url), timeout=10)
-        r.raise_for_status()
-        assert r.json() == {"pong": True}, 'Unexpected response from server: ' + repr(r.json())
-    ping_app()
+    log.info('Attempting to ping test application')
+    r = requests.get('http://{}/ping'.format(url), timeout=10)
+    r.raise_for_status()
+    assert r.json() == {"pong": True}, 'Unexpected response from server: ' + repr(r.json())
 
 
 @pytest.fixture(scope='session')
@@ -30,7 +28,7 @@ def dcos_api_session(launcher):
         pytest.skip('This test can only run on AWS')
     description = launcher.describe()
     session = dcos_test_utils.dcos_api_session.DcosApiSession(
-        'http://' + description['masters'][0].public_ip,
+        'http://' + description['masters'][0]['public_ip'],
         [m['private_ip'] for m in description['masters']],
         [m['private_ip'] for m in description['private_agents']],
         [m['private_ip'] for m in description['public_agents']],
@@ -70,8 +68,8 @@ def test_agent_failure(launcher, dcos_api_session, vip_apps):
         return sorted([i.private_ip_address for i in get_running_instances(instance_iter)])
 
     # make sure the app works before starting
-    wait_for_pong(vip_apps[0][1], 120)
-    wait_for_pong(vip_apps[1][1], 10)
+    wait_for_pong(vip_apps[0][1])
+    wait_for_pong(vip_apps[1][1])
     agent_ids = get_instance_ids(
         get_running_instances(launcher.stack.public_agent_instances) +
         get_running_instances(launcher.private_agent_instances))
@@ -96,8 +94,7 @@ def test_agent_failure(launcher, dcos_api_session, vip_apps):
 
     @retrying.retry(
         wait_fixed=60 * 1000,
-        retry_on_result=lambda res: res is False,
-        stop_max_delay=900 * 1000)
+        retry_on_result=lambda res: res is False)
     def wait_for_agents_to_refresh():
         public_agents = get_running_instances(launcher.stack.public_agent_instances)
         if len(public_agents) == public_agent_count:
@@ -120,5 +117,5 @@ def test_agent_failure(launcher, dcos_api_session, vip_apps):
     dcos_api_session.wait_for_dcos()
     # finally verify that the app is again running somewhere with its VIPs
     # Give marathon five minutes to deploy both the apps
-    wait_for_pong(vip_apps[0][1], 300)
-    wait_for_pong(vip_apps[1][1], 10)
+    wait_for_pong(vip_apps[0][1])
+    wait_for_pong(vip_apps[1][1])
