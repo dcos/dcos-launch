@@ -17,6 +17,8 @@ import retrying
 import dcos_test_utils.marathon
 from dcos_test_utils.helpers import ApiClientSession, RetryCommonHttpErrorsMixin, Url
 
+log = logging.getLogger(__name__)
+
 
 class DcosUser:
     """A lightweight user representation for grabbing the auth info and stashing it"""
@@ -147,26 +149,26 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         public_slaves were not provided, accept whatever is currently available
         """
         if self.master_list is None:
-            logging.debug('Master list not provided, setting from exhibitor...')
+            log.debug('Master list not provided, setting from exhibitor...')
             r = self.get('/exhibitor/exhibitor/v1/cluster/list')
             r.raise_for_status()
             self.master_list = sorted(r.json()['servers'])
-            logging.info('Master list set as: {}'.format(self.masters))
+            log.info('Master list set as: {}'.format(self.masters))
         if self.slave_list is not None and self.public_slave_list is not None:
             return
         r = self.get('/mesos/slaves')
         r.raise_for_status()
         slaves_json = r.json()['slaves']
         if self.slave_list is None:
-            logging.debug('Private slave list not provided; fetching from mesos...')
+            log.debug('Private slave list not provided; fetching from mesos...')
             self.slave_list = sorted(
                 [s['hostname'] for s in slaves_json if s['attributes'].get('public_ip') != 'true'])
-            logging.info('Private slave list set as: {}'.format(self.slaves))
+            log.info('Private slave list set as: {}'.format(self.slaves))
         if self.public_slave_list is None:
-            logging.debug('Public slave list not provided; fetching from mesos...')
+            log.debug('Public slave list not provided; fetching from mesos...')
             self.public_slave_list = sorted(
                 [s['hostname'] for s in slaves_json if s['attributes'].get('public_ip') == 'true'])
-            logging.info('Public slave list set as: {}'.format(self.public_slaves))
+            log.info('Public slave list set as: {}'.format(self.public_slaves))
 
     @retrying.retry(wait_fixed=2000, stop_max_delay=120 * 1000)
     def _authenticate_default_user(self):
@@ -177,14 +179,14 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         """
         if self.auth_user is None:
             return
-        logging.info('Attempting authentication')
+        log.info('Attempting authentication')
         # explicitly use a session with no user authentication for requesting auth headers
         r = self.post('/acs/api/v1/auth/login', json=self.auth_user.credentials, auth=None)
         r.raise_for_status()
-        logging.info('Received authentication blob: {}'.format(r.json()))
+        log.info('Received authentication blob: {}'.format(r.json()))
         self.auth_user.auth_token = r.json()['token']
         self.auth_user.auth_cookie = r.cookies['dcos-acs-auth-cookie']
-        logging.info('Authentication successful')
+        log.info('Authentication successful')
         # Set requests auth
         self.session.auth = DcosAuth(self.auth_user.auth_token)
 
@@ -195,11 +197,11 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         r = self.get('/marathon/ui/')
         # resp_code >= 500 -> backend is still down probably
         if r.status_code < 500:
-            logging.info("Marathon is probably up")
+            log.info("Marathon is probably up")
             return True
         else:
             msg = "Waiting for Marathon, resp code is: {}"
-            logging.info(msg.format(r.status_code))
+            log.info(msg.format(r.status_code))
             return False
 
     @retrying.retry(wait_fixed=1000)
@@ -208,10 +210,10 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         """
         r = self.get('/exhibitor/exhibitor/v1/cluster/status')
         if not r.ok:
-            logging.warning('Exhibitor status not available')
+            log.warning('Exhibitor status not available')
             r.raise_for_status()
         status = r.json()
-        logging.info('Exhibitor cluster status: {}'.format(status))
+        log.info('Exhibitor cluster status: {}'.format(status))
         zk_nodes = sorted([n['hostname'] for n in status])
         # zk nodes will be private but masters can be public
         assert len(zk_nodes) == len(self.masters), 'ZooKeeper has not formed the expected quorum'
@@ -224,7 +226,7 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         if r.status_code != 200:
             msg = "Mesos master returned status code {} != 200 "
             msg += "continuing to wait..."
-            logging.info(msg.format(r.status_code))
+            log.info(msg.format(r.status_code))
             return False
         data = r.json()
         # Check that there are all the slaves the test knows about. They are all
@@ -232,11 +234,11 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         num_slaves = len(data['slaves'])
         if num_slaves >= len(self.all_slaves):
             msg = "Sufficient ({} >= {}) number of slaves have joined the cluster"
-            logging.info(msg.format(num_slaves, self.all_slaves))
+            log.info(msg.format(num_slaves, self.all_slaves))
             return True
         else:
             msg = "Current number of slaves: {} < {}, continuing to wait..."
-            logging.info(msg.format(num_slaves, self.all_slaves))
+            log.info(msg.format(num_slaves, self.all_slaves))
             return False
 
     @retrying.retry(wait_fixed=1000,
@@ -246,11 +248,11 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         r = self.get('/dcos-history-service/ping')
         # resp_code >= 500 -> backend is still down probably
         if r.status_code <= 500:
-            logging.info("DC/OS History is probably up")
+            log.info("DC/OS History is probably up")
             return True
         else:
             msg = "Waiting for DC/OS History, resp code is: {}"
-            logging.info(msg.format(r.status_code))
+            log.info(msg.format(r.status_code))
             return False
 
     @retrying.retry(wait_fixed=1000,
@@ -260,14 +262,14 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         ro = self.get('/dcos-history-service/history/last')
         # resp_code >= 500 -> backend is still down probably
         if ro.status_code <= 500:
-            logging.info("DC/OS History is probably getting data")
+            log.info("DC/OS History is probably getting data")
             json = ro.json()
             # if an agent was removed, it may linger in the history data
             assert len(json["slaves"]) >= len(self.all_slaves)
             return True
         else:
             msg = "Waiting for DC/OS History, resp code is: {}"
-            logging.info(msg.format(ro.status_code))
+            log.info(msg.format(ro.status_code))
             return False
 
     @retrying.retry(wait_fixed=1000,
@@ -280,10 +282,10 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             self.get('/')
         except requests.ConnectionError as e:
             msg = "Cannot connect to nginx, error string: '{}', continuing to wait"
-            logging.info(msg.format(e))
+            log.info(msg.format(e))
             return False
         else:
-            logging.info("Nginx is UP!")
+            log.info("Nginx is UP!")
             return True
 
     # Retry if returncode is False, do not retry on exceptions.
@@ -325,7 +327,7 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
         # 500 and 504 are the expected behavior of a service
         # backend that is not up and running.
         if r.status_code == 500 or r.status_code == 504:
-            logging.info("Metronome gateway timeout, continue waiting for backend...")
+            log.info("Metronome gateway timeout, continue waiting for backend...")
             return False
         assert r.status_code == 200
 
@@ -420,18 +422,18 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
             if not ignore_failures and (out['history']['failureCount'] != 0):
                 raise Exception('Metronome job failed!: ' + repr(out))
             if out['history']['successCount'] != 1:
-                logging.info('Waiting for one-off to finish. Status: ' + repr(out))
+                log.info('Waiting for one-off to finish. Status: ' + repr(out))
                 return False
-            logging.info('Metronome one-off successful')
+            log.info('Metronome one-off successful')
             return True
-        logging.info('Creating metronome job: ' + repr(job_definition))
+        log.info('Creating metronome job: ' + repr(job_definition))
         r = self.metronome.post('jobs', json=job_definition)
         r.raise_for_status()
-        logging.info('Starting metronome job')
+        log.info('Starting metronome job')
         r = self.metronome.post('jobs/{}/runs'.format(job_id))
         r.raise_for_status()
         wait_for_completion()
-        logging.info('Deleting metronome one-off')
+        log.info('Deleting metronome one-off')
         r = self.metronome.delete('jobs/' + job_id)
         r.raise_for_status()
 

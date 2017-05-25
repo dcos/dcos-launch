@@ -77,7 +77,7 @@ def _raise_errors(validator: LaunchValidator):
     raise dcos_launch.util.LauncherError('ValidationError', message)
 
 
-def get_validated_config(config_path: str, strict=True) -> dict:
+def get_validated_config(config_path: str) -> dict:
     """ Returns validated a finalized argument dictionary for dcos-launch
     Given the huge range of configuration space provided by this configuration
     file, it must be processed in three steps (common, provider-specifc,
@@ -113,7 +113,7 @@ def get_validated_config(config_path: str, strict=True) -> dict:
         raise NotImplementedError()
 
     # create a strict validator with our final schema and process it
-    final_validator = LaunchValidator(basic_validator.schema, config_dir=config_dir, allow_unknown=not strict)
+    final_validator = LaunchValidator(basic_validator.schema, config_dir=config_dir, allow_unkown=False)
     if not final_validator.validate(config):
         _raise_errors(final_validator)
     return final_validator.normalized(config)
