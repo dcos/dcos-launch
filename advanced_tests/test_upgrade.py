@@ -6,23 +6,20 @@ WARNGING: This is a destructive process and you cannot go back
 This test has 4 input parameters (set in the environment)
 =========================================================
 Required:
-  TEST_UPGRADE_LAUNCH_CONFIG_PATH: path to a dcos-launch config for the cluster that will be upgraded.
+  TEST_LAUNCH_CONFIG_PATH: path to a dcos-launch config for the cluster that will be upgraded.
       This cluster may or may not exist yet
   TEST_UPGRADE_INSTALLER_URL: The installer pulled from this URL will upgrade the aforementioned cluster.
 Optional
-  TEST_UPGRADE_CREATE_CLUSTER: if set to `true`, a cluster will be created. Otherwise it will be assumed
+  TEST_CREATE_CLUSTER: if set to `true`, a cluster will be created. Otherwise it will be assumed
       the provided launch config is a dcos-launch artifact
-  TEST_UPGRADE_DCOS_CONFIG_PATH: path to a YAML file for injecting parameters into the config to be
+  TEST_UPGRADE_CONFIG_PATH: path to a YAML file for injecting parameters into the config to be
       used in generating the upgrade script
 """
-import json
 import logging
 import os
 import pprint
 import uuid
 
-import dcos_launch
-import dcos_launch.config
 import dcos_test_utils
 import dcos_test_utils.dcos_api_session
 import dcos_test_utils.upgrade
@@ -31,7 +28,6 @@ import retrying
 import yaml
 from dcos_test_utils.helpers import CI_CREDENTIALS, marathon_app_id_to_mesos_dns_subdomain
 
-logging.basicConfig(format='[%(asctime)s|%(name)s|%(levelname)s]: %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
 
 TEST_APP_NAME_FMT = 'upgrade-{}'
@@ -173,28 +169,10 @@ done
 
 
 @pytest.fixture(scope='session')
-def launcher():
-    return dcos_launch.get_launcher(
-        dcos_launch.config.get_validated_config(os.environ['TEST_UPGRADE_LAUNCH_CONFIG_PATH'], strict=False))
-
-
-@pytest.fixture(scope='session')
 def onprem_cluster(launcher):
-    assert launcher.config['provider'] == 'onprem', 'Only onprem provider is supported for upgrades!'
-    if os.environ.get('TEST_UPGRADE_CREATE_CLUSTER') == 'true':
-        info = launcher.create()
-        with open('upgrade_test_info.json', 'w') as f:
-            json.dump(info, f)
-        launcher.wait()
-    else:
-        try:
-            launcher.wait()
-        except dcos_launch.util.LauncherError:
-            raise AssertionError(
-                'Cluster creation was not specified with TEST_UPGRADE_CREATE_CLUSTER, yet launcher '
-                'cannot reach the speficied cluster')
-    cluster = launcher.get_onprem_cluster()
-    return cluster
+    if launcher.config['provider'] != 'onprem':
+        pytest.skip('Only onprem provider is supported for upgrades!')
+    return launcher.get_onprem_cluster()
 
 
 @pytest.fixture(scope='session')
@@ -206,7 +184,7 @@ def dcos_api_session(onprem_cluster, launcher):
         [m.public_ip for m in onprem_cluster.public_agents],
         'root',
         dcos_test_utils.dcos_api_session.DcosUser(CI_CREDENTIALS),
-        exhibitor_admin_password=launcher.config.get('dcos_config').get('exhibitor_admin_password'))
+        exhibitor_admin_password=launcher.config['dcos_config'].get('exhibitor_admin_password'))
     session.wait_for_dcos()
     return session
 
@@ -293,8 +271,8 @@ def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster):
     """ By invoking this fixture, a given test or fixtre is executed AFTER the upgrade
     """
     upgraded_user_config = dict()
-    if 'TEST_UPGRADE_DCOS_CONFIG_PATH' in os.environ:
-        with open(os.environ['TEST_UPGRADE_DCOS_CONFIG_PATH'], 'r') as f:
+    if 'TEST_UPGRADE_CONFIG_PATH' in os.environ:
+        with open(os.environ['TEST_UPGRADE_CONFIG_PATH'], 'r') as f:
             upgraded_user_config = yaml.load(f.read())
     dcos_test_utils.upgrade.upgrade_dcos(
         dcos_api_session,

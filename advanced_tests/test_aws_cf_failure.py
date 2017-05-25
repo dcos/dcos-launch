@@ -1,15 +1,12 @@
 import logging
-import json
-import os
 
 import pytest
 import requests
 import retrying
 
-import dcos_launch
-import dcos_test_utils.arm
 import dcos_test_utils.helpers
-from dcos_test_utils.helpers import CI_CREDENTIALS, retry_boto_rate_limits
+import dcos_test_utils.dcos_api_session
+import dcos_test_utils.marathon
 
 log = logging.getLogger(__name__)
 
@@ -28,35 +25,17 @@ def wait_for_pong(url, timeout):
 
 
 @pytest.fixture(scope='session')
-def launcher():
-    launcher = dcos_launch.get_launcher(
-        dcos_launch.config.get_validated_config(os.environ['TEST_UPGRADE_LAUNCH_CONFIG_PATH'], strict=False))
-    assert launcher.config['provider'] == 'aws', 'Only aws provider is supports automatically respawning agents!'
-    if os.environ.get('TEST_AGENT_FAILURE_CREATE_CLUSTER') == 'true':
-        info = launcher.create()
-        with open('agent_failure_test_info.json', 'w') as f:
-            json.dump(info, f)
-        launcher.wait()
-    else:
-        try:
-            launcher.wait()
-        except dcos_launch.util.LauncherError:
-            raise AssertionError(
-                'Cluster creation was not specified with TEST_UPGRADE_CREATE_CLUSTER, yet launcher '
-                'cannot reach the speficied cluster')
-    return launcher
-
-
-@pytest.fixture(scope='session')
-def dcos_api_session(onprem_cluster, launcher):
+def dcos_api_session(launcher):
+    if launcher.config['provider'] != 'aws':
+        pytest.skip('This test can only run on AWS')
     description = launcher.describe()
     session = dcos_test_utils.dcos_api_session.DcosApiSession(
         'http://' + description['masters'][0].public_ip,
-        [m.private_ip for m in description['masters']],
-        [m.private_ip for m in description['private_agents']],
-        [m.private_ip for m in description['public_agents']],
+        [m['private_ip'] for m in description['masters']],
+        [m['private_ip'] for m in description['private_agents']],
+        [m['private_ip'] for m in description['public_agents']],
         'root',
-        dcos_test_utils.dcos_api_session.DcosUser(CI_CREDENTIALS))
+        dcos_test_utils.dcos_api_session.DcosUser(dcos_test_utils.helpers.CI_CREDENTIALS))
     session.wait_for_dcos()
     return session
 
@@ -74,20 +53,19 @@ def vip_apps(dcos_api_session):
             yield ((test_app1, vip1), (test_app2, vip2))
 
 
-@pytest.mark.skipif
 def test_agent_failure(launcher, dcos_api_session, vip_apps):
     # Accessing AWS Resource objects will trigger a client describe call.
     # As such, any method that touches AWS APIs must be wrapped to avoid
     # CI collapse when rate limits are inevitably reached
-    @retry_boto_rate_limits
+    @dcos_test_utils.helpers.retry_boto_rate_limits
     def get_running_instances(instance_iter):
         return [i for i in instance_iter if i.state['Name'] == 'running']
 
-    @retry_boto_rate_limits
+    @dcos_test_utils.helpers.retry_boto_rate_limits
     def get_instance_ids(instance_iter):
         return [i.instance_id for i in instance_iter]
 
-    @retry_boto_rate_limits
+    @dcos_test_utils.helpers.retry_boto_rate_limits
     def get_private_ips(instance_iter):
         return sorted([i.private_ip_address for i in get_running_instances(instance_iter)])
 
@@ -101,7 +79,7 @@ def test_agent_failure(launcher, dcos_api_session, vip_apps):
     # Agents are in auto-scaling groups, so they will automatically be replaced
     launcher.boto_wrapper.client('ec2').terminate_instances(InstanceIds=agent_ids)
     waiter = launcher.boto_wrapper.client('ec2').get_waiter('instance_terminated')
-    retry_boto_rate_limits(waiter.wait)(InstanceIds=agent_ids)
+    dcos_test_utils.helpers.retry_boto_rate_limits(waiter.wait)(InstanceIds=agent_ids)
 
     # Tell mesos the machines are "down" and not coming up so things get rescheduled.
     down_hosts = [{'hostname': slave, 'ip': slave} for slave in dcos_api_session.all_slaves]
