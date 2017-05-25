@@ -1,8 +1,8 @@
+import json
 import logging
 import os
 
 import pytest
-import requests
 import retrying
 import yaml
 
@@ -14,14 +14,15 @@ log = logging.getLogger(__name__)
 
 
 @retrying.retry(wait_fixed=10 * 1000)
-def wait_for_pong(url):
+def wait_for_pong(tunnel: dcos_test_utils.ssh_client.Tunnelled, url):
     """continually GETs /ping expecting JSON pong:true return
     Does not stop on exception as connection error may be expected
     """
     log.info('Attempting to ping test application')
-    r = requests.get('http://{}/ping'.format(url), timeout=10)
-    r.raise_for_status()
-    assert r.json() == {"pong": True}, 'Unexpected response from server: ' + repr(r.json())
+    out = tunnel.command(['curl', '--fail', '--location', 'http://{}/ping'.format(url)]).decode()
+    log.info('curl response: ' + out)
+    assert json.loads(out) == {"pong": True}
+    log.info('Ping successful!')
 
 
 @pytest.fixture(scope='session')
@@ -31,7 +32,7 @@ def dcos_api_session(launcher):
     description = launcher.describe()
     session = dcos_test_utils.dcos_api_session.DcosApiSession(
         'http://' + description['masters'][0]['public_ip'],
-        [m['private_ip'] for m in description['masters']],
+        [m['public_ip'] for m in description['masters']],
         [m['private_ip'] for m in description['private_agents']],
         [m['private_ip'] for m in description['public_agents']],
         'root',
@@ -78,19 +79,27 @@ def test_agent_failure(launcher, dcos_api_session, vip_apps):
     def get_private_ips(instance_iter):
         return sorted([i.private_ip_address for i in get_running_instances(instance_iter)])
 
+    ssh_client = launcher.get_ssh_client()
+
     # make sure the app works before starting
-    wait_for_pong(vip_apps[0][1])
-    wait_for_pong(vip_apps[1][1])
+    log.info('Waiting for VIPs to be routable...')
+    with ssh_client.tunnel(dcos_api_session.masters[0]) as tunnel:
+        wait_for_pong(tunnel, vip_apps[0][1])
+        wait_for_pong(tunnel, vip_apps[1][1])
+
     agent_ids = get_instance_ids(
         get_running_instances(launcher.stack.public_agent_instances) +
         get_running_instances(launcher.private_agent_instances))
 
     # Agents are in auto-scaling groups, so they will automatically be replaced
+    log.info('Terminating instances...')
     launcher.boto_wrapper.client('ec2').terminate_instances(InstanceIds=agent_ids)
     waiter = launcher.boto_wrapper.client('ec2').get_waiter('instance_terminated')
+    log.info('Waiting for instances to be terminated')
     dcos_test_utils.helpers.retry_boto_rate_limits(waiter.wait)(InstanceIds=agent_ids)
 
     # Tell mesos the machines are "down" and not coming up so things get rescheduled.
+    log.info('Posting to mesos that agents are down')
     down_hosts = [{'hostname': slave, 'ip': slave} for slave in dcos_api_session.all_slaves]
     dcos_api_session.post(
         '/mesos/maintenance/schedule',
@@ -128,5 +137,7 @@ def test_agent_failure(launcher, dcos_api_session, vip_apps):
     dcos_api_session.wait_for_dcos()
     # finally verify that the app is again running somewhere with its VIPs
     # Give marathon five minutes to deploy both the apps
-    wait_for_pong(vip_apps[0][1])
-    wait_for_pong(vip_apps[1][1])
+    log.info('Waiting for VIPs to be routable...')
+    with ssh_client.tunnel(dcos_api_session.masters[0]) as tunnel:
+        wait_for_pong(tunnel, vip_apps[0][1])
+        wait_for_pong(tunnel, vip_apps[1][1])
