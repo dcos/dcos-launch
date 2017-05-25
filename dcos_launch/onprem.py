@@ -5,6 +5,7 @@ import subprocess
 import dcos_test_utils.aws
 import dcos_test_utils.onprem
 import pkg_resources
+import yaml
 from dcos_test_utils.helpers import Url
 
 import dcos_launch.aws
@@ -75,12 +76,13 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         # currently, only AWS is supported, but when support changes, this will have to update
         if 'ip_detect_contents' not in onprem_config:
             onprem_config['ip_detect_contents'] = pkg_resources.resource_string(
-                'dcos_test_utils', 'ip-detect/aws.sh').decode('utf-8')
+                'dcos_test_utils', 'ip-detect/aws.sh').decode()
         if 'ip_detect_public_contents' not in onprem_config:
-            onprem_config['ip_detect_public_contents'] = pkg_resources.resource_string(
-                'dcos_test_utils', 'ip-detect/aws_public.sh').decode('utf-8')
+            # despite being almost identical aws_public.sh will crash the installer if not safely dumped
+            onprem_config['ip_detect_public_contents'] = yaml.dump(pkg_resources.resource_string(
+                'dcos_test_utils', 'ip-detect/aws_public.sh').decode())
         # For no good reason the installer uses 'ip_detect_script' instead of 'ip_detect_contents'
-        onprem_config['ip_detect_script'] = self.config['dcos_config']['ip_detect_contents']
+        onprem_config['ip_detect_script'] = onprem_config['ip_detect_contents']
         del onprem_config['ip_detect_contents']
         log.debug('Generated cluster configuration: {}'.format(onprem_config))
         return onprem_config
