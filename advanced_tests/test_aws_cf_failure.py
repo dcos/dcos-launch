@@ -1,8 +1,10 @@
 import logging
+import os
 
 import pytest
 import requests
 import retrying
+import yaml
 
 import dcos_test_utils.helpers
 import dcos_test_utils.dcos_api_session
@@ -51,6 +53,15 @@ def vip_apps(dcos_api_session):
             yield ((test_app1, vip1), (test_app2, vip2))
 
 
+def can_provide_aws():
+    launch_config_path = os.getenv('TEST_LAUNCH_CONFIG_PATH')
+    if launch_config_path:
+        with open(launch_config_path, 'r') as f:
+            return yaml.load(f).get('provider') == 'aws'
+    return False
+
+
+@pytest.mark.skipif(not can_provide_aws(), reason='This test must run on an AWS-provided cluster')
 def test_agent_failure(launcher, dcos_api_session, vip_apps):
     # Accessing AWS Resource objects will trigger a client describe call.
     # As such, any method that touches AWS APIs must be wrapped to avoid

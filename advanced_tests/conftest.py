@@ -11,6 +11,9 @@ logging.basicConfig(format='[%(asctime)s|%(name)s|%(levelname)s]: %(message)s', 
 
 
 @pytest.fixture(scope='session')
+@pytest.mark.skipif(
+    'TEST_LAUNCH_CONFIG_PATH' not in os.environ,
+    reason='This test must have dcos-launch config YAML or info JSON to run')
 def launcher():
     """ Optionally create and wait on a cluster to finish provisioning.
 
