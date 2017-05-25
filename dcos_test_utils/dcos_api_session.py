@@ -7,7 +7,7 @@ so there is ARNodeApiClientMixin to allow querying nodes without boilerplate
 to set the correct port and scheme.
 """
 import copy
-import log
+import logging
 import os
 from typing import List, Optional
 
@@ -17,7 +17,7 @@ import retrying
 import dcos_test_utils.marathon
 from dcos_test_utils.helpers import ApiClientSession, RetryCommonHttpErrorsMixin, Url
 
-log = log.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class DcosUser:

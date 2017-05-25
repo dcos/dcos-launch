@@ -89,7 +89,7 @@ def test_agent_failure(launcher, dcos_api_session, vip_apps):
 
     agent_ids = get_instance_ids(
         get_running_instances(launcher.stack.public_agent_instances) +
-        get_running_instances(launcher.private_agent_instances))
+        get_running_instances(launcher.stack.private_agent_instances))
 
     # Agents are in auto-scaling groups, so they will automatically be replaced
     log.info('Terminating instances...')
