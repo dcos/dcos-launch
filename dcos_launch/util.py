@@ -75,7 +75,8 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     def test(self, args, env_dict, test_host=None, test_port=22):
-        """
+        """ Connects to master host with SSH and then run the internal integration test
+
         Args:
             args: a list of args that will follow the py.test command
             env_dict: the env to use during the test
@@ -98,6 +99,8 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
             env_dict['PUBLIC_SLAVE_HOSTS'] = ','.join(m['private_ip'] for m in details['public_agents'])
         if 'DCOS_DNS_ADDRESS' not in env_dict:
             env_dict['DCOS_DNS_ADDRESS'] = 'http://' + details['masters'][0]['private_ip']
+        # check for any environment variables that contain spaces
+        env_dict = {e: "'{}'".format(env_dict[e]) if ' ' in env_dict[e] else env_dict[e] for e in env_dict}
         env_string = ' '.join(['{}={}'.format(e, env_dict[e]) for e in env_dict])
         arg_string = ' '.join(args)
         pytest_cmd = """ "source /opt/mesosphere/environment.export &&
