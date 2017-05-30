@@ -86,37 +86,45 @@ def get_validated_config(config_path: str) -> dict:
     config = load_config(config_path)
     config_dir = os.path.dirname(config_path)
     # validate against the fields common to all configs
-    basic_validator = LaunchValidator(COMMON_SCHEMA, config_dir=config_dir, allow_unknown=True)
-    if not basic_validator.validate(config):
-        _raise_errors(basic_validator)
+    validator = LaunchValidator(COMMON_SCHEMA, config_dir=config_dir, allow_unknown=True)
+    if not validator.validate(config):
+        _raise_errors(validator)
 
     # add provider specific information to the basic validator
-    provider = basic_validator.normalized(config)['provider']
+    provider = validator.normalized(config)['provider']
     if provider == 'onprem':
-        basic_validator.schema.update(ONPREM_DEPLOY_COMMON_SCHEMA)
+        validator.schema.update(ONPREM_DEPLOY_COMMON_SCHEMA)
     else:
-        basic_validator.schema.update(TEMPLATE_DEPLOY_COMMON_SCHEMA)
+        validator.schema.update(TEMPLATE_DEPLOY_COMMON_SCHEMA)
 
     # validate again before attempting to add platform information
-    if not basic_validator.validate(config):
-        _raise_errors(basic_validator)
+    if not validator.validate(config):
+        _raise_errors(validator)
 
     # use the intermediate provider-validated config to add the platform schema
-    platform = basic_validator.normalized(config)['platform']
+    platform = validator.normalized(config)['platform']
     if platform == 'aws':
-        basic_validator.schema.update(AWS_PLATFORM_SCHEMA)
+        validator.schema.update({
+            'aws_region': {
+                'type': 'string',
+                'required': True,
+                'default_setter': lambda doc: dcos_launch.util.set_from_env('AWS_REGION')}})
         if provider == 'onprem':
-            basic_validator.schema.update(AWS_ONPREM_SCHEMA)
+            validator.schema.update(AWS_ONPREM_SCHEMA)
     elif platform == 'azure':
-        basic_validator.schema.update(AZURE_PLATFORM_SCHEMA)
+        validator.schema.update({
+            'azure_location': {
+                'type': 'string',
+                'required': True,
+                'default_setter': lambda doc: dcos_launch.util.set_from_env('AZURE_LOCATION')}})
     else:
         raise NotImplementedError()
 
-    # create a strict validator with our final schema and process it
-    final_validator = LaunchValidator(basic_validator.schema, config_dir=config_dir, allow_unkown=False)
-    if not final_validator.validate(config):
-        _raise_errors(final_validator)
-    return final_validator.normalized(config)
+    # do final validation
+    validator.allow_unknown = False
+    if not validator.validate(config):
+        _raise_errors(validator)
+    return validator.normalized(config)
 
 
 COMMON_SCHEMA = {
@@ -152,40 +160,10 @@ COMMON_SCHEMA = {
         'default': 'core'},
     'key_helper': {
         'type': 'boolean',
-        'default': False}}
-
-
-AWS_PLATFORM_SCHEMA = {
-    'aws_region': {
-        'type': 'string',
-        'required': True},
-    'aws_access_key_id': {
-        'type': 'string',
-        'required': True},
-    'aws_secret_access_key': {
-        'type': 'string',
-        'required': True},
+        'default': False},
     'zen_helper': {
         'type': 'boolean',
         'default': False}}
-
-
-AZURE_PLATFORM_SCHEMA = {
-    'azure_location': {
-        'type': 'string',
-        'required': True},
-    'azure_client_id': {
-        'type': 'string',
-        'required': True},
-    'azure_client_secret': {
-        'type': 'string',
-        'required': True},
-    'azure_tenant_id': {
-        'type': 'string',
-        'required': True},
-    'azure_subscription_id': {
-        'type': 'string',
-        'required': True}}
 
 
 TEMPLATE_DEPLOY_COMMON_SCHEMA = {

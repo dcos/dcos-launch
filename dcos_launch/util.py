@@ -1,5 +1,6 @@
 import abc
 import logging
+import os
 import subprocess
 import sys
 
@@ -21,6 +22,15 @@ MOCK_GATEWAY_ID = 'gateway-foo-bar'
 MOCK_STACK_ID = 'this-is-a-important-test-stack::deadbeefdeadbeef'
 
 NO_TEST_FLAG = 'NO PRIVATE SSH KEY PROVIDED - CANNOT TEST'
+
+
+def set_from_env(key):
+    """ If key is set in env, return its value, else raise an error
+    """
+    if key in os.environ:
+        return os.environ[key]
+    raise LauncherError(
+        'MissingParameter', '{} must be set in local env, but was not found'.format(key))
 
 
 def read_file(filename: str):
