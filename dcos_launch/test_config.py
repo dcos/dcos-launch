@@ -52,7 +52,7 @@ class TestAwsCloudformation:
     def test_without_pytest_support(self, aws_cf_no_pytest_config_path):
         get_validated_config(aws_cf_no_pytest_config_path)
 
-    def test_error_with_installer_url(self, tmpdir):
+    def test_error_with_invalid_field(self, tmpdir):
         with pytest.raises(LauncherError) as exinfo:
             get_validated_config(
                 get_temp_config_path(
@@ -68,13 +68,13 @@ class TestAzureTemplate:
     def test_with_key_helper(self, azure_with_helper_config_path):
         get_validated_config(azure_with_helper_config_path)
 
-    def test_error_wrong_platform(self, tmpdir):
+    def test_error_with_invalid_field(self, tmpdir):
         with pytest.raises(LauncherError) as exinfo:
             get_validated_config(
                 get_temp_config_path(
-                    tmpdir, 'azure-with-helper.yaml', update={'platform': 'aws'}))
+                    tmpdir, 'azure-with-helper.yaml', update={'num_masters': '0.0.0'}))
         assert exinfo.value.error == 'ValidationError'
-        assert 'platform' in exinfo.value.msg
+        assert 'num_masters' in exinfo.value.msg
 
 
 class TestAwsOnprem:

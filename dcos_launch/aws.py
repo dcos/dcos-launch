@@ -10,7 +10,9 @@ log = logging.getLogger(__name__)
 class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
     def __init__(self, config: dict):
         self.boto_wrapper = dcos_test_utils.aws.BotoWrapper(
-            config['aws_region'], config['aws_access_key_id'], config['aws_secret_access_key'])
+            config['aws_region'],
+            dcos_launch.util.set_from_env('AWS_ACCESS_KEY_ID'),
+            dcos_launch.util.set_from_env('AWS_SECRET_ACCESS_KEY'))
         self.config = config
 
     def create(self):

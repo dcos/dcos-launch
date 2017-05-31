@@ -4,8 +4,6 @@ deployment_name: This-is-a-test-stack
 template_url: https://s3.amazonaws.com/downloads.dcos.io/dcos/testing/master/cloudformation/coreos-zen-1.json
 provider: aws
 aws_region: us-west-2
-aws_access_key_id: ALSAFLAJ4L20922KF20TL294
-aws_secret_access_key: ADWOFIAOFWJTPW3924JR
 key_helper: true
 zen_helper: true
 template_parameters:

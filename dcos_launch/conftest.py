@@ -54,6 +54,9 @@ mock_priv_host = Host('127.0.0.1', None)
 def mocked_aws_cf(monkeypatch, mocked_test_runner):
     """Does not include SSH key mocking
     """
+    # mock credentials
+    monkeypatch.setenv('AWS_ACCESS_KEY_ID', 'AEF234DFLDWQMNEZ2')
+    monkeypatch.setenv('AWS_SECRET_ACCESS_KEY', 'ASDPFOKAWEFN123')
     monkeypatch.setattr(dcos_test_utils.aws.DcosCfStack, '__init__', stub(None))
     monkeypatch.setattr(
         dcos_test_utils.aws, 'fetch_stack', lambda stack_name, bw: dcos_test_utils.aws.DcosCfStack(stack_name, bw))
@@ -102,6 +105,10 @@ def mocked_aws_zen_cf(monkeypatch, mocked_aws_cf):
 
 @pytest.fixture
 def mocked_azure(monkeypatch, mocked_test_runner):
+    monkeypatch.setenv('AZURE_CLIENT_ID', 'AEF234DFLDWQMNEZ2')
+    monkeypatch.setenv('AZURE_CLIENT_SECRET', 'ASDPFOKAWEFN123')
+    monkeypatch.setenv('AZURE_TENANT_ID', 'ASDPFOKAWEFN123')
+    monkeypatch.setenv('AZURE_SUBSCRIPTION_ID', 'ASDPFOKAWEFN123')
     monkeypatch.setattr(dcos_test_utils.arm.ServicePrincipalCredentials, '__init__', stub(None))
     monkeypatch.setattr(dcos_test_utils.arm.ResourceManagementClient, '__init__', stub(None))
     monkeypatch.setattr(dcos_test_utils.arm.NetworkManagementClient, '__init__', stub(None))
