@@ -96,9 +96,12 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
         if self.config['ssh_private_key'] == NO_TEST_FLAG or 'ssh_user' not in self.config:
             raise LauncherError('MissingInput', 'DC/OS Launch is missing sufficient SSH info to run tests!')
         details = self.describe()
-        # populate minimal env if not already set
-        if test_host is None:
-            test_host = details['masters'][0]['public_ip']
+        # populate minimal env if not already set. Note: use private IPs as this test is from
+        # within the cluster
+        # required for 1.8
+        if 'DNS_SEARCH' not in env_dict:
+            env_dict['DNS_SEARCH'] = 'false'
+        # required for 1.8 and 1.9
         if 'MASTER_HOSTS' not in env_dict:
             env_dict['MASTER_HOSTS'] = ','.join(m['private_ip'] for m in details['masters'])
         if 'PUBLIC_MASTER_HOSTS' not in env_dict:
@@ -117,6 +120,8 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
 cd /opt/mesosphere/active/dcos-integration-test &&
 {env} py.test {args}" """.format(env=env_string, args=arg_string)
         log.info('Running integration test...')
+        if test_host is None:
+            test_host = details['masters'][0]['public_ip']
         return try_to_output_unbuffered(self.config, test_host, pytest_cmd)
 
 
