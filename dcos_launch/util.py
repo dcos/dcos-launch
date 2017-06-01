@@ -124,15 +124,18 @@ cd /opt/mesosphere/active/dcos-integration-test &&
         log.info('Running integration test...')
         if test_host is None:
             test_host = details['masters'][0]['public_ip']
-        return try_to_output_unbuffered(self.config, test_host, pytest_cmd)
+        if ':' in test_host:
+            test_host, test_port = test_host.split(':')
+        return try_to_output_unbuffered(self.config, test_host, pytest_cmd, test_port)
 
 
-def try_to_output_unbuffered(info, test_host, pytest_cmd):
+def try_to_output_unbuffered(info, test_host, pytest_cmd, port):
     """ Writing straight to STDOUT buffer does not work with syscap so mock this function out
     """
     ssh_client = dcos_test_utils.ssh_client.SshClient(info['ssh_user'], info['ssh_private_key'])
+    ssh_client.wait_for_ssh_connection(test_host, port=port)
     try:
-        ssh_client.command(test_host, ['bash', '-c', pytest_cmd], stdout=sys.stdout.buffer)
+        ssh_client.command(test_host, ['bash', '-c', pytest_cmd], port=port, stdout=sys.stdout.buffer)
     except subprocess.CalledProcessError as e:
         log.exception('Test run failed!')
         return e.returncode

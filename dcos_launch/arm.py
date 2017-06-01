@@ -61,10 +61,3 @@ class AzureResourceGroupLauncher(dcos_launch.util.AbstractLauncher):
             return dcos_test_utils.arm.DcosAzureResourceGroup(self.config['deployment_name'], self.azure_wrapper)
         except Exception as ex:
             raise dcos_launch.util.LauncherError('GroupNotFound', None) from ex
-
-    def test(self, args: list, env: dict):
-        details = self.describe()
-        test_host = details['master_fqdn']
-        if 'DCOS_DNS_ADDRESS' not in env:
-            env['DCOS_DNS_ADDRESS'] = 'http://' + test_host
-        return super().test(args, env, test_host=test_host, test_port=2200)
