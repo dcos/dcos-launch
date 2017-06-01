@@ -118,8 +118,9 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
         env_dict = {e: "'{}'".format(env_dict[e]) if ' ' in env_dict[e] else env_dict[e] for e in env_dict}
         env_string = ' '.join(['{}={}'.format(e, env_dict[e]) for e in env_dict])
         arg_string = ' '.join(args)
+        # To support 1.8.9-EE, try using the dcos-integration-test-ee folder if possible
         pytest_cmd = """ "source /opt/mesosphere/environment.export &&
-cd /opt/mesosphere/active/dcos-integration-test &&
+cd `find /opt/mesosphere/active/ -name dcos-integration-test* | sort | tail -n 1` &&
 {env} py.test {args}" """.format(env=env_string, args=arg_string)
         log.info('Running integration test...')
         if test_host is None:
