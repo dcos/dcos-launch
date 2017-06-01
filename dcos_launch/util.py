@@ -101,6 +101,8 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
         # required for 1.8
         if 'DNS_SEARCH' not in env_dict:
             env_dict['DNS_SEARCH'] = 'false'
+        if 'DCOS_PROVIDER' not in env_dict:
+            env_dict['DCOS_PROVIDER'] = self.config['provider']
         # required for 1.8 and 1.9
         if 'MASTER_HOSTS' not in env_dict:
             env_dict['MASTER_HOSTS'] = ','.join(m['private_ip'] for m in details['masters'])
