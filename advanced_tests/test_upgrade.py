@@ -266,9 +266,6 @@ def setup_workload(dcos_api_session, viptalk_app, viplisten_app, healthcheck_app
     return test_app_ids, tasks_start, task_state_start
 
 
-@pytest.mark.skipif(
-    'TEST_UPGRADE_INSTALLER_URL' not in os.environ,
-    reason='TEST_UPGRADE_INSTALLER_URL must be set in env to upgrade a cluster')
 @pytest.fixture(scope='session')
 def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster):
     """ By invoking this fixture, a given test or fixtre is executed AFTER the upgrade
@@ -287,6 +284,9 @@ def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster):
 
 
 @pytest.mark.usefixtures('upgraded_dcos')
+@pytest.mark.skipif(
+    'TEST_UPGRADE_INSTALLER_URL' not in os.environ,
+    reason='TEST_UPGRADE_INSTALLER_URL must be set in env to upgrade a cluster')
 class TestUpgrade:
     def test_marathon_app_tasks_survive(self, dcos_api_session, setup_workload):
         test_app_ids, tasks_start, _ = setup_workload
