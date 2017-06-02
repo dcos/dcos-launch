@@ -27,6 +27,18 @@ Additional requirements to develop and/or build this library:
 * virtualenv
 * OpenSSL 1.0.2g or greater (for exporting the dcos-launch binary)
 
+### Developing in a Docker container
+If you do not have a linux environment or for whatever reason your local SSH client is not compatible with this repository, you can simply develop with the included Dockerfile.
+
+To build to development container:
+```
+docker build -t dcos-test-utils-dev:latest .
+```
+and to then work in the environment:
+```
+docker run -it -v `pwd`:/dcos-test-utils dcos-test-utils-dev:latest /bin/bash
+```
+
 ### Using the library interactively
 ```
 python3.5 -m venv env
