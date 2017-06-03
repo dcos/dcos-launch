@@ -84,7 +84,7 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
     def delete(self):
         raise NotImplementedError()
 
-    def test(self, args, env_dict, test_host=None, test_port=22):
+    def test(self, args: list, env_dict: dict, test_host=None, test_port=22) -> int:
         """ Connects to master host with SSH and then run the internal integration test
 
         Args:
@@ -130,13 +130,21 @@ cd `find /opt/mesosphere/active/ -name dcos-integration-test* | sort | tail -n 1
         return try_to_output_unbuffered(self.config, test_host, pytest_cmd, test_port)
 
 
-def try_to_output_unbuffered(info, test_host, pytest_cmd, port):
-    """ Writing straight to STDOUT buffer does not work with syscap so mock this function out
+def try_to_output_unbuffered(info, test_host: str, bash_cmd: str, port: int) -> int:
+    """ Tries to run a command and directly output to STDOUT
+
+    Args:
+        test_host: ip string for host to connect to
+        bash_cmd: string to be passed to BASH
+        port: SSH port to use on test_host
+
+    Returns:
+        return code of bash_cmd (int)
     """
     ssh_client = dcos_test_utils.ssh_client.SshClient(info['ssh_user'], info['ssh_private_key'])
     ssh_client.wait_for_ssh_connection(test_host, port=port)
     try:
-        ssh_client.command(test_host, ['bash', '-c', pytest_cmd], port=port, stdout=sys.stdout.buffer)
+        ssh_client.command(test_host, ['bash', '-c', bash_cmd], port=port, stdout=sys.stdout.buffer)
     except subprocess.CalledProcessError as e:
         log.exception('Test run failed!')
         return e.returncode
