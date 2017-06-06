@@ -32,7 +32,7 @@ def launcher():
         launcher = dcos_launch.get_launcher(
             dcos_launch.config.get_validated_config(os.environ['TEST_LAUNCH_CONFIG_PATH']))
         info = launcher.create()
-        with open(os.getenv('TEST_CLUSTER_INFO_PATH', 'test_cluster_info.json'), 'w') as f:
+        with open(os.getenv('TEST_CLUSTER_INFO_PATH', 'cluster_info.json'), 'w') as f:
             json.dump(info, f)
         # basic wait to account for initial provisioning delay
         time.sleep(180)

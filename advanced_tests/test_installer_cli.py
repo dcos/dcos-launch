@@ -98,7 +98,7 @@ def onprem_cluster(onprem_launcher) -> onprem.OnpremCluster:
     # install dcos via API during wait and we want the CLI to do this
     bare_cluster_launcher = onprem_launcher.get_bare_cluster_launcher()
     info = bare_cluster_launcher.create()
-    with open(os.getenv('TEST_CLUSTER_INFO_PATH', 'test_cluster_info.json'), 'w') as f:
+    with open(os.getenv('TEST_CLUSTER_INFO_PATH', 'cluster_info.json'), 'w') as f:
         json.dump(info, f)
     log.info('Sleeping for 3 minutes as cloud provider creates bare cluster..')
     time.sleep(180)
@@ -113,7 +113,7 @@ def onprem_cluster(onprem_launcher) -> onprem.OnpremCluster:
     os.environ.get('TEST_CREATE_CLUSTER') != 'true',
     reason='TEST_CREATE_CLUSTER must be set to run this test!')
 @pytest.mark.skipif(
-    os.environ.get('TEST_INSTALL_PREREQS') != 'true',
+    'TEST_INSTALL_PREREQS' not in os.environ,
     reason='TEST_INSTALL_PREREQS must be set to true or false to run this test!')
 def test_installer_cli(onprem_cluster, onprem_launcher):
     """ This test will step through the CLI install proceder for on-prem DC/OS
