@@ -87,7 +87,7 @@ def onprem_launcher():
 
 
 @pytest.fixture(scope='session')
-def onprem_cluster(onprem_launcher) -> onprem.OnpremCluster:
+def onprem_cluster(onprem_launcher, cluster_info_path) -> onprem.OnpremCluster:
     """ This fixture uses the OnpremLauncher, but only spins up a bare cluster
     by calling the create command and then not calling the wait command. Rather,
     the bare cluster interface is exposed for waiting so that DC/OS will not be
@@ -98,7 +98,7 @@ def onprem_cluster(onprem_launcher) -> onprem.OnpremCluster:
     # install dcos via API during wait and we want the CLI to do this
     bare_cluster_launcher = onprem_launcher.get_bare_cluster_launcher()
     info = bare_cluster_launcher.create()
-    with open(os.getenv('TEST_CLUSTER_INFO_PATH', 'cluster_info.json'), 'w') as f:
+    with open(cluster_info_path, 'w') as f:
         json.dump(info, f)
     log.info('Sleeping for 3 minutes as cloud provider creates bare cluster..')
     time.sleep(180)
