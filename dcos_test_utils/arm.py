@@ -200,7 +200,7 @@ class DcosAzureResourceGroup:
         azure_wrapper.deploy_template_to_new_resource_group(template_url, group_name, parameters)
         return cls(group_name, azure_wrapper)
 
-    def wait_for_deployment(self, timeout=45 * 60):
+    def wait_for_deployment(self, timeout=60 * 60):
         """
         Azure will not register a template instantly after deployment, so
         CloudError must be expected as retried. Once the ops are retrieved, this
