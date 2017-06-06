@@ -60,7 +60,7 @@ def viplisten_app():
             "gracePeriodSeconds": 300,
             "intervalSeconds": 60,
             "timeoutSeconds": 20,
-            "maxConsecutiveFailures": 3
+            "maxConsecutiveFailures": 10
         }]
     }
 
@@ -87,7 +87,7 @@ def viptalk_app():
             "gracePeriodSeconds": 300,
             "intervalSeconds": 60,
             "timeoutSeconds": 20,
-            "maxConsecutiveFailures": 3
+            "maxConsecutiveFailures": 10
         }]
     }
 
@@ -299,6 +299,7 @@ class TestUpgrade:
         task_state_end = get_master_task_state(dcos_api_session, tasks_start[test_app_ids[0]][0])
         assert all(item in task_state_end.items() for item in task_state_start.items())
 
+    @pytest.mark.xfail
     def test_app_dns_survive(self, dcos_api_session, dns_app):
         marathon_framework_id = dcos_api_session.marathon.get('/v2/info').json()['frameworkId']
         dns_app_task = dcos_api_session.marathon.get('/v2/apps' + dns_app['id'] + '/tasks').json()['tasks'][0]
