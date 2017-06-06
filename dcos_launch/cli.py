@@ -32,7 +32,6 @@ Options:
             [default: info].
 """
 import json
-import logging
 import os
 import sys
 
@@ -41,8 +40,8 @@ from docopt import docopt
 import dcos_launch
 import dcos_launch.config
 import dcos_launch.util
+from dcos_test_utils import logging
 
-LOGGING_FORMAT = '[%(asctime)s|%(name)s|%(levelname)s]: %(message)s'
 
 json_prettyprint_args = {
     "sort_keys": True,
@@ -68,29 +67,8 @@ def load_json(filename):
         raise ValueError("Invalid JSON in {0}: {1}".format(filename, ex)) from ex
 
 
-def _handle_logging(log_level_str):
-    if log_level_str == 'CRITICAL':
-        log_level = logging.CRITICAL
-    elif log_level_str == 'ERROR':
-        log_level = logging.ERROR
-    elif log_level_str == 'WARNING':
-        log_level = logging.WARNING
-    elif log_level_str == 'INFO':
-        log_level = logging.INFO
-    elif log_level_str == 'DEBUG' or log_level_str == 'TRACE':
-        log_level = logging.DEBUG
-    else:
-        raise dcos_launch.util.LauncherError('InvalidOption', '{} is not a valid log level'.format(log_level_str))
-    logging.basicConfig(format=LOGGING_FORMAT, level=log_level)
-    if log_level_str in ('TRACE', 'CRITICAL'):
-        return
-    # now dampen the loud loggers
-    for module in ['botocore', 'boto3']:
-        logging.getLogger(module).setLevel(log_level + 10)
-
-
 def do_main(args):
-    _handle_logging(args['--log-level'].upper())
+    logging.setup_logging(args['--log-level'].upper())
 
     config_path = args['--config-path']
     if args['create']:
