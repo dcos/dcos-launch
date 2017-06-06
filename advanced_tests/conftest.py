@@ -1,4 +1,3 @@
-import logging
 import json
 import os
 import time
@@ -7,8 +6,9 @@ import pytest
 
 import dcos_launch.config
 import dcos_launch.util
+from dcos_test_utils import logging
 
-logging.basicConfig(format='[%(asctime)s|%(name)s|%(levelname)s]: %(message)s', level=logging.INFO)
+logging.setup_logging('DEBUG')
 
 
 @pytest.fixture
