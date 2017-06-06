@@ -23,7 +23,7 @@ def cluster_info_path(create_cluster):
     path = os.getenv('TEST_CLUSTER_INFO_PATH', 'cluster_info.json')
     if os.path.exists(path) and create_cluster:
         raise Exception('Test cannot begin while cluster_info.json is present in working directory')
-    return cluster_info_path
+    return path
 
 
 @pytest.fixture(scope='session')
