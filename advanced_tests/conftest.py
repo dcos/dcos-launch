@@ -11,14 +11,14 @@ from dcos_test_utils import logging
 logging.setup_logging('DEBUG')
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def create_cluster():
     if 'TEST_CREATE_CLUSTER' not in os.environ:
         raise Exception('TEST_CREATE_CLUSTER must be to set true or false in the local environment')
     return os.environ['TEST_CREATE_CLUSTER'] == 'true'
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def cluster_info_path(create_cluster):
     path = os.getenv('TEST_CLUSTER_INFO_PATH', 'cluster_info.json')
     if os.path.exists(path) and create_cluster:
