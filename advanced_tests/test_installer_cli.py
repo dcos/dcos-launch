@@ -112,6 +112,9 @@ def onprem_cluster(onprem_launcher) -> onprem.OnpremCluster:
 @pytest.mark.skipif(
     os.environ.get('TEST_CREATE_CLUSTER') != 'true',
     reason='TEST_CREATE_CLUSTER must be set to run this test!')
+@pytest.mark.skipif(
+    os.environ.get('TEST_INSTALL_PREREQS') != 'true',
+    reason='TEST_INSTALL_PREREQS must be set to true or false to run this test!')
 def test_installer_cli(onprem_cluster, onprem_launcher):
     """ This test will step through the CLI install proceder for on-prem DC/OS
 
