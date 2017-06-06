@@ -24,6 +24,14 @@ class DcosCliInstaller():
     so that commands can stream unbuffered to stdout without boilerplate
     """
     def __init__(self, host: str, installer_path: str, ssh: ssh_client.SshClient):
+        """
+        Args:
+            host: IP string for where the installer will be downloaded to and
+                run from.
+            installer_path: Full path on `host` where installer will be
+                downloaded and run from.
+            ssh: SshClient object that can access host
+        """
         self.host = host
         self.ssh = ssh
         self.installer_path = installer_path
@@ -33,9 +41,16 @@ class DcosCliInstaller():
         return self.ssh_command(['bash', self.installer_path, cli_option], stdout=sys.stdout.buffer)
 
     def ssh_command(self, *args, **kwargs):
+        """ Pass through to self.ssh.command to avoid boilerplate
+        """
         return self.ssh.command(self.host, *args, **kwargs)
 
-    def copy_to_host(self, src_path, dst_path):
+    def copy_to_host(self, src_path: str, dst_path: str):
+        """ Use SSH tunnel to write a file to host
+        Args:
+            src_path: path for the source file on local host
+            dst_path: path for the destination file on remote host
+        """
         with self.ssh.tunnel(self.host) as tunnel:
             tunnel.copy_file(src_path, dst_path)
 
@@ -54,13 +69,14 @@ class DcosCliInstaller():
     def postflight(self):
         self.run_cli_cmd('--postflight')
 
-    def generate_node_upgrade_script(self, version):
-        # tunnel run_cmd calls check_output which returns the output hence returning this
+    def generate_node_upgrade_script(self, version: str):
         return self.run_cli_cmd("--generate-node-upgrade-script " + version)
 
 
 @pytest.fixture(scope='session')
 def onprem_launcher():
+    """ Provides the OnpremLauncher to create a cluster for installation.
+    """
     launcher = dcos_launch.get_launcher(config.get_validated_config(
         os.environ['TEST_LAUNCH_CONFIG_PATH']))
     if launcher.config['provider'] != 'onprem':
@@ -71,7 +87,13 @@ def onprem_launcher():
 
 
 @pytest.fixture(scope='session')
-def onprem_cluster(onprem_launcher):
+def onprem_cluster(onprem_launcher) -> onprem.OnpremCluster:
+    """ This fixture uses the OnpremLauncher, but only spins up a bare cluster
+    by calling the create command and then not calling the wait command. Rather,
+    the bare cluster interface is exposed for waiting so that DC/OS will not be
+    installed as a part of the wait of the OnpremLauncher does. Finally, the
+    OnpremCluster object is returned in order to describe the hosts in the cluster.
+    """
     # need to get bare_cluster launcher to call wait as onprem_launcher will
     # install dcos via API during wait and we want the CLI to do this
     bare_cluster_launcher = onprem_launcher.get_bare_cluster_launcher()
@@ -91,6 +113,12 @@ def onprem_cluster(onprem_launcher):
     os.environ.get('TEST_CREATE_CLUSTER') != 'true',
     reason='TEST_CREATE_CLUSTER must be set to run this test!')
 def test_installer_cli(onprem_cluster, onprem_launcher):
+    """ This test will step through the CLI install proceder for on-prem DC/OS
+
+    This test has an environment variable switch: TEST_INSTALL_PREREQS
+    If set to 'true', the --install-prereqs option on the installer will
+    be run and if it rasises an error code, the test will fail.
+    """
     host = onprem_cluster.bootstrap_host.public_ip
     ssh = onprem_launcher.get_ssh_client()
 
@@ -147,7 +175,8 @@ def test_installer_cli(onprem_cluster, onprem_launcher):
 
     log.info('Running installation procedure')
     cli_installer.genconf()
-    cli_installer.install_prereqs()
+    if os.environ['TEST_INSTALL_PREREQS'] == 'true':
+        cli_installer.install_prereqs()
     cli_installer.preflight()
     cli_installer.deploy()
     cli_installer.postflight()
