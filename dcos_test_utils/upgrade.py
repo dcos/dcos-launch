@@ -22,6 +22,7 @@ def wait_for_mesos_metric(cluster, host, key, value):
         port = 5050
     else:
         port = 5051
+    log.info('Polling metrics snapshot endpoint')
     response = cluster.get('/metrics/snapshot', host=host, port=port)
     return response.json().get(key) == value
 
