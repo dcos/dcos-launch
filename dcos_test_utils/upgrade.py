@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 @retrying.retry(
     wait_fixed=1000 * 10,
     retry_on_result=lambda result: result is False)
-def wait_for_mesos_metric(cluster, host, key, value):
+def wait_for_mesos_metric(cluster, host, key):
     """Return True when host's Mesos metric key is equal to value."""
     if host in cluster.masters:
         port = 5050
@@ -23,7 +23,7 @@ def wait_for_mesos_metric(cluster, host, key, value):
         port = 5051
     log.info('Polling metrics snapshot endpoint')
     response = cluster.get('/metrics/snapshot', host=host, port=port)
-    return response.json().get(key) == value
+    return response.json().get(key) == 1
 
 
 def reset_bootstrap_host(ssh: ssh_client.SshClient, bootstrap_host: str):
@@ -133,11 +133,9 @@ def upgrade_dcos(
             }[role]
             log.info('Waiting for {} to rejoin the cluster...'.format(role_name))
             try:
-                wait_for_mesos_metric(dcos_api_session, host, wait_metric, 1)
+                wait_for_mesos_metric(dcos_api_session, host, wait_metric)
             except retrying.RetryError as exc:
                 raise Exception(
                     'Timed out waiting for {} to rejoin the cluster after upgrade: {}'.
                     format(role_name, repr(host))
                 ) from exc
-    # All done in theory, just need to wait for any unhealthy services
-    dcos_api_session.wait_for_dcos()

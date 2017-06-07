@@ -177,28 +177,21 @@ def onprem_cluster(launcher):
 
 
 @pytest.fixture(scope='session')
-def dcos_api_session(onprem_cluster, launcher, upgrade_test_mode):
-    session = dcos_test_utils.dcos_api_session.DcosApiSession(
-        'http://' + onprem_cluster.masters[0].public_ip,
-        [m.public_ip for m in onprem_cluster.masters],
-        [m.public_ip for m in onprem_cluster.private_agents],
-        [m.public_ip for m in onprem_cluster.public_agents],
-        'root',
-        dcos_test_utils.dcos_api_session.DcosUser(helpers.CI_CREDENTIALS),
-        exhibitor_admin_password=launcher.config['dcos_config'].get('exhibitor_admin_password'))
-    session.wait_for_dcos()
-    return session
+def enterprise():
+    return os.getenv('TEST_UPGRADE_ENTERPRISE', 'false') == 'true'
 
 
 @pytest.fixture(scope='session')
-def upgrade_test_mode():
-    assert 'TEST_UPGRADE_MODE' in os.environ
-    upgrade_mode = os.environ['TEST_UPGRADE_MODE']
-    assert upgrade_mode in ['open-open', 'open-ee', 'ee-ee']
-    return upgrade_mode
+def dcos_api_session(onprem_cluster, launcher, enterprise):
+    """ The API session for the cluster at the beginning of the upgrade
+    This will be used to start tasks and poll the metrics snapshot endpoint
+    """
+    strict_mode = launcher.config['dcos_config'].get('security') == 'strict'
+
+    return make_dcos_api_session(onprem_cluster, launcher, enterprise, strict_mode)
 
 
-def get_dcos_api(onprem_cluster, launcher, enterprise: bool):
+def make_dcos_api_session(onprem_cluster, launcher, enterprise: bool=False, strict_mode: bool=False):
     args = {
         'dcos_url': 'http://' + onprem_cluster.masters[0].public_ip,
         'masters': [m.public_ip for m in onprem_cluster.masters],
@@ -207,15 +200,22 @@ def get_dcos_api(onprem_cluster, launcher, enterprise: bool):
         'default_os_user': 'root',
         'auth_user': dcos_test_utils.dcos_api_session.DcosUser(helpers.CI_CREDENTIALS),
         'exhibitor_admin_password': launcher.config['dcos_config'].get('exhibitor_admin_password')}
+
     if enterprise:
         api_class = dcos_test_utils.enterprsie.EnterpriseApiSession
         args['auth_user'] = dcos_test_utils.enterprise.EnterpriseUser(
             os.getenv('DCOS_LOGIN_UNAME', 'testadmin'),
             os.getenv('DCOS_LOGIN_PW', 'testpassword'))
+        if strict_mode:
+            args['dcos_url'].replace('http', 'https')
+            args['default_os_user'] = 'nobody'
     else:
         api_class = dcos_test_utils.dcos_api_session.DcosApiSession
+
     session = api_class(**args)
-    session.authenticate_default_user()
+    if strict_mode:
+        session.set_ca_cert()
+    session.wait_for_dcos()
     return session
 
 
@@ -298,7 +298,7 @@ def setup_workload(dcos_api_session, viptalk_app, viplisten_app, healthcheck_app
 
 
 @pytest.fixture(scope='session')
-def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster):
+def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster, enterprise):
     """ This test is intended to test upgrades between versions so use
     the same config as the original launch
     """
@@ -354,6 +354,12 @@ def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster):
         onprem_cluster,
         dcos_api_session.get_version(),
         os.environ['TEST_UPGRADE_INSTALLER_URL'])
+
+    make_dcos_api_session(
+        onprem_cluster,
+        launcher,
+        enterprise,
+        upgrade_config_overrides.get('security') == 'strict').wait_for_dcos()
 
 
 @pytest.mark.usefixtures('upgraded_dcos')
