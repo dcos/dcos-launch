@@ -333,7 +333,7 @@ class DcosApiSession(ARNodeApiClientMixin, RetryCommonHttpErrorsMixin, ApiClient
 
     def wait_for_dcos(self):
         self._wait_for_adminrouter_up()
-        self.authenticate_default_user()
+        self._authenticate_default_user()
         self.set_node_lists_if_unset()
         self._wait_for_marathon_up()
         self._wait_for_zk_quorum()
