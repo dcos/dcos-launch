@@ -177,7 +177,7 @@ def onprem_cluster(launcher):
 
 
 @pytest.fixture(scope='session')
-def dcos_api_session(onprem_cluster, launcher):
+def dcos_api_session(onprem_cluster, launcher, upgrade_test_mode):
     session = dcos_test_utils.dcos_api_session.DcosApiSession(
         'http://' + onprem_cluster.masters[0].public_ip,
         [m.public_ip for m in onprem_cluster.masters],
@@ -187,6 +187,35 @@ def dcos_api_session(onprem_cluster, launcher):
         dcos_test_utils.dcos_api_session.DcosUser(helpers.CI_CREDENTIALS),
         exhibitor_admin_password=launcher.config['dcos_config'].get('exhibitor_admin_password'))
     session.wait_for_dcos()
+    return session
+
+
+@pytest.fixture(scope='session')
+def upgrade_test_mode():
+    assert 'TEST_UPGRADE_MODE' in os.environ
+    upgrade_mode = os.environ['TEST_UPGRADE_MODE']
+    assert upgrade_mode in ['open-open', 'open-ee', 'ee-ee']
+    return upgrade_mode
+
+
+def get_dcos_api(onprem_cluster, launcher, enterprise: bool):
+    args = {
+        'dcos_url': 'http://' + onprem_cluster.masters[0].public_ip,
+        'masters': [m.public_ip for m in onprem_cluster.masters],
+        'slaves': [m.public_ip for m in onprem_cluster.private_agents],
+        'public_slaves': [m.public_ip for m in onprem_cluster.public_agents],
+        'default_os_user': 'root',
+        'auth_user': dcos_test_utils.dcos_api_session.DcosUser(helpers.CI_CREDENTIALS),
+        'exhibitor_admin_password': launcher.config['dcos_config'].get('exhibitor_admin_password')}
+    if enterprise:
+        api_class = dcos_test_utils.enterprsie.EnterpriseApiSession
+        args['auth_user'] = dcos_test_utils.enterprise.EnterpriseUser(
+            os.getenv('DCOS_LOGIN_UNAME', 'testadmin'),
+            os.getenv('DCOS_LOGIN_PW', 'testpassword'))
+    else:
+        api_class = dcos_test_utils.dcos_api_session.DcosApiSession
+    session = api_class(**args)
+    session.authenticate_default_user()
     return session
 
 
@@ -233,6 +262,7 @@ def parse_dns_log(dns_log_content):
 
 @pytest.fixture(scope='session')
 def setup_workload(dcos_api_session, viptalk_app, viplisten_app, healthcheck_app, dns_app):
+    dcos_api_session.wait_for_dcos()
     # TODO(branden): We ought to be able to deploy these apps concurrently. See
     # https://mesosphere.atlassian.net/browse/DCOS-13360.
     dcos_api_session.marathon.deploy_app(viplisten_app)

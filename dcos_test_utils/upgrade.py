@@ -29,7 +29,7 @@ def wait_for_mesos_metric(cluster, host, key, value):
 def reset_bootstrap_host(ssh: ssh_client.SshClient, bootstrap_host: str):
     with ssh.tunnel(bootstrap_host) as t:
         log.info('Checking for previous installer before starting upgrade')
-        home_dir = t.command['pwd'].decode().strip()
+        home_dir = t.command(['pwd']).decode().strip()
         previous_installer = t.command(
             ['docker', 'ps', '--quiet', '--filter', 'name=dcos-genconf',
              '--filter', 'status=running']).decode().strip()
