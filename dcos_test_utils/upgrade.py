@@ -32,11 +32,10 @@ def reset_bootstrap_host(ssh: ssh_client.SshClient, bootstrap_host: str):
         log.info('Checking for previous installer before starting upgrade')
         home_dir = t.command(['pwd']).decode().strip()
         previous_installer = t.command(
-            ['docker', 'ps', '--quiet', '--filter', 'name=dcos-genconf',
-             '--filter', 'status=running']).decode().strip()
+            ['docker', 'ps', '--quiet', '--filter', 'name=dcos-genconf']).decode().strip()
         if previous_installer:
             log.info('Previous installer found, killing...')
-            t.command(['docker', 'kill', previous_installer])
+            t.command(['docker', 'rm', '--force', previous_installer])
         t.command(['sudo', 'rm', '-rf', os.path.join(home_dir, 'genconf*'), os.path.join(home_dir, 'dcos*')])
 
 
