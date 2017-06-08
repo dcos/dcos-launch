@@ -36,7 +36,7 @@ def reset_bootstrap_host(ssh: ssh_client.SshClient, bootstrap_host: str):
         if previous_installer:
             log.info('Previous installer found, killing...')
             t.command(['docker', 'kill', previous_installer])
-        t.command(['sudo', 'rm', '-rf', home_dir])
+        t.command(['sudo', 'rm', '-rf', os.path.join(home_dir, 'genconf*'), os.path.join(home_dir, 'dcos*')])
 
 
 def upgrade_dcos(
