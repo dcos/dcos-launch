@@ -213,11 +213,7 @@ def make_dcos_api_session(onprem_cluster, launcher, is_enterprise: bool=False, s
     else:
         api_class = dcos_test_utils.dcos_api_session.DcosApiSession
 
-    session = api_class(**args)
-    if ssl_enabled:
-        session.set_ca_cert()
-    session.wait_for_dcos()
-    return session
+    return api_class(**args)
 
 
 @retrying.retry(
@@ -263,6 +259,8 @@ def parse_dns_log(dns_log_content):
 
 @pytest.fixture(scope='session')
 def setup_workload(dcos_api_session, viptalk_app, viplisten_app, healthcheck_app, dns_app):
+    if dcos_api_session.default_url.scheme == 'https':
+        dcos_api_session.set_ca_cert()
     dcos_api_session.wait_for_dcos()
     # TODO(branden): We ought to be able to deploy these apps concurrently. See
     # https://mesosphere.atlassian.net/browse/DCOS-13360.
@@ -350,41 +348,54 @@ def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster, is
             pkg_resources.resource_filename('dcos_test_utils', 'ip-detect/aws.sh'),
             os.path.join(bootstrap_home, 'genconf/ip-detect'))
 
+    # API object may need to be updated
+    upgrade_session = make_dcos_api_session(
+        onprem_cluster,
+        launcher,
+        is_enterprise,
+        upgrade_config_overrides.get('security'))
+
+    # use the Auth session from the previous API session
+    upgrade_session.session.auth = dcos_api_session.session.auth
+
+    # do the actual upgrade
     upgrade.upgrade_dcos(
-        dcos_api_session,
+        upgrade_session,
         onprem_cluster,
         dcos_api_session.get_version(),
         os.environ['TEST_UPGRADE_INSTALLER_URL'])
 
-    # API object may need to be updated
-    make_dcos_api_session(
-        onprem_cluster,
-        launcher,
-        is_enterprise,
-        upgrade_config_overrides.get('security')).wait_for_dcos()
+    # this can be set after the fact because the upgrade metrics snapshot
+    # endpoint is polled with verify=False
+    if upgrade_session.default_url.scheme == 'https':
+        upgrade_session.set_ca_cert()
+
+    # Now Re-auth with the new session
+    upgrade_session.wait_for_dcos()
+    return upgrade_session
 
 
-@pytest.mark.usefixtures('upgraded_dcos')
 @pytest.mark.skipif(
     'TEST_UPGRADE_INSTALLER_URL' not in os.environ,
     reason='TEST_UPGRADE_INSTALLER_URL must be set in env to upgrade a cluster')
 class TestUpgrade:
-    def test_marathon_app_tasks_survive(self, dcos_api_session, setup_workload):
+    @pytest.mark.xfail
+    def test_marathon_app_tasks_survive(self, upgraded_dcos, setup_workload):
         test_app_ids, tasks_start, _ = setup_workload
-        tasks_end = {app_id: sorted(app_task_ids(dcos_api_session, app_id)) for app_id in test_app_ids}
+        tasks_end = {app_id: sorted(app_task_ids(upgraded_dcos, app_id)) for app_id in test_app_ids}
         log.debug('Test app tasks at end:\n' + pprint.pformat(tasks_end))
         assert tasks_start == tasks_end
 
-    def test_mesos_task_state_remains_consistent(self, dcos_api_session, setup_workload):
+    def test_mesos_task_state_remains_consistent(self, upgraded_dcos, setup_workload):
         test_app_ids, tasks_start, task_state_start = setup_workload
-        task_state_end = get_master_task_state(dcos_api_session, tasks_start[test_app_ids[0]][0])
+        task_state_end = get_master_task_state(upgraded_dcos, tasks_start[test_app_ids[0]][0])
         assert all(item in task_state_end.items() for item in task_state_start.items())
 
     @pytest.mark.xfail
-    def test_app_dns_survive(self, dcos_api_session, dns_app):
-        marathon_framework_id = dcos_api_session.marathon.get('/v2/info').json()['frameworkId']
-        dns_app_task = dcos_api_session.marathon.get('/v2/apps' + dns_app['id'] + '/tasks').json()['tasks'][0]
-        dns_log = parse_dns_log(dcos_api_session.mesos_sandbox_file(
+    def test_app_dns_survive(self, upgraded_dcos, dns_app):
+        marathon_framework_id = upgraded_dcos.marathon.get('/v2/info').json()['frameworkId']
+        dns_app_task = upgraded_dcos.marathon.get('/v2/apps' + dns_app['id'] + '/tasks').json()['tasks'][0]
+        dns_log = parse_dns_log(upgraded_dcos.mesos_sandbox_file(
             dns_app_task['slaveId'],
             marathon_framework_id,
             dns_app_task['id'],
