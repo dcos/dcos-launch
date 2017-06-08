@@ -207,7 +207,7 @@ def make_dcos_api_session(onprem_cluster, launcher, is_enterprise: bool=False, s
             os.getenv('DCOS_LOGIN_UNAME', 'testadmin'),
             os.getenv('DCOS_LOGIN_PW', 'testpassword'))
         if ssl_enabled:
-            args['dcos_url'].replace('http', 'https')
+            args['dcos_url'] = args['dcos_url'].replace('http', 'https')
         if security_mode == 'strict':
             args['default_os_user'] = 'nobody'
     else:
