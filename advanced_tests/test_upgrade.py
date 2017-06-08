@@ -186,12 +186,12 @@ def dcos_api_session(onprem_cluster, launcher, is_enterprise):
     """ The API session for the cluster at the beginning of the upgrade
     This will be used to start tasks and poll the metrics snapshot endpoint
     """
-    strict_mode = launcher.config['dcos_config'].get('security') == 'strict'
+    return make_dcos_api_session(
+        onprem_cluster, launcher, is_enterprise, launcher.config['dcos_config'].get('security'))
 
-    return make_dcos_api_session(onprem_cluster, launcher, is_enterprise, strict_mode)
 
-
-def make_dcos_api_session(onprem_cluster, launcher, is_enterprise: bool=False, strict_mode: bool=False):
+def make_dcos_api_session(onprem_cluster, launcher, is_enterprise: bool=False, security_mode=None):
+    ssl_enabled = security_mode in ('strict', 'permissive')
     args = {
         'dcos_url': 'http://' + onprem_cluster.masters[0].public_ip,
         'masters': [m.public_ip for m in onprem_cluster.masters],
@@ -206,14 +206,15 @@ def make_dcos_api_session(onprem_cluster, launcher, is_enterprise: bool=False, s
         args['auth_user'] = enterprise.EnterpriseUser(
             os.getenv('DCOS_LOGIN_UNAME', 'testadmin'),
             os.getenv('DCOS_LOGIN_PW', 'testpassword'))
-        if strict_mode:
+        if ssl_enabled:
             args['dcos_url'].replace('http', 'https')
+        if security_mode == 'strict':
             args['default_os_user'] = 'nobody'
     else:
         api_class = dcos_test_utils.dcos_api_session.DcosApiSession
 
     session = api_class(**args)
-    if strict_mode:
+    if ssl_enabled:
         session.set_ca_cert()
     session.wait_for_dcos()
     return session
@@ -360,7 +361,7 @@ def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster, is
         onprem_cluster,
         launcher,
         is_enterprise,
-        upgrade_config_overrides.get('security') == 'strict').wait_for_dcos()
+        upgrade_config_overrides.get('security')).wait_for_dcos()
 
 
 @pytest.mark.usefixtures('upgraded_dcos')
