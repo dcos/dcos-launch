@@ -22,7 +22,8 @@ def wait_for_mesos_metric(cluster, host, key):
     else:
         port = 5051
     log.info('Polling metrics snapshot endpoint')
-    response = cluster.get('/metrics/snapshot', host=host, port=port)
+    # A CA cert may be set during the upgrade, so do not verify just in case
+    response = cluster.get('/metrics/snapshot', host=host, port=port, verify=False)
     return response.json().get(key) == 1
 
 
