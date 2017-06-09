@@ -63,7 +63,7 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api_session.DcosApiSession
         assert 'DCOS_LOGIN_PW' in os.environ, 'DCOS_LOGIN_PW must be set!'
         uid = os.environ['DCOS_LOGIN_UNAME']
         password = os.environ['DCOS_LOGIN_PW']
-        args = super(dcos_api_session.DcosApiSession).get_args_from_env()
+        args = dcos_api_session.DcosApiSession.get_args_from_env()
         args['auth_user'] = EnterpriseUser(uid, password)
         return args
 
@@ -74,7 +74,7 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api_session.DcosApiSession
         crt = r.json()['result']['certificate']
         self.session.verify = helpers.session_tempfile(crt.encode())
 
-    def set_initial_resrouce_ids(self):
+    def set_initial_resource_ids(self):
         self.initial_resource_ids = []
         r = self.iam.get('/acls')
         for o in r.json()['array']:
