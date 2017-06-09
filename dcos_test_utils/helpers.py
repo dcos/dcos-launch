@@ -175,7 +175,7 @@ def is_retryable_exception(exception: Exception) -> bool:
     """
     for ex in [requests.exceptions.ConnectionError, requests.exceptions.Timeout]:
         if isinstance(exception, ex):
-            log.debug('Retrying common HTTP error: {}'.format(ex.__name__))
+            log.debug('Retrying common HTTP error: {}'.format(repr(exception)))
             return True
     return False
 

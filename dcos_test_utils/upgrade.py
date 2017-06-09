@@ -2,13 +2,12 @@ import logging
 import os
 import random
 
-import pkg_resources
 import retrying
-import yaml
 
 import dcos_test_utils
 import dcos_test_utils.onprem
-from dcos_test_utils.helpers import session_tempfile
+
+from dcos_test_utils import ssh_client
 
 log = logging.getLogger(__name__)
 
@@ -16,95 +15,70 @@ log = logging.getLogger(__name__)
 @retrying.retry(
     wait_fixed=1000 * 10,
     retry_on_result=lambda result: result is False)
-def wait_for_mesos_metric(cluster, host, key, value):
+def wait_for_mesos_metric(cluster, host, key):
     """Return True when host's Mesos metric key is equal to value."""
     if host in cluster.masters:
         port = 5050
     else:
         port = 5051
     log.info('Polling metrics snapshot endpoint')
-    response = cluster.get('/metrics/snapshot', host=host, port=port)
-    return response.json().get(key) == value
+    # A CA cert may be set during the upgrade, so do not verify just in case
+    response = cluster.get('/metrics/snapshot', host=host, port=port, verify=False)
+    return response.json().get(key) == 1
+
+
+def reset_bootstrap_host(ssh: ssh_client.SshClient, bootstrap_host: str):
+    with ssh.tunnel(bootstrap_host) as t:
+        log.info('Checking for previous installer before starting upgrade')
+        home_dir = t.command(['pwd']).decode().strip()
+        previous_installer = t.command(
+            ['docker', 'ps', '--quiet', '--filter', 'name=dcos-genconf']).decode().strip()
+        if previous_installer:
+            log.info('Previous installer found, killing...')
+            t.command(['docker', 'rm', '--force', previous_installer])
+        t.command(['sudo', 'rm', '-rf', os.path.join(home_dir, 'genconf*'), os.path.join(home_dir, 'dcos*')])
 
 
 def upgrade_dcos(
         dcos_api_session: dcos_test_utils.dcos_api_session.DcosApiSession,
         onprem_cluster: dcos_test_utils.onprem.OnpremCluster,
         starting_version: str,
-        installer_url: str,
-        user_config: dict,
-        platform: str) -> None:
+        installer_url: str) -> None:
     """ Performs the documented upgrade process on a cluster
 
-    Note: This is intended for testing purposes only and is an irreversible process
+    (1) downloads installer
+    (2) runs the --node-upgrade command
+    (3) edits the upgrade script to allow docker to live
+    (4) (a) goes to each host and starts the upgrade procedure
+        (b) uses an API session to check the upgrade endpoint
+
+    Note:
+        - This is intended for testing purposes only and is an irreversible process
+        - One must have all file-based resources on the bootstrap host before
+            invoking this function
 
     Args:
         dcos_api_session: API session object capable of authenticating with the
             upgraded DC/OS cluster
         onprem_cluster: SSH-backed onprem abstraction for the cluster to be upgraded
         installer_url: URL for the installer to drive the upgrade
-        user_config: this function already creates a viable upgrade config based on
-            the onprem_cluster, but overrides can be provided via this dict
-        platform: this must be `aws` as no other platform is currently supported
-    """
-    assert platform == 'aws', 'AWS is the only supported platform backend currently'
 
+    TODO: This method is only supported when the installer has the node upgrade script
+        feature which was not added until 1.9. Thus, add steps to do a 1.8 -> 1.8 upgrade
+    """
     ssh_client = onprem_cluster.ssh_client
 
-    # kill previous genconf on bootstrap host if it is still running
     bootstrap_host = onprem_cluster.bootstrap_host.public_ip
-    log.info('Killing any previous installer before starting upgrade')
-    previous_installer = ssh_client.command(
-        bootstrap_host,
-        ['docker', 'ps', '--quiet', '--filter', 'name=dcos-genconf', '--filter', 'status=running']).decode().strip()
-    if previous_installer:
-        ssh_client.command(
-            bootstrap_host,
-            ['docker', 'kill', previous_installer])
 
+    # Fetch installer
     bootstrap_home = ssh_client.get_home_dir(bootstrap_host)
-
-    log.info('Clearing out old installation files')
-    genconf_dir = os.path.join(bootstrap_home, 'genconf')
-    ssh_client.command(bootstrap_host, ['sudo', 'rm', '-rf', genconf_dir])
-    ssh_client.command(bootstrap_host, ['mkdir', genconf_dir])
     installer_path = os.path.join(bootstrap_home, 'dcos_generate_config.sh')
     dcos_test_utils.onprem.download_dcos_installer(ssh_client, bootstrap_host, installer_path, installer_url)
 
-    log.info('Starting ZooKeeper on the bootstrap node')
-    zk_host = onprem_cluster.start_bootstrap_zk()
-    # start the nginx that will host the bootstrap files
-    bootstrap_url = 'http://' + onprem_cluster.start_bootstrap_nginx()
+    # check that we can use the bootstrap host as an HTTP server
+    onprem_cluster.start_bootstrap_nginx()
 
     with ssh_client.tunnel(bootstrap_host) as tunnel:
-        log.info('Setting up upgrade config on bootstrap host')
-        upgrade_config = {
-            'cluster_name': 'My Upgraded DC/OS',
-            'ssh_user': ssh_client.user,
-            'master_discovery': 'static',
-            'exhibitor_storage_backend': 'zookeeper',
-            'exhibitor_zk_hosts': zk_host,
-            'exhibitor_zk_path': '/exhibitor',
-            'bootstrap_url': bootstrap_url,
-            'rexray_config_reset': platform,
-            'platform': platform,
-            'master_list': [h.private_ip for h in onprem_cluster.masters],
-            'agent_list': [h.private_ip for h in onprem_cluster.private_agents],
-            'public_agent_list': [h.private_ip for h in onprem_cluster.public_agents]}
-        upgrade_config.update(user_config)
-
-        # transfer ip-detect and ssh key
-        tunnel.copy_file(
-            session_tempfile(
-                yaml.dump(upgrade_config).encode()), os.path.join(bootstrap_home, 'genconf/config.yaml'))
-        tunnel.copy_file(
-            session_tempfile(
-                ssh_client.key.encode()), os.path.join(bootstrap_home, 'genconf/ssh_key'))
-        tunnel.command(['chmod', '600', os.path.join(bootstrap_home, 'genconf/ssh_key')])
-        ip_detect_script = pkg_resources.resource_string(
-            'dcos_test_utils', 'ip-detect/{}.sh'.format(platform)).decode('utf-8')
-        tunnel.copy_file(session_tempfile(ip_detect_script.encode()), os.path.join(bootstrap_home, 'genconf/ip-detect'))
-
         log.info('Generating node upgrade script')
         upgrade_script_path = tunnel.command(
             ['bash', installer_path, '--generate-node-upgrade-script ' + starting_version]
@@ -159,10 +133,9 @@ def upgrade_dcos(
             }[role]
             log.info('Waiting for {} to rejoin the cluster...'.format(role_name))
             try:
-                wait_for_mesos_metric(dcos_api_session, host, wait_metric, 1)
+                wait_for_mesos_metric(dcos_api_session, host, wait_metric)
             except retrying.RetryError as exc:
                 raise Exception(
                     'Timed out waiting for {} to rejoin the cluster after upgrade: {}'.
                     format(role_name, repr(host))
                 ) from exc
-    dcos_api_session.wait_for_dcos()
