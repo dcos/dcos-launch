@@ -172,6 +172,31 @@ done
 
 
 @pytest.fixture(scope='session')
+def docker_pod():
+    return {
+        'id': '/' + TEST_APP_NAME_FMT.format('docker-pod-' + uuid.uuid4().hex),
+        'scaling': {'kind': 'fixed', 'instances': 1},
+        'environment': {'PING': 'PONG'},
+        'containers': [
+            {
+                'name': 'container1',
+                'resources': {'cpus': 0.1, 'mem': 32},
+                'image': {'kind': 'DOCKER', 'id': 'debian:jessie'},
+                'exec': {'command': {'shell': 'while true; do sleep 1; done'}},
+                'healthcheck': {'command': {'shell': 'sleep 1'}}
+            },
+            {
+                'name': 'container2',
+                'resources': {'cpus': 0.1, 'mem': 32},
+                'exec': {'command': {'shell': 'echo $PING > foo; while true; do sleep 1; done'}},
+                'healthcheck': {'command': {'shell': 'test $PING = `cat foo`'}}
+            }
+        ],
+        'networks': [{'mode': 'host'}]
+    }
+
+
+@pytest.fixture(scope='session')
 def onprem_cluster(launcher):
     if launcher.config['provider'] != 'onprem':
         pytest.skip('Only onprem provider is supported for upgrades!')
@@ -249,6 +274,16 @@ def app_task_ids(dcos_api, app_id):
     return [task['id'] for task in tasks]
 
 
+def pod_task_ids(dcos_api, pod_id):
+    """Return a list of Mesos task IDs for a given pod_id running tasks."""
+    assert pod_id.startswith('/')
+    response = dcos_api.marathon.get('/v2/pods' + pod_id + '::status')
+    response.raise_for_status()
+    return [container['containerId']
+            for instance in response.json()['instances']
+            for container in instance['containers']]
+
+
 def parse_dns_log(dns_log_content):
     """Return a list of (timestamp, status) tuples from dns_log_content."""
     dns_log = [line.strip().split(' ') for line in dns_log_content.strip().split('\n')]
@@ -260,7 +295,7 @@ def parse_dns_log(dns_log_content):
 
 
 @pytest.fixture(scope='session')
-def setup_workload(dcos_api_session, viptalk_app, viplisten_app, healthcheck_app, dns_app):
+def setup_workload(dcos_api_session, viptalk_app, viplisten_app, healthcheck_app, dns_app, docker_pod):
     if dcos_api_session.default_url.scheme == 'https':
         dcos_api_session.set_ca_cert()
     dcos_api_session.wait_for_dcos()
@@ -281,21 +316,34 @@ def setup_workload(dcos_api_session, viptalk_app, viplisten_app, healthcheck_app
     dcos_api_session.marathon.deploy_app(dns_app, check_health=False)
     dcos_api_session.marathon.ensure_deployments_complete()
 
+    dcos_api_session.marathon.deploy_pod(docker_pod)
+    dcos_api_session.marathon.ensure_deployments_complete()
+
     test_apps = [healthcheck_app, dns_app, viplisten_app, viptalk_app]
     test_app_ids = [app['id'] for app in test_apps]
 
-    tasks_start = {app_id: sorted(app_task_ids(dcos_api_session, app_id)) for app_id in test_app_ids}
+    test_pods = [docker_pod]
+    test_pod_ids = [pod['id'] for pod in test_pods]
+
+    app_tasks_start = {app_id: sorted(app_task_ids(dcos_api_session, app_id)) for app_id in test_app_ids}
+    pod_tasks_start = {pod_id: sorted(pod_task_ids(dcos_api_session, pod_id)) for pod_id in test_pod_ids}
+
+    # Marathon apps and pods cannot share IDs, so we merge task lists here.
+    tasks_start = {**app_tasks_start, **pod_tasks_start}
     log.debug('Test app tasks at start:\n' + pprint.pformat(tasks_start))
 
     for app in test_apps:
         assert app['instances'] == len(tasks_start[app['id']])
+
+    for pod in test_pods:
+        assert pod['scaling']['instances'] * len(pod['containers']) == len(tasks_start[pod['id']])
 
     # Save the master's state of the task to compare with
     # the master's view after the upgrade.
     # See this issue for why we check for a difference:
     # https://issues.apache.org/jira/browse/MESOS-1718
     task_state_start = get_master_task_state(dcos_api_session, tasks_start[test_app_ids[0]][0])
-    return test_app_ids, tasks_start, task_state_start
+    return test_app_ids, test_pod_ids, tasks_start, task_state_start
 
 
 @pytest.fixture(scope='session')
@@ -386,14 +434,16 @@ def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster, is
     reason='TEST_UPGRADE_INSTALLER_URL must be set in env to upgrade a cluster')
 class TestUpgrade:
     @pytest.mark.xfail
-    def test_marathon_app_tasks_survive(self, upgraded_dcos, setup_workload):
-        test_app_ids, tasks_start, _ = setup_workload
-        tasks_end = {app_id: sorted(app_task_ids(upgraded_dcos, app_id)) for app_id in test_app_ids}
+    def test_marathon_tasks_survive(self, upgraded_dcos, setup_workload):
+        test_app_ids, test_pod_ids, tasks_start, _ = setup_workload
+        app_tasks_end = {app_id: sorted(app_task_ids(upgraded_dcos, app_id)) for app_id in test_app_ids}
+        pod_tasks_end = {pod_id: sorted(pod_task_ids(upgraded_dcos, pod_id)) for pod_id in test_pod_ids}
+        tasks_end = {**app_tasks_end, **pod_tasks_end}
         log.debug('Test app tasks at end:\n' + pprint.pformat(tasks_end))
         assert tasks_start == tasks_end
 
     def test_mesos_task_state_remains_consistent(self, upgraded_dcos, setup_workload):
-        test_app_ids, tasks_start, task_state_start = setup_workload
+        test_app_ids, test_pod_ids, tasks_start, task_state_start = setup_workload
         task_state_end = get_master_task_state(upgraded_dcos, tasks_start[test_app_ids[0]][0])
         assert all(item in task_state_end.items() for item in task_state_start.items())
 
