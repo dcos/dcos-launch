@@ -1,14 +1,16 @@
 """
 
-WARNGING: This is a destructive process and you cannot go back
+WARNING: This is a destructive process and you cannot go back
 
 =========================================================
-This test has 4 input parameters (set in the environment)
+This test has 5 input parameters (set in the environment)
 =========================================================
 Required:
   TEST_LAUNCH_CONFIG_PATH: path to a dcos-launch config for the cluster that will be upgraded.
       This cluster may or may not exist yet
   TEST_UPGRADE_INSTALLER_URL: The installer pulled from this URL will upgrade the aforementioned cluster.
+  TEST_UPGRADE_USE_CHECKS: if set to `true`, 3dt checks will be run to verify that a node upgrade was
+      successful
 Optional
   TEST_CREATE_CLUSTER: if set to `true`, a cluster will be created. Otherwise it will be assumed
       the provided launch config is a dcos-launch artifact
@@ -363,7 +365,8 @@ def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster, is
         upgrade_session,
         onprem_cluster,
         dcos_api_session.get_version(),
-        os.environ['TEST_UPGRADE_INSTALLER_URL'])
+        os.environ['TEST_UPGRADE_INSTALLER_URL'],
+        os.environ['TEST_UPGRADE_USE_CHECKS'] == 'true')
 
     # this can be set after the fact because the upgrade metrics snapshot
     # endpoint is polled with verify=False
@@ -375,6 +378,9 @@ def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster, is
     return upgrade_session
 
 
+@pytest.mark.skipif(
+    'TEST_UPGRADE_USE_CHECKS' not in os.environ,
+    reason='TEST_UPGRADE_USE_CHECKS must be set in env to upgrade a cluster')
 @pytest.mark.skipif(
     'TEST_UPGRADE_INSTALLER_URL' not in os.environ,
     reason='TEST_UPGRADE_INSTALLER_URL must be set in env to upgrade a cluster')
