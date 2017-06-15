@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import random
 
 import retrying
@@ -43,7 +44,8 @@ def upgrade_dcos(
         dcos_api_session: dcos_test_utils.dcos_api_session.DcosApiSession,
         onprem_cluster: dcos_test_utils.onprem.OnpremCluster,
         starting_version: str,
-        installer_url: str) -> None:
+        installer_url: str,
+        use_checks: bool) -> None:
     """ Performs the documented upgrade process on a cluster
 
     (1) downloads installer
@@ -125,17 +127,21 @@ def upgrade_dcos(
                     '--speed-limit', '100000',
                     '--speed-time', '60',
                     '--remote-name', upgrade_script_path])
-            ssh_client.command(host, ['sudo', 'bash', 'dcos_node_upgrade.sh'])
-            wait_metric = {
-                'master': 'registrar/log/recovered',
-                'slave': 'slave/registered',
-                'slave_public': 'slave/registered',
-            }[role]
-            log.info('Waiting for {} to rejoin the cluster...'.format(role_name))
-            try:
-                wait_for_mesos_metric(dcos_api_session, host, wait_metric)
-            except retrying.RetryError as exc:
-                raise Exception(
-                    'Timed out waiting for {} to rejoin the cluster after upgrade: {}'.
-                    format(role_name, repr(host))
-                ) from exc
+            log.info("Starting upgrade script on {host} ({role_name})...".format(host=host, role_name=role_name))
+            if use_checks:
+                ssh_client.command(host, ['sudo', 'bash', 'dcos_node_upgrade.sh'], stdout=sys.stdout.buffer)
+            else:
+                ssh_client.command(host, ['sudo', 'bash', 'dcos_node_upgrade.sh'])
+                wait_metric = {
+                    'master': 'registrar/log/recovered',
+                    'slave': 'slave/registered',
+                    'slave_public': 'slave/registered',
+                }[role]
+                log.info('Waiting for {} to rejoin the cluster...'.format(role_name))
+                try:
+                    wait_for_mesos_metric(dcos_api_session, host, wait_metric)
+                except retrying.RetryError as exc:
+                    raise Exception(
+                        'Timed out waiting for {} to rejoin the cluster after upgrade: {}'.
+                        format(role_name, repr(host))
+                    ) from exc
