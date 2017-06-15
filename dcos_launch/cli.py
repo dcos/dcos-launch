@@ -75,7 +75,9 @@ def do_main(args):
         config = dcos_launch.config.get_validated_config(config_path)
         info_path = args['--info-path']
         if os.path.exists(info_path):
-            raise dcos_launch.util.LauncherError('InputConflict', 'Target info path already exists!')
+            raise dcos_launch.util.LauncherError(
+                'InputConflict',  '{} already exists! Delete this or specify a '
+                'different cluster info path with the -i option'.format(info_path))
         write_json(info_path, dcos_launch.get_launcher(config).create())
         return 0
 
