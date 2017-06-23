@@ -68,11 +68,10 @@ class EnterpriseApiSession(MesosNodeClientMixin, dcos_api_session.DcosApiSession
         return args
 
     def set_ca_cert(self):
-        log.info('Attempt to get CA bundle via CA HTTP API')
-        r = self.post('ca/api/v2/info', json={'profile': ''}, verify=False)
+        log.info('Attempt to get CA bundle via Admin Router')
+        r = self.get('ca/dcos-ca.crt', verify=False)
         r.raise_for_status()
-        crt = r.json()['result']['certificate']
-        self.session.verify = helpers.session_tempfile(crt.encode())
+        self.session.verify = helpers.session_tempfile(r.content)
 
     def set_initial_resource_ids(self):
         self.initial_resource_ids = []
