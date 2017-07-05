@@ -10,7 +10,8 @@ from contextlib import contextmanager
 import requests
 import retrying
 
-from dcos_test_utils.helpers import ApiClientSession, path_join, RetryCommonHttpErrorsMixin
+from dcos_test_utils.helpers import (ApiClientSession,
+                                     RetryCommonHttpErrorsMixin, path_join)
 
 TEST_APP_NAME_FMT = 'integration-test-{}'
 REQUIRED_HEADERS = {'Accept': 'application/json, text/plain, */*'}

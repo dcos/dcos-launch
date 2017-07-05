@@ -2,9 +2,8 @@
 """
 import logging
 
-import dcos_test_utils.arm
-
 import dcos_launch.util
+import dcos_test_utils.arm
 
 log = logging.getLogger(__name__)
 

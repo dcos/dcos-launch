@@ -8,7 +8,7 @@ from contextlib import contextmanager
 import pytest
 from retrying import retry
 
-from dcos_test_utils.ssh_client import open_tunnel, SshClient
+from dcos_test_utils.ssh_client import SshClient, open_tunnel
 
 
 def can_connect(port):

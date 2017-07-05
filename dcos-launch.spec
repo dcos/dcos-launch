@@ -8,6 +8,8 @@ a = Analysis(['dcos_launch/cli.py'],
              hiddenimports=['html.parser'],
              datas=[('dcos_test_utils/ip-detect/aws.sh', 'dcos_test_utils/ip-detect'),
                     ('dcos_test_utils/ip-detect/aws_public.sh', 'dcos_test_utils/ip-detect'),
+                    ('dcos_test_utils/ip-detect/gce.sh', 'dcos_test_utils/ip-detect'),
+                    ('dcos_test_utils/ip-detect/gce_public.sh', 'dcos_test_utils/ip-detect'),
                     ('dcos_test_utils/templates/*.json','dcos_test_utils/templates')
 ])
 pyz = PYZ(a.pure, a.zipped_data, cipher=None)

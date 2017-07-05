@@ -5,12 +5,12 @@ import subprocess
 import sys
 
 import cryptography.hazmat.backends
-import dcos_test_utils
 import pkg_resources
 import yaml
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+import dcos_test_utils
 
 log = logging.getLogger(__name__)
 
@@ -20,7 +20,6 @@ MOCK_VPC_ID = 'vpc-foo-bar'
 MOCK_SUBNET_ID = 'subnet-foo-bar'
 MOCK_GATEWAY_ID = 'gateway-foo-bar'
 MOCK_STACK_ID = 'this-is-a-important-test-stack::deadbeefdeadbeef'
-
 NO_TEST_FLAG = 'NO PRIVATE SSH KEY PROVIDED - CANNOT TEST'
 
 
@@ -76,9 +75,6 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     def wait(self):
-        raise NotImplementedError()
-
-    def describe(self):
         raise NotImplementedError()
 
     def delete(self):

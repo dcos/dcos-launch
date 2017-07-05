@@ -42,7 +42,6 @@ import dcos_launch.config
 import dcos_launch.util
 from dcos_test_utils import logging
 
-
 json_prettyprint_args = {
     "sort_keys": True,
     "indent": 2,
