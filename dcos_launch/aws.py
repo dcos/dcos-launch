@@ -1,8 +1,7 @@
 import logging
 
-import dcos_test_utils.aws
-
 import dcos_launch.util
+import dcos_test_utils.aws
 
 log = logging.getLogger(__name__)
 
@@ -147,8 +146,5 @@ class BareClusterLauncher(DcosCloudformationLauncher):
     def get_hosts(self):
         return self.stack.get_host_ips()
 
-    def describe(self):
-        return {'host_list': dcos_launch.util.convert_host_list(self.get_hosts())}
-
-    def test(self, args, env):
+    def test(self, args, env, test_host=None, test_port=22):
         raise NotImplementedError('Bare clusters cannot be tested!')

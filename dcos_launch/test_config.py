@@ -2,8 +2,8 @@ import os
 
 import pytest
 
-from dcos_launch.config import get_validated_config, LaunchValidator
-from dcos_launch.util import get_temp_config_path, LauncherError
+from dcos_launch.config import LaunchValidator, get_validated_config
+from dcos_launch.util import LauncherError, get_temp_config_path
 
 
 @pytest.fixture
@@ -100,3 +100,19 @@ class TestAwsOnprem:
             get_temp_config_path(
                 tmpdir, 'aws-onprem-with-helper.yaml',
                 update={'dcos_config': {'provider': 'aws'}}))
+
+
+class TestGceOnprem:
+    def test_basic(self, gce_onprem_config_path):
+        get_validated_config(gce_onprem_config_path)
+
+    def test_with_key_helper(self, gce_onprem_with_helper_config_path):
+        get_validated_config(gce_onprem_with_helper_config_path)
+
+    def test_error_with_invalid_field(self, tmpdir):
+        with pytest.raises(LauncherError) as exinfo:
+            get_validated_config(
+                get_temp_config_path(
+                    tmpdir, 'gce-onprem-with-helper.yaml', update={'num_masters': '0.0.0'}))
+        assert exinfo.value.error == 'ValidationError'
+        assert 'num_masters' in exinfo.value.msg

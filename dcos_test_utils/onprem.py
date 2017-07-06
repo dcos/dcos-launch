@@ -10,9 +10,8 @@ from typing import List
 import requests
 from retrying import retry
 
-from dcos_test_utils.ssh_client import SshClient
 from dcos_test_utils.helpers import ApiClientSession, Host, Url
-
+from dcos_test_utils.ssh_client import SshClient
 
 log = logging.getLogger(__name__)
 

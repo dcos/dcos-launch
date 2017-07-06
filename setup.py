@@ -1,6 +1,5 @@
 from setuptools import setup
 
-
 setup(
     name='dcos-test-utils',
     version='0.1',
@@ -24,12 +23,14 @@ setup(
         'botocore',
         'cerberus',
         'docopt',
-        'requests',
-        'retrying',
+        'google-api-python-client',
+        'oauth2client==3.0.0',
         'pyinstaller==3.2',
         'py',
         'pytest',
-        'pyyaml'],
+        'pyyaml',
+        'requests==2.14.1',
+        'retrying'],
     entry_points={
         'console_scripts': [
             'dcos-launch=dcos_launch.cli:main',
@@ -42,6 +43,8 @@ setup(
         'dcos_test_utils': [
             'ip-detect/aws.sh',
             'ip-detect/aws_public.sh',
+            'ip-detect/gce.sh',
+            'ip-detect/gce_public.sh',
             'templates/vpc-cluster-template.json',
             'templates/vpc-ebs-only-cluster-template.json'
         ],

@@ -1,10 +1,10 @@
-import dcos_test_utils.aws
 import pytest
 
 import dcos_launch
 import dcos_launch.cli
 import dcos_launch.config
 import dcos_launch.util
+import dcos_test_utils.aws
 
 
 def test_aws_cf_simple(check_cli_success, aws_cf_config_path):

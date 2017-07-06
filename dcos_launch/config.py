@@ -1,11 +1,11 @@
 import os
 
-import dcos_test_utils.aws
-import dcos_test_utils.helpers
 import cerberus
 import yaml
 
 import dcos_launch.util
+import dcos_test_utils.aws
+import dcos_test_utils.helpers
 
 
 def expand_path(path: str, relative_dir: str) -> str:
@@ -111,6 +111,14 @@ def get_validated_config(config_path: str) -> dict:
                 'default_setter': lambda doc: dcos_launch.util.set_from_env('AWS_REGION')}})
         if provider == 'onprem':
             validator.schema.update(AWS_ONPREM_SCHEMA)
+    elif platform == 'gce':
+        validator.schema.update({
+            'gce_zone': {
+                'type': 'string',
+                'required': True,
+                'default_setter': lambda doc: dcos_launch.util.set_from_env('GCE_ZONE')}})
+        if provider == 'onprem':
+            validator.schema.update(GCE_ONPREM_SCHEMA)
     elif platform == 'azure':
         validator.schema.update({
             'azure_location': {
@@ -185,7 +193,7 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
     'platform': {
         'type': 'string',
         'required': True,
-        'allowed': ['aws']},
+        'allowed': ['aws', 'gce']},
     'installer_url': {
         'validator': validate_url,
         'type': 'string',
@@ -205,17 +213,6 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'type': 'integer',
         'allowed': [1, 3, 5, 7, 9],
         'required': True},
-    'os_name': {
-        'type': 'string',
-        # not required because machine image can be set directly
-        'required': False,
-        'default': 'cent-os-7-prereqs',
-        # TODO: This is AWS specific; move when support expands to other platforms
-        'allowed': list(dcos_test_utils.aws.OS_SSH_INFO.keys())},
-    'ssh_user': {
-        'required': True,
-        'type': 'string',
-        'default_setter': lambda doc: dcos_test_utils.aws.OS_SSH_INFO[doc['os_name']].user},
     'dcos_config': {
         'type': 'dict',
         'required': True,
@@ -242,6 +239,12 @@ AWS_ONPREM_SCHEMA = {
         'type': 'string',
         'dependencies': {
             'key_helper': False}},
+    'os_name': {
+        'type': 'string',
+        # not required because machine image can be set directly
+        'required': False,
+        'default': 'cent-os-7-dcos-prereqs',
+        'allowed': list(dcos_test_utils.aws.OS_SSH_INFO.keys())},
     'instance_ami': {
         'type': 'string',
         'required': True,
@@ -252,4 +255,31 @@ AWS_ONPREM_SCHEMA = {
     'admin_location': {
         'type': 'string',
         'required': True,
-        'default': '0.0.0.0/0'}}
+        'default': '0.0.0.0/0'},
+    'ssh_user': {
+        'required': True,
+        'type': 'string',
+        'default_setter': lambda doc: dcos_test_utils.aws.OS_SSH_INFO[doc['os_name']].user}}
+
+GCE_ONPREM_SCHEMA = {
+    'machine_type': {
+        'type': 'string',
+        'required': False,
+        'default': 'n1-standard-4'},
+    'os_name': {
+        'type': 'string',
+        'required': False,
+        'default': 'coreos',
+        'allowed': ['coreos']},
+    'source_image': {
+        'type': 'string',
+        'required': False,
+        'default_setter': lambda doc: dcos_test_utils.gce.OS_IMAGE_FAMILIES.get(doc['os_name'], doc['os_name']),
+        'allowed': list(dcos_test_utils.gce.IMAGE_PROJECTS.keys())},
+    'image_project': {
+        'type': 'string',
+        'required': False,
+        'default_setter': lambda doc: dcos_test_utils.gce.IMAGE_PROJECTS[doc['source_image']]},
+    'ssh_public_key': {
+        'type': 'string',
+        'required': False}}

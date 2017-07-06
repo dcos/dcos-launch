@@ -15,6 +15,7 @@
 ## Requirements
 * Linux operating system
 * SSH client installed on localhost
+* Properly set environment variables depending on the platform and provider your clusters will be running on. See the "Credentials" section in sample_configs/README.md for details.
 
 ## Commands
 ### `dcos-launch create`

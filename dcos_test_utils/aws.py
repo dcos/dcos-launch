@@ -22,7 +22,7 @@ import pkg_resources
 import retrying
 from botocore.exceptions import ClientError
 
-from dcos_test_utils.helpers import Host, retry_boto_rate_limits, SshInfo
+from dcos_test_utils.helpers import Host, SshInfo, retry_boto_rate_limits
 
 log = logging.getLogger(__name__)
 
@@ -485,7 +485,7 @@ SSH_INFO = {
     ),
 }
 
-
+# Update these mappings to expand OS support
 OS_SSH_INFO = {
     'cent-os-7': SSH_INFO['centos'],
     'cent-os-7-dcos-prereqs': SSH_INFO['centos'],

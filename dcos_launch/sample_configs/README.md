@@ -24,6 +24,7 @@ across a variety of provider APIs.
 Credentials should be kept secure and as such, they are read exclusively through the environment.
 * AWS: Must set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. Can optionally provide `AWS_REGION` which can be set as `aws_location` in the config.
 * Azure: Must set `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`. Can optionally provide `AZURE_LOCATION` which can be set as `azure_location` in the config
+* GCE: Must set `GOOGLE_APPLICATION_CREDENTIALS` to the path of your json file that contains the credentials for your Google service account
 
 ### Conditionally Required Fields
 * `ssh_user`: If `provider: onprem` is used, then the host VM configuration is known to dcos-launch and this value will be calculated. Otherwise, it should always be supplied, and must be supplied for `provider: onprem`

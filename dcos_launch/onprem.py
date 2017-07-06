@@ -2,14 +2,15 @@ import copy
 import logging
 import subprocess
 
-import dcos_test_utils.aws
-import dcos_test_utils.onprem
 import pkg_resources
 import yaml
-from dcos_test_utils.helpers import Url
 
 import dcos_launch.aws
+import dcos_launch.gce
 import dcos_launch.util
+import dcos_test_utils.aws
+import dcos_test_utils.onprem
+from dcos_test_utils.helpers import Url
 
 log = logging.getLogger(__name__)
 
@@ -34,9 +35,12 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
     def get_bare_cluster_launcher(self):
         if self.config['platform'] == 'aws':
             return dcos_launch.aws.BareClusterLauncher(self.config)
+        elif self.config['platform'] == 'gce':
+            return dcos_launch.gce.BareClusterLauncher(self.config)
         else:
-            raise dcos_launch.util.LauncherError('Platform currently not supported for onprem: {}'.format(
-                self.config['platform']))
+            raise dcos_launch.util.LauncherError(
+                'PlatformNotSupported',
+                'Platform currently not supported for onprem: {}'.format(self.config['platform']))
 
     def get_onprem_cluster(self):
         return dcos_test_utils.onprem.OnpremCluster.from_hosts(
@@ -73,14 +77,13 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
             onprem_config[new_key_name] = dcos_launch.util.read_file(onprem_config[key_name])
             del onprem_config[key_name]
         # set the simple default IP detect script if not provided
-        # currently, only AWS is supported, but when support changes, this will have to update
         if 'ip_detect_contents' not in onprem_config:
             onprem_config['ip_detect_contents'] = pkg_resources.resource_string(
-                'dcos_test_utils', 'ip-detect/aws.sh').decode()
+                'dcos_test_utils', 'ip-detect/{}.sh'.format(self.config['platform'])).decode()
         if 'ip_detect_public_contents' not in onprem_config:
             # despite being almost identical aws_public.sh will crash the installer if not safely dumped
             onprem_config['ip_detect_public_contents'] = yaml.dump(pkg_resources.resource_string(
-                'dcos_test_utils', 'ip-detect/aws_public.sh').decode())
+                'dcos_test_utils', 'ip-detect/{}_public.sh'.format(self.config['platform'])).decode())
         # For no good reason the installer uses 'ip_detect_script' instead of 'ip_detect_contents'
         onprem_config['ip_detect_script'] = onprem_config['ip_detect_contents']
         del onprem_config['ip_detect_contents']
@@ -144,8 +147,8 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         desc = copy.copy(self.config)
         desc.update(extra_info)
         # blackout unwanted fields
-        del desc['template_body']
-        del desc['template_parameters']
+        desc.pop('template_body', None)
+        desc.pop('template_parameters', None)
         return desc
 
     def delete(self):
