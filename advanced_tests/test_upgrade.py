@@ -317,7 +317,7 @@ def setup_workload(dcos_api_session, viptalk_app, viplisten_app, healthcheck_app
     dcos_api_session.marathon.wait_for_deployments_complete()
 
     dcos_api_session.marathon.deploy_pod(docker_pod)
-    dcos_api_session.marathon.ensure_deployments_complete()
+    dcos_api_session.marathon.wait_for_deployments_complete()
 
     test_apps = [healthcheck_app, dns_app, viplisten_app, viptalk_app]
     test_app_ids = [app['id'] for app in test_apps]
