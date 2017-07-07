@@ -302,19 +302,19 @@ def setup_workload(dcos_api_session, viptalk_app, viplisten_app, healthcheck_app
     # TODO(branden): We ought to be able to deploy these apps concurrently. See
     # https://mesosphere.atlassian.net/browse/DCOS-13360.
     dcos_api_session.marathon.deploy_app(viplisten_app)
-    dcos_api_session.marathon.ensure_deployments_complete()
+    dcos_api_session.marathon.wait_for_deployments_complete()
     # viptalk app depends on VIP from viplisten app, which may still fail
-    # the first try immediately after ensure_deployments_complete
+    # the first try immediately after wait_for_deployments_complete
     dcos_api_session.marathon.deploy_app(viptalk_app, ignore_failed_tasks=True)
-    dcos_api_session.marathon.ensure_deployments_complete()
+    dcos_api_session.marathon.wait_for_deployments_complete()
 
     dcos_api_session.marathon.deploy_app(healthcheck_app)
-    dcos_api_session.marathon.ensure_deployments_complete()
+    dcos_api_session.marathon.wait_for_deployments_complete()
     # This is a hack to make sure we don't deploy dns_app before the name it's
     # trying to resolve is available.
     wait_for_dns(dcos_api_session, dns_app['env']['RESOLVE_NAME'])
     dcos_api_session.marathon.deploy_app(dns_app, check_health=False)
-    dcos_api_session.marathon.ensure_deployments_complete()
+    dcos_api_session.marathon.wait_for_deployments_complete()
 
     dcos_api_session.marathon.deploy_pod(docker_pod)
     dcos_api_session.marathon.ensure_deployments_complete()

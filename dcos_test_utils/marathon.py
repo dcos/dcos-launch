@@ -15,6 +15,7 @@ from dcos_test_utils.helpers import (ApiClientSession,
 
 TEST_APP_NAME_FMT = 'integration-test-{}'
 REQUIRED_HEADERS = {'Accept': 'application/json, text/plain, */*'}
+FORCE_PARAMS = {'force': 'true'}
 log = logging.getLogger(__name__)
 
 
@@ -280,34 +281,6 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
             raise Exception("Application deployment failed - operation was not "
                             "completed in {} seconds.".format(timeout))
 
-    def ensure_deployments_complete(self, timeout=120):
-        """
-        This method ensures that, there are no pending deployments
-
-        :return: True if all deployments are completed within time out. Raises an exception otherwise.
-        """
-
-        @retrying.retry(wait_fixed=1000, stop_max_delay=120 * 1000, retry_on_exception=lambda x: False)
-        def _get_deployments_json():
-            r = self.get('v2/deployments')
-            r.raise_for_status()
-            return r.json()
-
-        def retry_on_assertion_error(exception):
-            return isinstance(exception, AssertionError)
-
-        @retrying.retry(retry_on_exception=retry_on_assertion_error,
-                        stop_max_attempt_number=10,
-                        wait_fixed=timeout * 1000)
-        def ensure_deployment_is_finished():
-            deployments_json = _get_deployments_json()
-            assert not deployments_json, "No deployment should be happening."
-
-        try:
-            ensure_deployment_is_finished()
-        except retrying.RetryError:
-            raise Exception("Deployments were not completed within {timeout} seconds".format(timeout=timeout))
-
     def deploy_pod(self, pod_definition, timeout=300):
         """Deploy a pod to marathon
 
@@ -425,3 +398,25 @@ class Marathon(RetryCommonHttpErrorsMixin, ApiClientSession):
     def deploy_pod_and_cleanup(self, pod_definition, timeout=300):
         yield self.deploy_pod(pod_definition, timeout=timeout)
         self.destroy_pod(pod_definition['id'], timeout)
+
+    def purge(self):
+        """ Force deletes all applications, all pods, and then waits
+        indefinitely for any deployments to finish
+        """
+        for app in self.get('v2/apps').json()['apps']:
+            log.info('Purging application: {}'.format(app['id']))
+            self.delete('v2/apps' + app['id'], params=FORCE_PARAMS)
+        for pod in self.get('v2/pods').json():
+            log.info('Deleting pod: {}'.format(pod['id']))
+            self.delete('v2/pods' + pod['id'], params=FORCE_PARAMS)
+        self.wait_for_deployments_complete()
+
+    @retrying.retry(
+        wait_fixed=10 * 1000,
+        retry_on_result=lambda res: res is False,
+        retry_on_exception=lambda ex: False)
+    def wait_for_deployments_complete(self):
+        if not self.get('v2/deployments').json():
+            return True
+        log.info('Deployments in progress, continuing to wait...')
+        return False
