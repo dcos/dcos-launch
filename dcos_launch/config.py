@@ -4,8 +4,7 @@ import cerberus
 import yaml
 
 import dcos_launch.util
-import dcos_test_utils.aws
-import dcos_test_utils.helpers
+import dcos_launch.platforms.aws
 
 
 def expand_path(path: str, relative_dir: str) -> str:
@@ -244,11 +243,11 @@ AWS_ONPREM_SCHEMA = {
         # not required because machine image can be set directly
         'required': False,
         'default': 'cent-os-7-dcos-prereqs',
-        'allowed': list(dcos_test_utils.aws.OS_SSH_INFO.keys())},
+        'allowed': list(dcos_launch.platforms.aws.OS_SSH_INFO.keys())},
     'instance_ami': {
         'type': 'string',
         'required': True,
-        'default_setter': lambda doc: dcos_test_utils.aws.OS_AMIS[doc['os_name']][doc['aws_region']]},
+        'default_setter': lambda doc: dcos_launch.platforms.aws.OS_AMIS[doc['os_name']][doc['aws_region']]},
     'instance_type': {
         'type': 'string',
         'required': True},
@@ -259,7 +258,7 @@ AWS_ONPREM_SCHEMA = {
     'ssh_user': {
         'required': True,
         'type': 'string',
-        'default_setter': lambda doc: dcos_test_utils.aws.OS_SSH_INFO[doc['os_name']].user}}
+        'default_setter': lambda doc: dcos_launch.platforms.aws.OS_SSH_INFO[doc['os_name']].user}}
 
 GCE_ONPREM_SCHEMA = {
     'machine_type': {
@@ -274,12 +273,12 @@ GCE_ONPREM_SCHEMA = {
     'source_image': {
         'type': 'string',
         'required': False,
-        'default_setter': lambda doc: dcos_test_utils.gce.OS_IMAGE_FAMILIES.get(doc['os_name'], doc['os_name']),
-        'allowed': list(dcos_test_utils.gce.IMAGE_PROJECTS.keys())},
+        'default_setter': lambda doc: dcos_launch.platforms.gce.OS_IMAGE_FAMILIES.get(doc['os_name'], doc['os_name']),
+        'allowed': list(dcos_launch.platforms.gce.IMAGE_PROJECTS.keys())},
     'image_project': {
         'type': 'string',
         'required': False,
-        'default_setter': lambda doc: dcos_test_utils.gce.IMAGE_PROJECTS[doc['source_image']]},
+        'default_setter': lambda doc: dcos_launch.platforms.gce.IMAGE_PROJECTS[doc['source_image']]},
     'ssh_public_key': {
         'type': 'string',
         'required': False},

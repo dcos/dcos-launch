@@ -1,9 +1,9 @@
 from setuptools import setup
 
 setup(
-    name='dcos-test-utils',
+    name='dcos-launch',
     version='0.1',
-    description='DC/OS cluster provisioning and orchestration utilities',
+    description='DC/OS cluster provisioning',
     url='https://dcos.io',
     author='Mesosphere, Inc.',
     author_email='help@dcos.io',
@@ -14,7 +14,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
     ],
-    packages=['dcos_launch', 'dcos_test_utils'],
+    packages=['dcos_launch'],
     install_requires=[
         'azure-storage',
         'azure-mgmt-network',
@@ -39,8 +39,6 @@ setup(
     package_data={
         'dcos_launch': [
             'sample_configs/*.yaml'
-        ],
-        'dcos_test_utils': [
             'ip-detect/aws.sh',
             'ip-detect/aws_public.sh',
             'ip-detect/gce.sh',

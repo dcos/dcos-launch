@@ -166,7 +166,7 @@ def test_installer_cli(onprem_cluster, onprem_launcher):
             yaml.dump(test_config).encode()), os.path.join(genconf_dir, 'config.yaml'))
 
     log.info('Transfering ip-detect script')
-    ip_detect_script = pkg_resources.resource_string('dcos_test_utils', 'ip-detect/aws.sh')
+    ip_detect_script = pkg_resources.resource_string('dcos_launch', 'ip-detect/aws.sh')
     cli_installer.copy_to_host(
         helpers.session_tempfile(ip_detect_script), os.path.join(genconf_dir, 'ip-detect'))
 

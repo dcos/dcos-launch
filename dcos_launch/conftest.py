@@ -75,50 +75,55 @@ def mocked_aws_cf(monkeypatch, mocked_test_runner):
     # mock credentials
     monkeypatch.setenv('AWS_ACCESS_KEY_ID', 'AEF234DFLDWQMNEZ2')
     monkeypatch.setenv('AWS_SECRET_ACCESS_KEY', 'ASDPFOKAWEFN123')
-    monkeypatch.setattr(dcos_test_utils.aws.DcosCfStack, '__init__', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.aws.DcosCfStack, '__init__', stub(None))
     monkeypatch.setattr(
-        dcos_test_utils.aws, 'fetch_stack', lambda stack_name, bw: dcos_test_utils.aws.DcosCfStack(stack_name, bw))
+        dcos_launch.platforms.aws, 'fetch_stack',
+        lambda stack_name, bw: dcos_launch.platforms.aws.DcosCfStack(stack_name, bw))
     # mock create
-    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'create_stack', stub(MockStack()))
+    monkeypatch.setattr(dcos_launch.platforms.aws.BotoWrapper, 'create_stack', stub(MockStack()))
     # mock wait
-    monkeypatch.setattr(dcos_test_utils.aws.CfStack, 'wait_for_complete', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.aws.CfStack, 'wait_for_complete', stub(None))
     # mock describe
-    monkeypatch.setattr(dcos_test_utils.aws.DcosCfStack, 'get_master_ips',
+    monkeypatch.setattr(dcos_launch.platforms.aws.DcosCfStack, 'get_master_ips',
                         stub([mock_pub_priv_host]))
-    monkeypatch.setattr(dcos_test_utils.aws.DcosCfStack, 'get_private_agent_ips',
+    monkeypatch.setattr(dcos_launch.platforms.aws.DcosCfStack, 'get_private_agent_ips',
                         stub([mock_priv_host]))
-    monkeypatch.setattr(dcos_test_utils.aws.DcosCfStack, 'get_public_agent_ips',
+    monkeypatch.setattr(dcos_launch.platforms.aws.DcosCfStack, 'get_public_agent_ips',
                         stub([mock_pub_priv_host]))
     # mock delete
-    monkeypatch.setattr(dcos_test_utils.aws.DcosCfStack, 'delete', stub(None))
-    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'delete_key_pair', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.aws.DcosCfStack, 'delete', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.aws.BotoWrapper, 'delete_key_pair', stub(None))
     # mock config
-    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'create_key_pair', stub(dcos_launch.util.MOCK_SSH_KEY_DATA))
+    monkeypatch.setattr(dcos_launch.platforms.aws.BotoWrapper, 'create_key_pair',
+                        stub(dcos_launch.util.MOCK_SSH_KEY_DATA))
 
 
 @pytest.fixture
 def mocked_aws_zen_cf(monkeypatch, mocked_aws_cf):
-    monkeypatch.setattr(dcos_test_utils.aws.DcosZenCfStack, '__init__', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.aws.DcosZenCfStack, '__init__', stub(None))
     monkeypatch.setattr(
-        dcos_test_utils.aws, 'fetch_stack', lambda stack_name, bw: dcos_test_utils.aws.DcosZenCfStack(stack_name, bw))
+        dcos_launch.platforms.aws, 'fetch_stack',
+        lambda stack_name, bw: dcos_launch.platforms.aws.DcosZenCfStack(stack_name, bw))
     # mock create
-    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'create_vpc_tagged', stub(dcos_launch.util.MOCK_VPC_ID))
+    monkeypatch.setattr(dcos_launch.platforms.aws.BotoWrapper, 'create_vpc_tagged', stub(dcos_launch.util.MOCK_VPC_ID))
     monkeypatch.setattr(
-        dcos_test_utils.aws.BotoWrapper, 'create_internet_gateway_tagged', stub(dcos_launch.util.MOCK_GATEWAY_ID))
-    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'create_subnet_tagged', stub(dcos_launch.util.MOCK_SUBNET_ID))
+        dcos_launch.platforms.aws.BotoWrapper, 'create_internet_gateway_tagged',
+        stub(dcos_launch.util.MOCK_GATEWAY_ID))
+    monkeypatch.setattr(dcos_launch.platforms.aws.BotoWrapper, 'create_subnet_tagged',
+                        stub(dcos_launch.util.MOCK_SUBNET_ID))
     # mock delete
-    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'delete_subnet', stub(None))
-    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'delete_vpc', stub(None))
-    monkeypatch.setattr(dcos_test_utils.aws.BotoWrapper, 'delete_internet_gateway', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.aws.BotoWrapper, 'delete_subnet', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.aws.BotoWrapper, 'delete_vpc', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.aws.BotoWrapper, 'delete_internet_gateway', stub(None))
     # mock describe
-    monkeypatch.setattr(dcos_test_utils.aws.DcosZenCfStack, 'get_master_ips',
+    monkeypatch.setattr(dcos_launch.platforms.aws.DcosZenCfStack, 'get_master_ips',
                         stub([mock_pub_priv_host]))
-    monkeypatch.setattr(dcos_test_utils.aws.DcosZenCfStack, 'get_private_agent_ips',
+    monkeypatch.setattr(dcos_launch.platforms.aws.DcosZenCfStack, 'get_private_agent_ips',
                         stub([mock_priv_host]))
-    monkeypatch.setattr(dcos_test_utils.aws.DcosZenCfStack, 'get_public_agent_ips',
+    monkeypatch.setattr(dcos_launch.platforms.aws.DcosZenCfStack, 'get_public_agent_ips',
                         stub([mock_pub_priv_host]))
     # mock delete
-    monkeypatch.setattr(dcos_test_utils.aws.DcosZenCfStack, 'delete', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.aws.DcosZenCfStack, 'delete', stub(None))
 
 
 @pytest.fixture
@@ -127,20 +132,20 @@ def mocked_azure(monkeypatch, mocked_test_runner):
     monkeypatch.setenv('AZURE_CLIENT_SECRET', 'ASDPFOKAWEFN123')
     monkeypatch.setenv('AZURE_TENANT_ID', 'ASDPFOKAWEFN123')
     monkeypatch.setenv('AZURE_SUBSCRIPTION_ID', 'ASDPFOKAWEFN123')
-    monkeypatch.setattr(dcos_test_utils.arm.ServicePrincipalCredentials, '__init__', stub(None))
-    monkeypatch.setattr(dcos_test_utils.arm.ResourceManagementClient, '__init__', stub(None))
-    monkeypatch.setattr(dcos_test_utils.arm.NetworkManagementClient, '__init__', stub(None))
-    monkeypatch.setattr(dcos_test_utils.arm.AzureWrapper, 'deploy_template_to_new_resource_group', stub(None))
-    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'wait_for_deployment', stub(None))
-    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'delete', stub(None))
-    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'get_master_ips',
+    monkeypatch.setattr(dcos_launch.platforms.arm.ServicePrincipalCredentials, '__init__', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.arm.ResourceManagementClient, '__init__', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.arm.NetworkManagementClient, '__init__', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.arm.AzureWrapper, 'deploy_template_to_new_resource_group', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.arm.DcosAzureResourceGroup, 'wait_for_deployment', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.arm.DcosAzureResourceGroup, 'delete', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.arm.DcosAzureResourceGroup, 'get_master_ips',
                         stub([mock_pub_priv_host]))
-    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'get_private_agent_ips',
+    monkeypatch.setattr(dcos_launch.platforms.arm.DcosAzureResourceGroup, 'get_private_agent_ips',
                         stub([mock_priv_host]))
-    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'get_public_agent_ips',
+    monkeypatch.setattr(dcos_launch.platforms.arm.DcosAzureResourceGroup, 'get_public_agent_ips',
                         stub([mock_pub_priv_host]))
-    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'public_agent_lb_fqdn', 'abc-foo-bar')
-    monkeypatch.setattr(dcos_test_utils.arm.DcosAzureResourceGroup, 'public_master_lb_fqdn', 'dead-beef')
+    monkeypatch.setattr(dcos_launch.platforms.arm.DcosAzureResourceGroup, 'public_agent_lb_fqdn', 'abc-foo-bar')
+    monkeypatch.setattr(dcos_launch.platforms.arm.DcosAzureResourceGroup, 'public_master_lb_fqdn', 'dead-beef')
 
 
 @pytest.fixture
@@ -150,9 +155,11 @@ def mocked_gce(monkeypatch, tmpdir):
 
     monkeypatch.setenv('GOOGLE_APPLICATION_CREDENTIALS', str(tmp_file))
     monkeypatch.setenv('GCE_ZONE', 'us-west1-a')
-    monkeypatch.setattr(dcos_test_utils.gce.GceWrapper, '__init__', MockGceWrapper.__init__)
-    monkeypatch.setattr(dcos_test_utils.gce.GceWrapper, 'get_instance_info', lambda _, __: MOCK_GCE_INSTANCE_INFO)
-    monkeypatch.setattr(dcos_test_utils.gce.GceWrapper, 'list_group_instances', lambda _, __: [{'instance': 'mock'}])
+    monkeypatch.setattr(dcos_launch.platforms.gce.GceWrapper, '__init__', MockGceWrapper.__init__)
+    monkeypatch.setattr(dcos_launch.platforms.gce.GceWrapper, 'get_instance_info',
+                        lambda _, __: MOCK_GCE_INSTANCE_INFO)
+    monkeypatch.setattr(dcos_launch.platforms.gce.GceWrapper, 'list_group_instances',
+                        lambda _, __: [{'instance': 'mock'}])
     monkeypatch.setattr(dcos_launch.gce.BareClusterLauncher, 'key_helper', lambda self: self.config.update(
         {'ssh_private_key': dcos_launch.util.MOCK_SSH_KEY_DATA, 'ssh_public_key': dcos_launch.util.MOCK_SSH_KEY_DATA}))
     monkeypatch.setattr(dcos_launch.gce.BareClusterLauncher, 'get_hosts', lambda self: [mock_pub_priv_host] *
@@ -198,12 +205,12 @@ def mock_bare_cluster_hosts(monkeypatch, mocked_aws_cf, mocked_test_runner, mock
 
 @pytest.fixture
 def mocked_aws_cfstack_bare_cluster(monkeypatch, mock_bare_cluster_hosts):
-    monkeypatch.setattr(dcos_test_utils.aws.BareClusterCfStack, '__init__', stub(None))
-    monkeypatch.setattr(dcos_test_utils.aws.BareClusterCfStack, 'delete', stub(None))
-    monkeypatch.setattr(dcos_test_utils.aws.BareClusterCfStack, 'get_host_ips', stub([mock_pub_priv_host] * 4))
+    monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, '__init__', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, 'delete', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, 'get_host_ips', stub([mock_pub_priv_host] * 4))
     monkeypatch.setattr(
-        dcos_test_utils.aws, 'fetch_stack', lambda stack_name,
-        bw: dcos_test_utils.aws.BareClusterCfStack(stack_name, bw))
+        dcos_launch.platforms.aws, 'fetch_stack', lambda stack_name,
+        bw: dcos_launch.platforms.aws.BareClusterCfStack(stack_name, bw))
 
 
 @pytest.fixture

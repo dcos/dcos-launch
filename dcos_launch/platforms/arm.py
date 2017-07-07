@@ -70,7 +70,7 @@ class AzureWrapper:
             tenant=tenant_id)
         self.rmc = ResourceManagementClient(self.credentials, subscription_id)
         self.nmc = NetworkManagementClient(self.credentials, subscription_id)
-        # location is included to keep a similar model as dcos_test_utils.aws.BotoWrapper
+        # location is included to keep a similar model as dcos_launch.platforms.aws.BotoWrapper
         self.location = location
 
     def deploy_template_to_new_resource_group(self, template_url, group_name, parameters):

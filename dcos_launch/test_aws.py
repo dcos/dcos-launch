@@ -4,7 +4,7 @@ import dcos_launch
 import dcos_launch.cli
 import dcos_launch.config
 import dcos_launch.util
-import dcos_test_utils.aws
+import dcos_launch.platforms.aws
 
 
 def test_aws_cf_simple(check_cli_success, aws_cf_config_path):
@@ -37,7 +37,7 @@ def mock_stack_not_found(*args):
 def test_missing_aws_stack(aws_cf_config_path, monkeypatch):
     """ Tests that clean and appropriate errors will be raised
     """
-    monkeypatch.setattr(dcos_test_utils.aws, 'fetch_stack', mock_stack_not_found)
+    monkeypatch.setattr(dcos_launch.platforms.aws, 'fetch_stack', mock_stack_not_found)
     config = dcos_launch.config.get_validated_config(aws_cf_config_path)
     aws_launcher = dcos_launch.get_launcher(config)
 

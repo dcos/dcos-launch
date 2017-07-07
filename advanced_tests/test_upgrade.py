@@ -376,7 +376,7 @@ def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster, is
     # if IP detect public was not present, go ahead an inject it
     if 'ip_detect_public_contents' not in upgrade_config:
         upgrade_config['ip_detect_public_contents'] = yaml.dump(pkg_resources.resource_string(
-            'dcos_test_utils', 'ip-detect/aws_public.sh').decode())
+            'dcos_launch', 'ip-detect/aws_public.sh').decode())
 
     bootstrap_home = onprem_cluster.ssh_client.get_home_dir(bootstrap_host)
     genconf_dir = os.path.join(bootstrap_home, 'genconf')
@@ -395,7 +395,7 @@ def upgraded_dcos(dcos_api_session, launcher, setup_workload, onprem_cluster, is
         # Move the ip-detect script to the expected default path
         # FIXME: can we just send the contents in the config and skip this?
         tunnel.copy_file(
-            pkg_resources.resource_filename('dcos_test_utils', 'ip-detect/aws.sh'),
+            pkg_resources.resource_filename('dcos_launch', 'ip-detect/aws.sh'),
             os.path.join(bootstrap_home, 'genconf/ip-detect'))
 
     # API object may need to be updated

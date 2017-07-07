@@ -4,7 +4,7 @@ import json
 import logging
 
 from dcos_launch import util
-from dcos_test_utils import gce
+from dcos_launch.platforms import gce
 from dcos_test_utils.helpers import Host
 
 from googleapiclient.errors import HttpError

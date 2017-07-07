@@ -51,7 +51,7 @@ def get_temp_config_path(tmpdir, name, update: dict = None):
     new_config_path = tmpdir.join('my_config.yaml')
     new_config_path.write(yaml.dump(config))
     # sample configs specifically use ip-detect.sh for easy mocking
-    tmpdir.join('ip-detect.sh').write(pkg_resources.resource_string('dcos_test_utils', 'ip-detect/aws.sh').decode())
+    tmpdir.join('ip-detect.sh').write(pkg_resources.resource_string('dcos_launch', 'ip-detect/aws.sh').decode())
     return str(new_config_path)
 
 

@@ -1,14 +1,14 @@
 import logging
 
 import dcos_launch.util
-import dcos_test_utils.aws
+import dcos_launch.platforms.aws
 
 log = logging.getLogger(__name__)
 
 
 class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
     def __init__(self, config: dict):
-        self.boto_wrapper = dcos_test_utils.aws.BotoWrapper(
+        self.boto_wrapper = dcos_launch.platforms.aws.BotoWrapper(
             config['aws_region'],
             dcos_launch.util.set_from_env('AWS_ACCESS_KEY_ID'),
             dcos_launch.util.set_from_env('AWS_SECRET_ACCESS_KEY'))
@@ -118,7 +118,7 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
     @property
     def stack(self):
         try:
-            return dcos_test_utils.aws.fetch_stack(self.config['stack_id'], self.boto_wrapper)
+            return dcos_launch.platforms.aws.fetch_stack(self.config['stack_id'], self.boto_wrapper)
         except Exception as ex:
             raise dcos_launch.util.LauncherError('StackNotFound', None) from ex
 
@@ -139,7 +139,7 @@ class BareClusterLauncher(DcosCloudformationLauncher):
         if not self.config['key_helper']:
             template_parameters['KeyName'] = self.config['aws_key_name']
         self.config.update({
-            'template_body': dcos_test_utils.aws.template_by_instance_type(self.config['instance_type']),
+            'template_body': dcos_launch.platforms.aws.template_by_instance_type(self.config['instance_type']),
             'template_parameters': template_parameters})
         return super().create()
 

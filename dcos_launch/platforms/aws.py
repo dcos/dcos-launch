@@ -16,27 +16,65 @@ PublicAgentStack: thin wrapper for public agent stack in a zen template
 BareClusterCfStack: Represents a homogeneous cluster of hosts with a specific AMI
 """
 import logging
-
-import boto3
+import copy
+import time
 import pkg_resources
 import retrying
-from botocore.exceptions import ClientError
+import functools
+import boto3
+from botocore.exceptions import ClientError, WaiterError
 
-from dcos_test_utils.helpers import Host, SshInfo, retry_boto_rate_limits
+from dcos_test_utils.helpers import Host, SshInfo
 
 log = logging.getLogger(__name__)
 
 
 def template_by_instance_type(instance_type):
     if instance_type.split('.')[0] in ('c4', 't2', 'm4'):
-        template = pkg_resources.resource_string('dcos_test_utils', 'templates/vpc-ebs-only-cluster-template.json')
+        template = pkg_resources.resource_string('dcos_launch', 'templates/vpc-ebs-only-cluster-template.json')
     else:
-        template = pkg_resources.resource_string('dcos_test_utils', 'templates/vpc-cluster-template.json')
+        template = pkg_resources.resource_string('dcos_launch', 'templates/vpc-cluster-template.json')
     return template.decode('utf-8')
 
 
 def param_dict_to_aws_format(user_parameters):
     return [{'ParameterKey': str(k), 'ParameterValue': str(v)} for k, v in user_parameters.items()]
+
+
+def retry_boto_rate_limits(boto_fn, wait=2, timeout=60 * 60):
+    """Decorator to make boto functions resilient to AWS rate limiting and throttling.
+    If one of these errors is encounterd, the function will sleep for a geometrically
+    increasing amount of time
+    """
+    @functools.wraps(boto_fn)
+    def ignore_rate_errors(*args, **kwargs):
+        local_wait = copy.copy(wait)
+        local_timeout = copy.copy(timeout)
+        while local_timeout > 0:
+            next_time = time.time() + local_wait
+            try:
+                return boto_fn(*args, **kwargs)
+            except (ClientError, WaiterError) as e:
+                if isinstance(e, ClientError):
+                    error_code = e.response['Error']['Code']
+                elif isinstance(e, WaiterError):
+                    error_code = e.last_response['Error']['Code']
+                else:
+                    raise
+                if error_code in ['Throttling', 'RequestLimitExceeded']:
+                    log.warn('AWS API Limiting error: {}'.format(error_code))
+                    log.warn('Sleeping for {} seconds before retrying'.format(local_wait))
+                    time_to_next = next_time - time.time()
+                    if time_to_next > 0:
+                        time.sleep(time_to_next)
+                    else:
+                        local_timeout += time_to_next
+                    local_timeout -= local_wait
+                    local_wait *= 2
+                    continue
+                raise
+        raise Exception('Rate-limit timeout encountered waiting for {}'.format(boto_fn.__name__))
+    return ignore_rate_errors
 
 
 @retry_boto_rate_limits

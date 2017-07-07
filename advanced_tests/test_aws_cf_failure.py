@@ -10,6 +10,7 @@ import dcos_test_utils.helpers
 import dcos_test_utils.dcos_api_session
 import dcos_test_utils.marathon
 
+from dcos_launch.platforms import retry_boto_rate_limits
 log = logging.getLogger(__name__)
 
 
@@ -67,15 +68,15 @@ def test_agent_failure(launcher, dcos_api_session, vip_apps):
     # Accessing AWS Resource objects will trigger a client describe call.
     # As such, any method that touches AWS APIs must be wrapped to avoid
     # CI collapse when rate limits are inevitably reached
-    @dcos_test_utils.helpers.retry_boto_rate_limits
+    @retry_boto_rate_limits
     def get_running_instances(instance_iter):
         return [i for i in instance_iter if i.state['Name'] == 'running']
 
-    @dcos_test_utils.helpers.retry_boto_rate_limits
+    @retry_boto_rate_limits
     def get_instance_ids(instance_iter):
         return [i.instance_id for i in instance_iter]
 
-    @dcos_test_utils.helpers.retry_boto_rate_limits
+    @retry_boto_rate_limits
     def get_private_ips(instance_iter):
         return sorted([i.private_ip_address for i in get_running_instances(instance_iter)])
 
@@ -96,7 +97,7 @@ def test_agent_failure(launcher, dcos_api_session, vip_apps):
     launcher.boto_wrapper.client('ec2').terminate_instances(InstanceIds=agent_ids)
     waiter = launcher.boto_wrapper.client('ec2').get_waiter('instance_terminated')
     log.info('Waiting for instances to be terminated')
-    dcos_test_utils.helpers.retry_boto_rate_limits(waiter.wait)(InstanceIds=agent_ids)
+    retry_boto_rate_limits(waiter.wait)(InstanceIds=agent_ids)
 
     # Tell mesos the machines are "down" and not coming up so things get rescheduled.
     log.info('Posting to mesos that agents are down')

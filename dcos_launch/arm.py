@@ -3,14 +3,14 @@
 import logging
 
 import dcos_launch.util
-import dcos_test_utils.arm
+import dcos_launch.platforms.arm
 
 log = logging.getLogger(__name__)
 
 
 class AzureResourceGroupLauncher(dcos_launch.util.AbstractLauncher):
     def __init__(self, config: dict):
-        self.azure_wrapper = dcos_test_utils.arm.AzureWrapper(
+        self.azure_wrapper = dcos_launch.platforms.arm.AzureWrapper(
             config['azure_location'],
             dcos_launch.util.set_from_env('AZURE_SUBSCRIPTION_ID'),
             dcos_launch.util.set_from_env('AZURE_CLIENT_ID'),
@@ -57,6 +57,6 @@ class AzureResourceGroupLauncher(dcos_launch.util.AbstractLauncher):
     @property
     def resource_group(self):
         try:
-            return dcos_test_utils.arm.DcosAzureResourceGroup(self.config['deployment_name'], self.azure_wrapper)
+            return dcos_launch.platforms.arm.DcosAzureResourceGroup(self.config['deployment_name'], self.azure_wrapper)
         except Exception as ex:
             raise dcos_launch.util.LauncherError('GroupNotFound', None) from ex
