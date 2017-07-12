@@ -51,6 +51,8 @@ properties:
       boot: true
       autoDelete: true
       initializeParams:
+        diskSizeGb: {diskSizeGb}
+        diskType: {diskType}
         sourceImage: projects/{imageProject}/global/images/family/{sourceImage}
     networkInterfaces:
     - network: global/networks/{network}
@@ -231,6 +233,8 @@ class BareClusterDeployment(Deployment):
             name: str,
             zone: str,
             node_count: int,
+            disk_size: int,
+            disk_type: str,
             source_image: str,
             machine_type: str,
             image_project: str,
@@ -252,7 +256,9 @@ class BareClusterDeployment(Deployment):
             zone=zone,
             ssh_user=ssh_user,
             ssh_public_key=ssh_public_key,
-            network=network_name)
+            network=network_name,
+            diskSizeGb=disk_size,
+            diskType=disk_type)
         instance_group_resource = MANAGED_INSTANCE_GROUP_TEMPLATE.format(
             name=deployment.instance_group_name,
             instance_template_name=template_name,
