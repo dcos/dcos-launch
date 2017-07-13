@@ -282,4 +282,12 @@ GCE_ONPREM_SCHEMA = {
         'default_setter': lambda doc: dcos_test_utils.gce.IMAGE_PROJECTS[doc['source_image']]},
     'ssh_public_key': {
         'type': 'string',
-        'required': False}}
+        'required': False},
+    'disk_size': {
+        'type': 'integer',
+        'required': False,
+        'default': 42},
+    'disk_type': {
+        'type': 'string',
+        'required': False,
+        'default': 'pd-ssd'}}
