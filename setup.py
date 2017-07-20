@@ -36,6 +36,9 @@ setup(
             'dcos-launch=dcos_launch.cli:main',
         ],
     },
+    dependency_links=[
+        'https://github.com/mesosphere/dcos-test-utils@remove_dcos_launch'
+    ],
     package_data={
         'dcos_launch': [
             'sample_configs/*.yaml'
