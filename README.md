@@ -7,7 +7,7 @@
 
 In the case of the onprem provider, `dcos-launch` provides the capability to create a simple, homogeneous cluster of hosts of a given OS on which to perform an "onprem" installation.
 
-The primary purpose of `dcos-launch` is to provide a turn-key deployment experience across a wide variety of configurations without having to handle any of the lower-level cloud APIs. As such, `dcos-launch` includes a [command line interface](dcos_launch/README.md) and is packaged as a pyinstaller binary for easy portability.
+The primary purpose of `dcos-launch` is to provide a turn-key deployment experience across a wide variety of configurations without having to handle any of the lower-level cloud APIs. As such, `dcos-launch` includes a [command line interface](dcos_launch/README.md) and is packaged as a pyinstaller [binary](https://downloads.dcos.io/dcos-launch/bin/linux/dcos-launch) for easy portability.
 
 ## System Requirements
 * linux operating system
