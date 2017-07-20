@@ -1,0 +1,79 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>CloudCleaner Instance Report</title>
+</head>
+
+<body>
+<h1>CloudCleaner AWS Instance Report</h1>
+<h2>Summary</h2>
+<h3>Actions:</h3>
+<p>
+{% for action, instance_list in aws.instance_actions|dictsort %}
+<b>{{ action }} </b>: {{ instance_list|length }} instances<br />
+{% endfor %}
+</p>
+<h3>States:</h3>
+<p>
+{% for category, instance_list in aws.categorized_instances|dictsort %}
+<b>{{ category }} </b>: {{ instance_list|length }} instances<br />
+{% endfor %}
+</p>
+<h2>Instances By State</h2>
+{% for category, instance_list in aws.categorized_instances|dictsort %}
+<h3>{{ category }} </h3>
+<ul>
+  {% for instance in instance_list %}
+  <li>
+  <b>owner:</b> {{ instance.owner }}<br />
+  <b>id: </b> {{ instance.id }}<br />
+  <b>uptime: </b> {{ instance.uptime }}<br />
+  <b>launch_time: </b> {{ instance.launch_time }}<br />
+  <b>expiration: </b> {{ instance.expiration_time }}<br />
+  </li>
+  {% endfor %}
+</ul>
+{% endfor %}
+<h1>CloudCleaner AWS KeyPair Report</h1>
+<h2>Summary</h2>
+<h3>Actions:</h3>
+<p>
+{% for action, keypair_list in aws.keypair_actions|dictsort %}
+<b>{{ action }} </b>: {{ keypair_list|length }} keypairs<br />
+{% endfor %}
+</p>
+<h1>CloudCleaner Azure Resource Group Report</h1>
+<h2>Summary</h2>
+<h3>Actions:</h3>
+<p>
+{% for action, group_list in azure.resource_group_actions|dictsort %}
+<b>{{ action }} </b>: {{ group_list|length }} resource groups<br />
+{% endfor %}
+</p>
+<h3>States:</h3>
+<p>
+{% for category, group_list in azure.categorized_resource_groups|dictsort %}
+<b>{{ category }} </b>: {{ group_list|length }} resource groups<br />
+{% endfor %}
+</p>
+<h2>Instances By State</h2>
+{% for category, group_list in azure.categorized_resource_groups|dictsort %}
+<h3>{{ category }} </h3>
+<ul>
+  {% for group in group_list %}
+  <li>
+  <b>owner:</b> {{ group.owner }}<br />
+  <b>name: </b> {{ group.name }}<br />
+  <b>uptime: </b> {{ group.uptime }}<br />
+  <b>creation_time: </b> {{ group.creation_time }}<br />
+  <b>expiration: </b> {{ group.expiration }}<br />
+  </li>
+  {% endfor %}
+</ul>
+{% endfor %}
+
+</body>
+</html>
