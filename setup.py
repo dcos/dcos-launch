@@ -14,7 +14,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
     ],
-    packages=['dcos_launch'],
+    packages=['dcos_launch', 'dcos_launch.platforms'],
     install_requires=[
         'azure-storage',
         'azure-mgmt-network',
