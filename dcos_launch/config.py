@@ -107,7 +107,11 @@ def get_validated_config(config_path: str) -> dict:
             'aws_region': {
                 'type': 'string',
                 'required': True,
-                'default_setter': lambda doc: dcos_launch.util.set_from_env('AWS_REGION')}})
+                'default_setter': lambda doc: dcos_launch.util.set_from_env('AWS_REGION')},
+            'disable_rollback': {
+                'type': 'boolean',
+                'required': False,
+                'default': False}})
         if provider == 'onprem':
             validator.schema.update(AWS_ONPREM_SCHEMA)
     elif platform == 'gce':
