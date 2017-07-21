@@ -122,7 +122,14 @@ class BotoWrapper():
         log.info('Deleting KeyPair: {}'.format(key_name))
         self.resource('ec2').KeyPair(key_name).delete()
 
-    def create_stack(self, name, parameters, template_url=None, template_body=None, deploy_timeout=60):
+    def create_stack(
+            self,
+            name: str,
+            parameters: dict,
+            template_url: str=None,
+            template_body: str=None,
+            deploy_timeout: int=60,
+            disable_rollback: bool=False):
         """Pulls template and checks user params versus temlate params.
         Does simple casting of strings or numbers
         Starts stack creation if validation is successful
@@ -130,7 +137,7 @@ class BotoWrapper():
         log.info('Requesting AWS CloudFormation: {}'.format(name))
         args = {
             'StackName': name,
-            'DisableRollback': True,
+            'DisableRollback': disable_rollback,
             'TimeoutInMinutes': deploy_timeout,
             'Capabilities': ['CAPABILITY_IAM'],
             # this python API only accepts data in string format; cast as string here
