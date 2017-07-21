@@ -41,7 +41,7 @@ setup(
     ],
     package_data={
         'dcos_launch': [
-            'sample_configs/*.yaml'
+            'sample_configs/*.yaml',
             'ip-detect/aws.sh',
             'ip-detect/aws_public.sh',
             'ip-detect/gce.sh',
