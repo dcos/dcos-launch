@@ -121,25 +121,40 @@
       }
     },
 
-    "BareSecurityGroup": {
-
+    "ExternalSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "Bare SecurityGroup",
+        "GroupDescription": "SecurityGroup for external access",
         "VpcId" : { "Ref" : "VPC" },
         "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
-            "FromPort": "0",
-            "ToPort": "65535",
+            "FromPort": "22",
+            "ToPort": "22",
             "CidrIp": {
               "Ref": "AllowAccessFrom"
             }
           },
           {
-            "IpProtocol": "udp",
-            "FromPort": "0",
-            "ToPort": "65535",
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": {
+              "Ref": "AllowAccessFrom"
+            }
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "CidrIp": {
+              "Ref": "AllowAccessFrom"
+            }
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "9000",
+            "ToPort": "9000",
             "CidrIp": {
               "Ref": "AllowAccessFrom"
             }
@@ -151,6 +166,22 @@
             "CidrIp": {
               "Ref": "AllowAccessFrom"
             }
+          }
+        ]
+      }
+    },
+
+    "InternalSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+            "GroupDescription": "SecurityGroup for intracluster networking",
+        "VpcId" : { "Ref" : "VPC" },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "-1",
+            "FromPort": "0",
+            "ToPort": "65535",
+            "SourceSecurityGroupId": { "Ref" : "ExternalSecurityGroup"}
           }
         ]
       }
@@ -254,7 +285,10 @@
         },
         "SecurityGroups": [
           {
-            "Ref": "BareSecurityGroup"
+            "Ref": "ExternalSecurityGroup"
+          },
+          {
+            "Ref": "InternalSecurityGroup"
           }
         ],
         "IamInstanceProfile": {
