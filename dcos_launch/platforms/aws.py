@@ -270,6 +270,11 @@ class CfStack:
         return self.boto_wrapper.client('cloudformation').describe_stack_events(
             StackName=self.stack.stack_id)['StackEvents']
 
+    @retry_boto_rate_limits
+    def update_tags(self, tags: list):
+        log.debug('Updating tags of stack {} to {}'.format(self.stack.name, tags))
+        return self.stack.update(Tags=tags)
+
     def get_parameter(self, param):
         """Returns param if in stack parameters, else returns None
         """
