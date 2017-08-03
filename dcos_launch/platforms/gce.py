@@ -176,9 +176,19 @@ class GceWrapper:
             project=self.project_id, body=body).execute()
         log.debug('create_deployment response: ' + str(response))
 
+    @catch_http_exceptions
+    def get_deployments(self):
+        request = self.deployment_manager.list(project=self.project_id)
+        while request is not None:
+            response = request.execute()
+            for deployment_info in response['deployments']:
+                yield Deployment(self, deployment_info['name'])
+            request = self.deployment_manager.deployments().list_next(previous_request=request,
+                                                                      previous_response=response)
+
 
 class Deployment:
-    def __init__(self, gce_wrapper: GceWrapper, name: str, zone: str):
+    def __init__(self, gce_wrapper: GceWrapper, name: str, zone: str=None):
         self.gce_wrapper = gce_wrapper
         self.name = name
         self.zone = zone
@@ -187,7 +197,7 @@ class Deployment:
     def delete(self):
         response = self.gce_wrapper.deployment_manager.deployments().delete(project=self.gce_wrapper.project_id,
                                                                             deployment=self.name).execute()
-        log.debug('delete_deployment response: ' + str(response))
+        log.debug('delete response: ' + str(response))
 
     @catch_http_exceptions
     def get_info(self) -> dict:
@@ -196,7 +206,7 @@ class Deployment:
         """
         response = self.gce_wrapper.deployment_manager.deployments().get(project=self.gce_wrapper.project_id,
                                                                          deployment=self.name).execute()
-        log.debug('get_deployment_info response: ' + str(response))
+        log.debug('get_info response: ' + str(response))
         return response
 
     def _check_status(response: dict) -> bool:
@@ -216,6 +226,13 @@ class Deployment:
     @retry(wait_fixed=2000, retry_on_result=_check_status, retry_on_exception=lambda _: False)
     def wait_for_completion(self) -> dict:
         return self.get_info()
+
+    def update(self, new_body):
+        response = self.gce_wrapper.deployment_manager.resources().update(project=self.gce_wrapper.project_id,
+                                                                          deployment=self.name,
+                                                                          body=new_body).execute()
+        log.debug('update response: ' + str(response))
+        return response
 
 
 class BareClusterDeployment(Deployment):
