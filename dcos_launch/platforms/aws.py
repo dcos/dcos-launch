@@ -270,6 +270,13 @@ class CfStack:
         return self.boto_wrapper.client('cloudformation').describe_stack_events(
             StackName=self.stack.stack_id)['StackEvents']
 
+    @retry_boto_rate_limits
+    def update_tags(self, tags: dict):
+        cf_tags = [{'Key': k, 'Value': v} for k, v in tags.items()]
+        log.debug('Updating tags of stack {} to {}'.format(self.stack.name, cf_tags))
+        return self.stack.update(Tags=cf_tags)
+
+    @retry_boto_rate_limits
     def get_parameter(self, param):
         """Returns param if in stack parameters, else returns None
         """
@@ -279,6 +286,7 @@ class CfStack:
         raise KeyError('Key not found in template parameters: {}. Parameters: {}'.
                        format(param, self.stack.parameters))
 
+    @retry_boto_rate_limits
     def delete(self):
         stack_id = self.stack.stack_id
         log.info('Deleting stack: {}'.format(stack_id))
@@ -286,6 +294,21 @@ class CfStack:
         self.stack = self.boto_wrapper.resource('cloudformation').Stack(stack_id)
         self.stack.delete()
         log.info('Delete successfully initiated for {}'.format(stack_id))
+
+    @retry_boto_rate_limits
+    @property
+    def status(self):
+        return self.stack.stack_status
+
+    @retry_boto_rate_limits
+    @property
+    def creation_time(self):
+        return self.stack.creation_time
+
+    @retry_boto_rate_limits
+    @property
+    def tags(self):
+        return self.stack.tags
 
 
 class CleanupS3BucketMixin:
