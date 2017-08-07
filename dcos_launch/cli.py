@@ -115,6 +115,7 @@ def do_main(args):
 
     if args['delete']:
         launcher.delete()
+        os.remove(args['--info-path'])
         return 0
 
 
