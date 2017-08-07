@@ -12,6 +12,6 @@ pyinstaller==3.2
 py
 pytest
 pyyaml
-requests==2.14.1
+requests
 retrying
 tox
