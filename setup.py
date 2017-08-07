@@ -29,7 +29,7 @@ setup(
         'py',
         'pytest',
         'pyyaml',
-        'requests==2.14.1',
+        'requests',
         'retrying'],
     entry_points={
         'console_scripts': [
