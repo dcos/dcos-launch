@@ -178,7 +178,7 @@ class GceWrapper:
 
     @catch_http_exceptions
     def get_deployments(self):
-        request = self.deployment_manager.list(project=self.project_id)
+        request = self.deployment_manager.deployments().list(project=self.project_id)
         while request is not None:
             response = request.execute()
             for deployment_info in response['deployments']:
