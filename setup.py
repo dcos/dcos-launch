@@ -19,6 +19,7 @@ setup(
         'azure-storage',
         'azure-mgmt-network',
         'azure-mgmt-resource',
+        'azure-monitor',
         'boto3',
         'botocore',
         'cerberus',
