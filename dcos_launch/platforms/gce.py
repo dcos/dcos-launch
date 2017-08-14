@@ -166,6 +166,7 @@ class GceWrapper:
     def create_deployment(self, name: str, deployment_config: dict):
         body = {
             'name': name,
+            'description': """{"cluster_type": "DC/OS Onprem on GCE"}""",
             'target': {
                 'config': {
                     'content': yaml.dump(deployment_config, default_flow_style=False)}
