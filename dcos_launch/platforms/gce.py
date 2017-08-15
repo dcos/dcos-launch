@@ -3,6 +3,7 @@
 Cloud Deployment Manager results in simpler code and far fewer API calls.
 """
 
+import copy
 import logging
 import typing
 import yaml
@@ -165,6 +166,7 @@ class GceWrapper:
     def create_deployment(self, name: str, deployment_config: dict):
         body = {
             'name': name,
+            'description': """{"cluster_type": "DC/OS Onprem on GCE"}""",
             'target': {
                 'config': {
                     'content': yaml.dump(deployment_config, default_flow_style=False)}
@@ -182,7 +184,9 @@ class GceWrapper:
         while request is not None:
             response = request.execute()
             for deployment_info in response['deployments']:
-                yield Deployment(self, deployment_info['name'])
+                # we don't want to retrieve deployments that are in the process of being deleted
+                if deployment_info['operation']['operationType'] != 'deleted':
+                    yield Deployment(self, deployment_info['name'])
             request = self.deployment_manager.deployments().list_next(previous_request=request,
                                                                       previous_response=response)
 
@@ -227,12 +231,50 @@ class Deployment:
     def wait_for_completion(self) -> dict:
         return self.get_info()
 
-    def update(self, new_body):
-        response = self.gce_wrapper.deployment_manager.resources().update(project=self.gce_wrapper.project_id,
-                                                                          deployment=self.name,
-                                                                          body=new_body).execute()
-        log.debug('update response: ' + str(response))
+    def get_resources(self):
+        resources = []
+        request = self.gce_wrapper.deployment_manager.resources().list(project=self.gce_wrapper.project_id,
+                                                                       deployment=self.name)
+        while request is not None:
+            response = request.execute()
+            for resource in response['resources']:
+                resource_copy = copy.deepcopy(resource)
+                for key in resource_copy:
+                    # The only fields we need as you can see in the templates at the top of this file. Other fields
+                    # are present that would cause an error when the API is called for updating a deployment
+                    if key not in ('type', 'name', 'metadata', 'properties'):
+                        del resource[key]
+                    # the yaml strings in these fields are not properly formatted for the API (error thrown when
+                    # updating a deployment) so we load it and then dump the whole resource data structure correctly in
+                    # update_tags afterwards -> default_flow_style=False
+                    if key in ['properties', 'metadata']:
+                        resource[key] = yaml.load(resource[key])
+
+                resources.append(resource)
+            request = self.gce_wrapper.deployment_manager.resources().list_next(previous_request=request,
+                                                                                previous_response=response)
+        return {'resources': resources}
+
+    def update_tags(self, tags):
+        info = self.gce_wrapper.deployment_manager.deployments().get(project=self.gce_wrapper.project_id,
+                                                                     deployment=self.name).execute()
+        # we need to get the resources because they're not provided in the info and they're necessary for update
+        info['target'] = {
+            'config': {'content': yaml.dump(self.get_resources(), default_flow_style=False)}
+        }
+        info['labels'] = [{'key': k, 'value': v} for k, v in tags.items()]
+        response = self.gce_wrapper.deployment_manager.deployments().update(project=self.gce_wrapper.project_id,
+                                                                            deployment=self.name, body=info).execute()
+        log.debug('update_tags response: ' + str(response))
         return response
+
+    def get_tags(self):
+        try:
+            info = self.get_info()['labels']
+        except KeyError:
+            return {}
+
+        return {entry['key']: entry['value'] for entry in info}
 
 
 class BareClusterDeployment(Deployment):

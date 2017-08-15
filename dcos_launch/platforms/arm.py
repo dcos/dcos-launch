@@ -18,6 +18,7 @@ from azure.mgmt.resource.resources.v2016_02_01 import ResourceManagementClient
 from azure.mgmt.resource.resources.v2016_02_01.models import (DeploymentMode,
                                                               DeploymentProperties,
                                                               ResourceGroup)
+from azure.monitor import MonitorClient
 
 from dcos_test_utils.helpers import Host
 
@@ -70,6 +71,7 @@ class AzureWrapper:
             tenant=tenant_id)
         self.rmc = ResourceManagementClient(self.credentials, subscription_id)
         self.nmc = NetworkManagementClient(self.credentials, subscription_id)
+        self.mc = MonitorClient(self.credentials, subscription_id)
         # location is included to keep a similar model as dcos_launch.platforms.aws.BotoWrapper
         self.location = location
 

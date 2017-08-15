@@ -212,6 +212,10 @@ class CfStack:
         self.boto_wrapper = boto_wrapper
         self.stack = self.boto_wrapper.resource('cloudformation').Stack(stack_name)
 
+    @property
+    def name(self):
+        return self.stack.stack_name
+
     def wait_for_status_change(self, state_1, state_2):
         """
         Note: Do not use unwrapped boto waiter class, it has very poor error handling
@@ -273,8 +277,11 @@ class CfStack:
     @retry_boto_rate_limits
     def update_tags(self, tags: dict):
         cf_tags = [{'Key': k, 'Value': v} for k, v in tags.items()]
-        log.debug('Updating tags of stack {} to {}'.format(self.stack.name, cf_tags))
-        return self.stack.update(Tags=cf_tags)
+        log.info('Updating tags of stack {} to {}'.format(self.stack.name, tags))
+        return self.stack.update(Capabilities=['CAPABILITY_IAM'],
+                                 Parameters=([{'ParameterKey': 'KeyName', 'UsePreviousValue': True}]),
+                                 UsePreviousTemplate=True,
+                                 Tags=cf_tags)
 
     @retry_boto_rate_limits
     def get_parameter(self, param):
@@ -294,21 +301,6 @@ class CfStack:
         self.stack = self.boto_wrapper.resource('cloudformation').Stack(stack_id)
         self.stack.delete()
         log.info('Delete successfully initiated for {}'.format(stack_id))
-
-    @retry_boto_rate_limits
-    @property
-    def status(self):
-        return self.stack.stack_status
-
-    @retry_boto_rate_limits
-    @property
-    def creation_time(self):
-        return self.stack.creation_time
-
-    @retry_boto_rate_limits
-    @property
-    def tags(self):
-        return self.stack.tags
 
 
 class CleanupS3BucketMixin:
