@@ -246,7 +246,7 @@ AWS_ONPREM_SCHEMA = {
         'type': 'string',
         # not required because machine image can be set directly
         'required': False,
-        'default': 'cent-os-7-dcos-prereqs',
+        'default': 'cent-os-7',
         'allowed': list(dcos_launch.platforms.aws.OS_SSH_INFO.keys())},
     'instance_ami': {
         'type': 'string',
