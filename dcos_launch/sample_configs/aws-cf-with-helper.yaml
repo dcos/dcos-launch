@@ -1,6 +1,6 @@
 ---
 launch_config_version: 1
-deployment_name: This-is-a-test-stack
+deployment_name: aws-cf-with-helper-test
 template_url: https://s3.amazonaws.com/downloads.dcos.io/dcos/testing/master/cloudformation/single-master.cloudformation.json
 provider: aws
 aws_region: us-west-2
@@ -9,5 +9,4 @@ template_parameters:
     AdminLocation: 0.0.0.0/0
     PublicSlaveInstanceCount: 2
     SlaveInstanceCount: 1
-    PublicSlaveInstanceType: m4.xlarge
 ssh_user: core

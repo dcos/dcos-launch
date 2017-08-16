@@ -1,6 +1,6 @@
 ---
 launch_config_version: 1
-deployment_name: dcos-onprem-gce-with-helper
+deployment_name: dcos-onprem-gce-with-helper-test
 installer_url: https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh
 platform: gce
 provider: onprem
@@ -12,8 +12,10 @@ dcos_config:
         - 8.8.8.8
     dns_search: mesos
     master_discovery: static
+    exhibitor_storage_backend: zookeeper
+    exhibitor_zk_path: /exhibitor
 num_masters: 1
-num_private_agents: 2
+num_private_agents: 1
 num_public_agents: 1
 key_helper: true
 ssh_user: dcos
