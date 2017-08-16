@@ -1,6 +1,6 @@
 ---
 launch_config_version: 1
-deployment_name: dcos-onprem-gce
+deployment_name: dcos-onprem-gce-2
 installer_url: https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh
 platform: gce
 provider: onprem

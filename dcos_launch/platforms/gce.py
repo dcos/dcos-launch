@@ -227,7 +227,7 @@ class Deployment:
         else:
             raise Exception('Deployment failed with response: ' + str(response))
 
-    @retry(wait_fixed=2000, retry_on_result=_check_status, retry_on_exception=lambda _: False)
+    @retry(wait_fixed=60 * 1000, retry_on_result=_check_status, retry_on_exception=lambda _: False)
     def wait_for_completion(self) -> dict:
         return self.get_info()
 

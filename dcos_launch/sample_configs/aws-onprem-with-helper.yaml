@@ -1,12 +1,12 @@
 ---
 launch_config_version: 1
-deployment_name: dcos-onprem-with-new-stack
+deployment_name: aws-onprem-test1
 installer_url: https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh
 platform: aws
 provider: onprem
 aws_region: us-west-2
 os_name: cent-os-7
-instance_type: t2.micro
+instance_type: m4.xlarge
 dcos_config:
     cluster_name: My Awesome DC/OS
     resolvers:
@@ -14,8 +14,8 @@ dcos_config:
         - 8.8.8.8
     dns_search: mesos
     master_discovery: static
-    ip_detect_filename: ip-detect.sh
-num_masters: 3
+num_masters: 1
 num_private_agents: 2
 num_public_agents: 1
 key_helper: true
+ssh_user: centos
