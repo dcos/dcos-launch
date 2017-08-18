@@ -38,7 +38,7 @@ setup(
         ],
     },
     dependency_links=[
-        'https://github.com/dcos/dcos-test-utils@924d84d8b79f39bf6a1cdd8043b0e65fe9171eec'
+        'https://github.com/dcos/dcos-test-utils@449eb8018468c0eafbc85342b68639ac89e8f6be'
     ],
     package_data={
         'dcos_launch': [
