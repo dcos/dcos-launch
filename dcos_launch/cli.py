@@ -40,7 +40,7 @@ from docopt import docopt
 import dcos_launch
 import dcos_launch.config
 import dcos_launch.util
-from dcos_test_utils import logging
+from dcos_test_utils import logger
 
 json_prettyprint_args = {
     "sort_keys": True,
@@ -67,7 +67,7 @@ def load_json(filename):
 
 
 def do_main(args):
-    logging.setup_logging(args['--log-level'].upper())
+    logger.setup(args['--log-level'].upper())
 
     config_path = args['--config-path']
     if args['create']:
