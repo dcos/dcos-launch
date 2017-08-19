@@ -311,19 +311,15 @@ class CleanupS3BucketMixin:
         not an exhibitor bucket and the user should be alerted
         """
         try:
-            bucket = self.boto_wrapper.resource('s3').Bucket(
-                self.stack.Resource('ExhibitorS3Bucket').physical_resource_id)
+            bucket = self.boto_wrapper.resource('s3').meta.client.head_bucket(
+                Bucket=self.stack.Resource('ExhibitorS3Bucket').physical_resource_id)
         except ClientError:
             log.exception('Bucket could not be fetched')
             log.warning('S3 bucket not found when expected during delete, moving on...')
             return
         log.info('Starting bucket {} deletion'.format(bucket))
-        all_objects = list(bucket.objects.all())
-        obj_count = len(all_objects)
-        if obj_count == 1:
-            all_objects[0].delete()
-        elif obj_count > 1:
-            raise Exception('Expected on item in Exhibitor S3 bucket but found: ' + obj_count)
+        for obj in bucket.objects.all():
+            obj.delete()
         log.info('Trying deleting bucket {} itself'.format(bucket))
         bucket.delete()
 
