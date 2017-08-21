@@ -150,7 +150,7 @@ class GceWrapper:
                                                                              instanceGroupManager=group_name).execute()
         log.debug('list_group_instances response: ' + str(response))
 
-        for instance in response['managedInstances']:
+        for instance in response.get('managedInstances', []):
             yield instance
 
     @retry(wait_fixed=2000, retry_on_result=lambda res: res is None, stop_max_delay=30 * 1000)
@@ -183,7 +183,7 @@ class GceWrapper:
         request = self.deployment_manager.deployments().list(project=self.project_id)
         while request is not None:
             response = request.execute()
-            for deployment_info in response['deployments']:
+            for deployment_info in response.get('deployments', []):
                 # we don't want to retrieve deployments that are in the process of being deleted
                 if deployment_info['operation']['operationType'] != 'deleted':
                     yield Deployment(self, deployment_info['name'])
@@ -237,7 +237,7 @@ class Deployment:
                                                                        deployment=self.name)
         while request is not None:
             response = request.execute()
-            for resource in response['resources']:
+            for resource in response.get('resources', []):
                 resource_copy = copy.deepcopy(resource)
                 for key in resource_copy:
                     # The only fields we need as you can see in the templates at the top of this file. Other fields
