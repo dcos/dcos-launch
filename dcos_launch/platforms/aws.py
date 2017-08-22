@@ -212,7 +212,9 @@ class BotoWrapper():
         method to check if buckets exist, so the try/except statement is required
         """
         try:
-            bucket = self.resource('s3').meta.client.head_bucket(Bucket=bucket_id)
+            # just check to see if the head is accessible before continuing
+            self.resource('s3').meta.client.head_bucket(Bucket=bucket_id)
+            bucket = self.resource('s3').Bucket(bucket_id)
         except ClientError:
             log.exception('Bucket could not be fetched')
             log.warning('S3 bucket not found when expected during delete, moving on...')
