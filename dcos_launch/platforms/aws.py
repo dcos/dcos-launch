@@ -206,6 +206,23 @@ class BotoWrapper():
                     AutoScalingGroupNames=[asg_physical_resource_id])
                 ['AutoScalingGroups'] for i in asg['Instances']]
 
+    @retry_boto_rate_limits
+    def empty_and_delete_bucket(self, bucket_id):
+        """ Buckets must be empty to be deleted. Additionally, there is no high-level
+        method to check if buckets exist, so the try/except statement is required
+        """
+        try:
+            bucket = self.resource('s3').meta.client.head_bucket(Bucket=bucket_id)
+        except ClientError:
+            log.exception('Bucket could not be fetched')
+            log.warning('S3 bucket not found when expected during delete, moving on...')
+            return
+        log.info('Starting bucket {} deletion'.format(bucket))
+        for obj in bucket.objects.all():
+            obj.delete()
+        log.info('Trying deleting bucket {} itself'.format(bucket))
+        bucket.delete()
+
 
 class CfStack:
     def __init__(self, stack_name, boto_wrapper):
@@ -304,27 +321,14 @@ class CfStack:
 
 
 class CleanupS3BucketMixin:
-    def delete_exhibitor_s3_bucket(self):
-        """ A non-empty S3 bucket cannot be deleted, so check to
-        see if it should be emptied first. If its non-empty, but
-        has more than one item, error out as the bucket is perhaps
-        not an exhibitor bucket and the user should be alerted
-        """
-        try:
-            bucket = self.boto_wrapper.resource('s3').meta.client.head_bucket(
-                Bucket=self.stack.Resource('ExhibitorS3Bucket').physical_resource_id)
-        except ClientError:
-            log.exception('Bucket could not be fetched')
-            log.warning('S3 bucket not found when expected during delete, moving on...')
-            return
-        log.info('Starting bucket {} deletion'.format(bucket))
-        for obj in bucket.objects.all():
-            obj.delete()
-        log.info('Trying deleting bucket {} itself'.format(bucket))
-        bucket.delete()
-
+    """ Exhibitor S3 Buckets are not deleted with the rest of the resources
+    in the cloudformation template so this method must be used to prevent
+    leaking cloud resources.
+    """
     def delete(self):
         self.delete_exhibitor_s3_bucket()
+        self.boto_wrapper.empty_and_delete_bucket(
+            self.stack.Resource('ExhibitorS3Bucket').physical_resource_id)
         super().delete()
 
 
