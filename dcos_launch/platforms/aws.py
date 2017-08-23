@@ -82,6 +82,7 @@ def instances_to_hosts(instances):
     return [Host(i.private_ip_address, i.public_ip_address) for i in instances]
 
 
+@retry_boto_rate_limits
 def fetch_stack(stack_name, boto_wrapper):
     log.debug('Attemping to fetch AWS Stack: {}'.format(stack_name))
     stack = boto_wrapper.resource('cloudformation').Stack(stack_name)
@@ -99,17 +100,20 @@ def fetch_stack(stack_name, boto_wrapper):
     return CfStack(stack_name, boto_wrapper)
 
 
-class BotoWrapper():
+class BotoWrapper:
     def __init__(self, region, aws_access_key_id, aws_secret_access_key):
         self.region = region
         self.session = boto3.session.Session(
             aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 
+    @retry_boto_rate_limits
     def client(self, name):
         return self.session.client(service_name=name, region_name=self.region)
 
-    def resource(self, name):
-        return self.session.resource(service_name=name, region_name=self.region)
+    @retry_boto_rate_limits
+    def resource(self, name, region=None):
+        region = self.region if region is None else region
+        return self.session.resource(service_name=name, region_name=region)
 
     def create_key_pair(self, key_name):
         """Returns private key of newly generated pair
@@ -118,6 +122,25 @@ class BotoWrapper():
         key = self.client('ec2').create_key_pair(KeyName=key_name)
         return key['KeyMaterial']
 
+    @retry_boto_rate_limits
+    def get_service_resources(self, service, resource):
+        """Return resources and boto wrapper in every region for the given boto3 service and resource type."""
+        for region in aws_region_names:
+            for resource in getattr(self.resource(service, region['id']), resource).all():
+                yield resource
+
+    @retry_boto_rate_limits
+    def get_all_stacks(self):
+        """Get all AWS CloudFormation stacks in all regions."""
+        for stack in self.get_service_resources('cloudformation', 'stacks'):
+            yield CfStack(stack.name, self)
+
+    @retry_boto_rate_limits
+    def get_all_keypairs(self):
+        """Get all EC2 key pairs in all regions."""
+        yield from self.get_service_resources('ec2', 'key_pairs')
+
+    @retry_boto_rate_limits
     def delete_key_pair(self, key_name):
         log.info('Deleting KeyPair: {}'.format(key_name))
         self.resource('ec2').KeyPair(key_name).delete()
@@ -178,10 +201,12 @@ class BotoWrapper():
         log.info('Created subnet with ID: {}'.format(subnet_id))
         return subnet_id
 
+    @retry_boto_rate_limits
     def delete_subnet(self, subnet_id):
         log.info('Deleting subnet: {}'.format(subnet_id))
         self.client('ec2').delete_subnet(SubnetId=subnet_id)
 
+    @retry_boto_rate_limits
     def delete_internet_gateway(self, gateway_id):
         ig = self.resource('ec2').InternetGateway(gateway_id)
         for vpc in ig.attachments:
@@ -191,6 +216,7 @@ class BotoWrapper():
         log.info('Deleting internet gateway: {}'.format(gateway_id))
         ig.delete()
 
+    @retry_boto_rate_limits
     def delete_vpc(self, vpc_id):
         log.info('Deleting vpc: {}'.format(vpc_id))
         self.client('ec2').delete_vpc(VpcId=vpc_id)
@@ -257,12 +283,10 @@ class CfStack:
                         retry_on_result=lambda res: res is False,
                         retry_on_exception=lambda ex: False)
         def wait_loop():
-            stack_details = self.get_stack_details()
-            stack_status = stack_details['StackStatus']
+            stack_status = self.get_status()
             if stack_status == state_2:
                 return True
             if stack_status != state_1:
-                log.error('Stack Details: {}'.format(stack_details))
                 for event in self.get_stack_events():
                     log.error('Stack Events: {}'.format(event))
                 raise Exception('StackStatus changed unexpectedly to: {}'.format(stack_status))
@@ -271,7 +295,7 @@ class CfStack:
         wait_loop()
 
     def wait_for_complete(self):
-        status = self.get_stack_details()['StackStatus']
+        status = self.get_status()
         if status.endswith('_COMPLETE'):
             return
         elif status.endswith('_IN_PROGRESS'):
@@ -279,13 +303,6 @@ class CfStack:
                 status, status.replace('IN_PROGRESS', 'COMPLETE'))
         else:
             raise Exception('AWS Stack has entered unexpected state: {}'.format(status))
-
-    @retry_boto_rate_limits
-    def get_stack_details(self):
-        details = self.boto_wrapper.client('cloudformation').describe_stacks(
-            StackName=self.stack.stack_id)['Stacks'][0]
-        log.debug('Stack details: {}'.format(details))
-        return details
 
     @retry_boto_rate_limits
     def get_stack_events(self):
@@ -303,6 +320,11 @@ class CfStack:
                                  Tags=cf_tags)
 
     @retry_boto_rate_limits
+    def get_status(self):
+        # we need to refresh the stack to get the latest info
+        self.stack = self.boto_wrapper.resource('cloudformation').Stack(self.name)
+        return self.stack.stack_status
+
     def get_parameter(self, param):
         """Returns param if in stack parameters, else returns None
         """
@@ -619,3 +641,53 @@ OS_AMIS = {
                      'us-west-1': 'ami-a9a8e4c9',
                      'us-west-2': 'ami-746aba14'}
 }
+
+aws_region_names = [
+    {
+        'name': 'US West (N. California)',
+        'id': 'us-west-1'
+    },
+    {
+        'name': 'US West (Oregon)',
+        'id': 'us-west-2'
+    },
+    {
+        'name': 'US East (N. Virginia)',
+        'id': 'us-east-1'
+    },
+    {
+        'name': 'South America (Sao Paulo)',
+        'id': 'sa-east-1'
+    },
+    {
+        'name': 'EU (Ireland)',
+        'id': 'eu-west-1'
+    },
+    {
+        'name': 'EU (Frankfurt)',
+        'id': 'eu-central-1'
+    },
+    {
+        'name': 'Asia Pacific (Tokyo)',
+        'id': 'ap-northeast-1'
+    },
+    {
+        'name': 'Asia Pacific (Singapore)',
+        'id': 'ap-southeast-1'
+    },
+    {
+        'name': 'Asia Pacific (Sydney)',
+        'id': 'ap-southeast-2'
+    },
+    {
+        'name': 'Asia Pacific (Seoul)',
+        'id': 'ap-northeast-2'
+    },
+    {
+        'name': 'Asia Pacific (Mumbai)',
+        'id': 'ap-south-1'
+    },
+    {
+        'name': 'US East (Ohio)',
+        'id': 'us-east-2'
+    }]
