@@ -26,15 +26,6 @@ OS_IMAGE_FAMILIES = {
     'coreos': 'coreos-stable',
 }
 
-# used in the gce sourceImage link (instance template field)
-IMAGE_PROJECTS = {
-    'centos-7': 'centos-cloud',
-    'rhel-7': 'rhel-cloud',
-    'ubuntu-1604-lts': 'ubuntu-os-cloud',
-    'coreos-stable': 'coreos-cloud',
-    'debian-8': 'debian-cloud'
-}
-
 # template for an "instance template" resource to be used in a managed instance group
 INSTANCE_TEMPLATE = """
 type: compute.v1.instanceTemplate
@@ -54,7 +45,7 @@ properties:
       initializeParams:
         diskSizeGb: {diskSizeGb}
         diskType: {diskType}
-        sourceImage: projects/{imageProject}/global/images/family/{sourceImage}
+        sourceImage: projects/{imageProject}/global/images/{sourceImage}
     networkInterfaces:
     - network: global/networks/{network}
       # Access Config required to give the instance a public IP address

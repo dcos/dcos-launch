@@ -3,8 +3,8 @@ import os
 import cerberus
 import yaml
 
-import dcos_launch.util
-import dcos_launch.platforms.aws
+from dcos_launch import util
+from dcos_launch.platforms import aws, gce
 
 
 def expand_path(path: str, relative_dir: str) -> str:
@@ -25,9 +25,9 @@ def load_config(config_path: str) -> dict:
         with open(config_path) as f:
             return yaml.safe_load(f)
     except yaml.YAMLError as ex:
-        raise dcos_launch.util.LauncherError('InvalidYaml', None) from ex
+        raise util.LauncherError('InvalidYaml', None) from ex
     except FileNotFoundError as ex:
-        raise dcos_launch.util.LauncherError('MissingConfig', None) from ex
+        raise util.LauncherError('MissingConfig', None) from ex
 
 
 def validate_url(field, value, error):
@@ -39,8 +39,8 @@ def load_ssh_private_key(doc):
     if doc.get('key_helper') == 'true':
         return 'unset'
     if 'ssh_private_key_filename' not in doc:
-        return dcos_launch.util.NO_TEST_FLAG
-    return dcos_launch.util.read_file(doc['ssh_private_key_filename'])
+        return util.NO_TEST_FLAG
+    return util.read_file(doc['ssh_private_key_filename'])
 
 
 class LaunchValidator(cerberus.Validator):
@@ -73,7 +73,7 @@ def _expand_error_dict(errors: dict) -> str:
 
 def _raise_errors(validator: LaunchValidator):
     message = _expand_error_dict(validator.errors)
-    raise dcos_launch.util.LauncherError('ValidationError', message)
+    raise util.LauncherError('ValidationError', message)
 
 
 def get_validated_config(config_path: str) -> dict:
@@ -107,7 +107,7 @@ def get_validated_config(config_path: str) -> dict:
             'aws_region': {
                 'type': 'string',
                 'required': True,
-                'default_setter': lambda doc: dcos_launch.util.set_from_env('AWS_REGION')},
+                'default_setter': lambda doc: util.set_from_env('AWS_REGION')},
             'disable_rollback': {
                 'type': 'boolean',
                 'required': False,
@@ -119,7 +119,7 @@ def get_validated_config(config_path: str) -> dict:
             'gce_zone': {
                 'type': 'string',
                 'required': True,
-                'default_setter': lambda doc: dcos_launch.util.set_from_env('GCE_ZONE')}})
+                'default_setter': lambda doc: util.set_from_env('GCE_ZONE')}})
         if provider == 'onprem':
             validator.schema.update(GCE_ONPREM_SCHEMA)
     elif platform == 'azure':
@@ -127,7 +127,7 @@ def get_validated_config(config_path: str) -> dict:
             'azure_location': {
                 'type': 'string',
                 'required': True,
-                'default_setter': lambda doc: dcos_launch.util.set_from_env('AZURE_LOCATION')}})
+                'default_setter': lambda doc: util.set_from_env('AZURE_LOCATION')}})
     else:
         raise NotImplementedError()
 
@@ -247,11 +247,11 @@ AWS_ONPREM_SCHEMA = {
         # not required because machine image can be set directly
         'required': False,
         'default': 'cent-os-7-dcos-prereqs',
-        'allowed': list(dcos_launch.platforms.aws.OS_SSH_INFO.keys())},
+        'allowed': list(aws.OS_SSH_INFO.keys())},
     'instance_ami': {
         'type': 'string',
         'required': True,
-        'default_setter': lambda doc: dcos_launch.platforms.aws.OS_AMIS[doc['os_name']][doc['aws_region']]},
+        'default_setter': lambda doc: aws.OS_AMIS[doc['os_name']][doc['aws_region']]},
     'instance_type': {
         'type': 'string',
         'required': True},
@@ -262,7 +262,26 @@ AWS_ONPREM_SCHEMA = {
     'ssh_user': {
         'required': True,
         'type': 'string',
-        'default_setter': lambda doc: dcos_launch.platforms.aws.OS_SSH_INFO[doc['os_name']].user}}
+        'default_setter': lambda doc: aws.OS_SSH_INFO[doc['os_name']].user}}
+
+
+def deduce_image_project(doc: dict):
+    src_image = doc['source_image']
+    if 'centos' in src_image or 'cent-os' in src_image:
+        return 'centos-cloud'
+    if 'rhel' in src_image:
+        return 'rhel-cloud'
+    if 'ubuntu' in src_image:
+        return 'ubuntu-os-cloud'
+    if 'coreos' in src_image:
+        return 'coreos-cloud'
+    if 'debian' in src_image:
+        return 'debian-cloud'
+
+    raise util.LauncherError('ValidationError', """Couldn't deduce the image project for your source image. Please
+                             specify the "image_project" parameter in your dcos-launch config. Possible values are:
+                             centos-cloud, rhel-cloud, ubuntu-os-cloud, coreos-cloud and debian-cloud.""")
+
 
 GCE_ONPREM_SCHEMA = {
     'machine_type': {
@@ -270,19 +289,18 @@ GCE_ONPREM_SCHEMA = {
         'required': False,
         'default': 'n1-standard-4'},
     'os_name': {
+        # To see all image families: https://cloud.google.com/compute/docs/images
         'type': 'string',
         'required': False,
-        'default': 'coreos',
-        'allowed': ['coreos']},
+        'default': 'coreos'},
     'source_image': {
         'type': 'string',
         'required': False,
-        'default_setter': lambda doc: dcos_launch.platforms.gce.OS_IMAGE_FAMILIES.get(doc['os_name'], doc['os_name']),
-        'allowed': list(dcos_launch.platforms.gce.IMAGE_PROJECTS.keys())},
+        'default_setter': lambda doc: 'family/' + gce.OS_IMAGE_FAMILIES.get(doc['os_name'], doc['os_name'])},
     'image_project': {
         'type': 'string',
         'required': False,
-        'default_setter': lambda doc: dcos_launch.platforms.gce.IMAGE_PROJECTS[doc['source_image']]},
+        'default_setter': deduce_image_project},
     'ssh_public_key': {
         'type': 'string',
         'required': False},
