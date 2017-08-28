@@ -9,6 +9,5 @@ template_parameters:
     AdminLocation: 0.0.0.0/0
     PublicSlaveInstanceCount: 2
     SlaveInstanceCount: 1
-    PublicSlaveInstanceType: m4.xlarge
 ssh_user: core
 ssh_private_key_filename: /tmp/aawpei3

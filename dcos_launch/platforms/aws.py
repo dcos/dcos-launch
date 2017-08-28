@@ -123,10 +123,11 @@ class BotoWrapper:
         return key['KeyMaterial']
 
     @retry_boto_rate_limits
-    def get_service_resources(self, service, resource):
+    def get_service_resources(self, service, resource_name):
         """Return resources and boto wrapper in every region for the given boto3 service and resource type."""
         for region in aws_region_names:
-            for resource in getattr(self.resource(service, region['id']), resource).all():
+            self.region = region['id']
+            for resource in getattr(self.resource(service, region['id']), resource_name).all():
                 yield resource
 
     @retry_boto_rate_limits
