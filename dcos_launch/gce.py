@@ -15,12 +15,20 @@ log = logging.getLogger(__name__)
 class BareClusterLauncher(util.AbstractLauncher):
     # Launches a homogeneous cluster of plain GMIs intended for onprem DC/OS
     def __init__(self, config: dict):
-        """ For this to work, you must set the GOOGLE_APPLICATION_CREDENTIALS environment variable to the path of your
-        json file that contains the credentials for your Google service account
+        help_msg = """You must set either the GCE_CREDENTIALS environment variable to the JSON credentials for your
+        service account or set GCE_CREDENTIALS_PATH, which must contain the path to a file containing those json
+        credentials
         """
-        credentials_path = util.set_from_env('GOOGLE_APPLICATION_CREDENTIALS')
-        credentials = util.read_file(credentials_path)
-        self.gce_wrapper = gce.GceWrapper(json.loads(credentials), credentials_path)
+        try:
+            credentials = util.set_from_env('GCE_CREDENTIALS')
+        except util.LauncherError:
+            try:
+                credentials_path = util.set_from_env('GCE_CREDENTIALS_PATH')
+            except util.LauncherError:
+                raise util.LauncherError('MissingEnvironmentVariable', help_msg)
+            credentials = util.read_file(credentials_path)
+
+        self.gce_wrapper = gce.GceWrapper(json.loads(credentials))
         self.config = config
 
     @property

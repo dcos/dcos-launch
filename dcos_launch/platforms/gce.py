@@ -119,9 +119,9 @@ def catch_http_exceptions(f):
 
 class GceWrapper:
     @catch_http_exceptions
-    def __init__(self, credentials_dict: dict, credentials_path: str):
-        credentials = ServiceAccountCredentials.from_json_keyfile_name(
-            credentials_path, scopes='https://www.googleapis.com/auth/cloud-platform')
+    def __init__(self, credentials_dict: dict):
+        credentials = ServiceAccountCredentials.from_json_keyfile_dict(
+            credentials_dict, scopes='https://www.googleapis.com/auth/cloud-platform')
         self.compute = discovery.build('compute', 'v1', credentials=credentials)
         self.deployment_manager = discovery.build('deploymentmanager', 'v2', credentials=credentials)
         self.project_id = credentials_dict['project_id']
