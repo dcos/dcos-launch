@@ -48,7 +48,7 @@ class MockStack:
 
 
 class MockGceWrapper:
-    def __init__(self, _):
+    def __init__(self):
         DeploymentManagerMock = namedtuple('DeploymentManagerMock', 'deployments')
         DeploymentFunctionsMock = namedtuple('DeploymentFunctionsMock', 'insert delete get')
         ApiRequestMock = namedtuple('ApiRequestMock', 'execute')

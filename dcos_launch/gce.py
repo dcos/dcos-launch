@@ -1,6 +1,5 @@
 """ Launcher functionality for the Google Compute Engine (GCE)
 """
-import json
 import logging
 
 from dcos_launch import util
@@ -15,20 +14,7 @@ log = logging.getLogger(__name__)
 class BareClusterLauncher(util.AbstractLauncher):
     # Launches a homogeneous cluster of plain GMIs intended for onprem DC/OS
     def __init__(self, config: dict):
-        help_msg = """You must set either the GCE_CREDENTIALS environment variable to the JSON credentials for your
-        service account or set GCE_CREDENTIALS_PATH, which must contain the path to a file containing those json
-        credentials
-        """
-        try:
-            credentials = util.set_from_env('GCE_CREDENTIALS')
-        except util.LauncherError:
-            try:
-                credentials_path = util.set_from_env('GCE_CREDENTIALS_PATH')
-            except util.LauncherError:
-                raise util.LauncherError('MissingEnvironmentVariable', help_msg)
-            credentials = util.read_file(credentials_path)
-
-        self.gce_wrapper = gce.GceWrapper(json.loads(credentials))
+        self.gce_wrapper = gce.GceWrapper()
         self.config = config
 
     @property
