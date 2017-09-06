@@ -48,7 +48,9 @@ setup(
             'ip-detect/gce.sh',
             'ip-detect/gce_public.sh',
             'templates/vpc-cluster-template.json',
-            'templates/vpc-ebs-only-cluster-template.json'
+            'templates/vpc-ebs-only-cluster-template.json',
+            'fault-domain-detect/aws.sh',
+            'fault-domain-detect/gce.sh'
         ],
     }
 )
