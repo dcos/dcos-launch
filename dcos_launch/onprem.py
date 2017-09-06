@@ -67,7 +67,8 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         if 'ssh_user' not in onprem_config:
             onprem_config['ssh_user'] = self.config['ssh_user']
         # check if the user provided any filenames and convert them into content
-        for key_name in ('ip_detect_filename', 'ip_detect_public_filename'):
+        for key_name in ('ip_detect_filename', 'ip_detect_public_filename',
+                         'fault_domain_script_filename'):
             if key_name not in onprem_config:
                 continue
             new_key_name = key_name.replace('_filename', '_contents')

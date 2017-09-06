@@ -234,7 +234,10 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
             # currently, these values cannot be set by a user, only by the launch process
             'master_list': {'readonly': True},
             'agent_list': {'readonly': True},
-            'public_agent_list': {'readonly': True}}}}
+            'public_agent_list': {'readonly': True},
+            'fault_domain_script_filename': {
+                'coerce': 'expand_local_path',
+                'excludes': 'fault_domain_script_contents'}}}}
 
 
 AWS_ONPREM_SCHEMA = {
