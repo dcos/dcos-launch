@@ -311,4 +311,8 @@ GCE_ONPREM_SCHEMA = {
     'disk_type': {
         'type': 'string',
         'required': False,
-        'default': 'pd-ssd'}}
+        'default': 'pd-ssd'},
+    'disable_updates': {
+        'type': 'boolean',
+        'required': False,
+        'default': False}}
