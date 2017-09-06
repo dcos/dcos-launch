@@ -51,7 +51,8 @@ class BareClusterLauncher(util.AbstractLauncher):
             self.config['machine_type'],
             self.config['image_project'],
             self.config['ssh_user'],
-            self.config['ssh_public_key'])
+            self.config['ssh_public_key'],
+            self.config['disable_updates'])
         return self.config
 
     def key_helper(self):

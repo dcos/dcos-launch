@@ -101,6 +101,31 @@ properties:
   - IPProtocol: sctp
 """
 
+# Used to disable automatic updates on CoreOS
+IGNITION_CONFIG = """
+{
+    "ignition": {
+        "version": "2.0.0",
+        "config": {}
+    },
+    "storage": {},
+    "systemd": {
+        "units": [
+            {
+                "name": "update-engine.service",
+                "mask": true
+            },
+            {
+                "name": "locksmithd.service",
+                "mask": true
+            }
+        ]
+    },
+    "networkd": {},
+    "passwd": {}
+}
+"""
+
 
 # Function decorator that adds detail to potential googleapiclient.errors.HttpError exceptions with code 404 or 409
 def catch_http_exceptions(f):
@@ -312,7 +337,8 @@ class BareClusterDeployment(Deployment):
             machine_type: str,
             image_project: str,
             ssh_user: str,
-            ssh_public_key: str):
+            ssh_public_key: str,
+            disable_updates: bool):
         template_name = name + '-template'
         network_name = name + '-network'
         firewall_name = name + '-norules'
@@ -348,6 +374,14 @@ class BareClusterDeployment(Deployment):
                           yaml.load(instance_group_resource),
                           yaml.load(firewall_resource)]
         }
+
+        if disable_updates and image_project == 'coreos-cloud':
+            user_data = {
+                'key': 'user-data',
+                'value': IGNITION_CONFIG
+            }
+            deployment_config['resources'][1]['properties']['properties']['metadata']['items'].append(user_data)
+
         gce_wrapper.create_deployment(name, deployment_config)
         return deployment
 
