@@ -67,7 +67,8 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         if 'ssh_user' not in onprem_config:
             onprem_config['ssh_user'] = self.config['ssh_user']
         # check if the user provided any filenames and convert them into content
-        for key_name in ('ip_detect_filename', 'ip_detect_public_filename'):
+        for key_name in ('ip_detect_filename', 'ip_detect_public_filename',
+                         'fault_domain_script_filename'):
             if key_name not in onprem_config:
                 continue
             new_key_name = key_name.replace('_filename', '_contents')
@@ -84,6 +85,9 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
             # despite being almost identical aws_public.sh will crash the installer if not safely dumped
             onprem_config['ip_detect_public_contents'] = yaml.dump(pkg_resources.resource_string(
                 'dcos_launch', 'ip-detect/{}_public.sh'.format(self.config['platform'])).decode())
+        if 'fault_domain_detect_contents' not in onprem_config:
+            onprem_config['fault_domain_detect_contents'] = yaml.dump(pkg_resources.resource_string(
+                'dcos_launch', 'fault-domain-detect/{}.sh'.format(self.config['platform'])).decode())
         # For no good reason the installer uses 'ip_detect_script' instead of 'ip_detect_contents'
         onprem_config['ip_detect_script'] = onprem_config['ip_detect_contents']
         del onprem_config['ip_detect_contents']
