@@ -5,6 +5,7 @@ Cloud Deployment Manager results in simpler code and far fewer API calls.
 
 import copy
 import logging
+import json
 import typing
 import yaml
 from functools import wraps
@@ -14,6 +15,7 @@ from googleapiclient.errors import HttpError
 from oauth2client.service_account import ServiceAccountCredentials
 from retrying import retry
 
+from dcos_launch import util
 from dcos_test_utils.helpers import Host
 
 log = logging.getLogger(__name__)
@@ -99,6 +101,31 @@ properties:
   - IPProtocol: sctp
 """
 
+# Used to disable automatic updates on CoreOS
+IGNITION_CONFIG = """
+{
+    "ignition": {
+        "version": "2.0.0",
+        "config": {}
+    },
+    "storage": {},
+    "systemd": {
+        "units": [
+            {
+                "name": "update-engine.service",
+                "mask": true
+            },
+            {
+                "name": "locksmithd.service",
+                "mask": true
+            }
+        ]
+    },
+    "networkd": {},
+    "passwd": {}
+}
+"""
+
 
 # Function decorator that adds detail to potential googleapiclient.errors.HttpError exceptions with code 404 or 409
 def catch_http_exceptions(f):
@@ -119,9 +146,30 @@ def catch_http_exceptions(f):
 
 class GceWrapper:
     @catch_http_exceptions
-    def __init__(self, credentials_dict: dict, credentials_path: str):
-        credentials = ServiceAccountCredentials.from_json_keyfile_name(
-            credentials_path, scopes='https://www.googleapis.com/auth/cloud-platform')
+    def __init__(self, creds_env_var_name='GCE_CREDENTIALS', creds_path_env_var_name='GCE_CREDENTIALS_PATH'):
+        """
+        Build GCE service account credentials from info stored in environment variables, then build a GCE API wrapper
+            with those credentials. Only one of the two environment variables must be set.
+        :param creds_env_var_name: JSON string that contains your GCE service account credentials
+        :param creds_path_env_var_name: string that contains the path to the file containing your GCE service account
+            credentials.
+        """
+        help_msg = """You must set either the {} environment variable to the JSON credentials for your service account
+        or set {}, which must contain the path to a file containing those JSON credentials.
+        """.format(creds_env_var_name, creds_path_env_var_name)
+        try:
+            json_credentials = util.set_from_env(creds_env_var_name)
+        except util.LauncherError:
+            try:
+                json_credentials_path = util.set_from_env(creds_path_env_var_name)
+            except util.LauncherError:
+                raise util.LauncherError('MissingEnvironmentVariable', help_msg)
+            json_credentials = util.read_file(json_credentials_path)
+
+        credentials_dict = json.loads(json_credentials)
+        credentials = ServiceAccountCredentials.from_json_keyfile_dict(
+            credentials_dict, scopes='https://www.googleapis.com/auth/cloud-platform')
+
         self.compute = discovery.build('compute', 'v1', credentials=credentials)
         self.deployment_manager = discovery.build('deploymentmanager', 'v2', credentials=credentials)
         self.project_id = credentials_dict['project_id']
@@ -289,7 +337,8 @@ class BareClusterDeployment(Deployment):
             machine_type: str,
             image_project: str,
             ssh_user: str,
-            ssh_public_key: str):
+            ssh_public_key: str,
+            disable_updates: bool):
         template_name = name + '-template'
         network_name = name + '-network'
         firewall_name = name + '-norules'
@@ -325,6 +374,14 @@ class BareClusterDeployment(Deployment):
                           yaml.load(instance_group_resource),
                           yaml.load(firewall_resource)]
         }
+
+        if disable_updates and image_project == 'coreos-cloud':
+            user_data = {
+                'key': 'user-data',
+                'value': IGNITION_CONFIG
+            }
+            deployment_config['resources'][1]['properties']['properties']['metadata']['items'].append(user_data)
+
         gce_wrapper.create_deployment(name, deployment_config)
         return deployment
 

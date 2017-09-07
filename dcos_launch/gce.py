@@ -1,6 +1,5 @@
 """ Launcher functionality for the Google Compute Engine (GCE)
 """
-import json
 import logging
 
 from dcos_launch import util
@@ -15,12 +14,7 @@ log = logging.getLogger(__name__)
 class BareClusterLauncher(util.AbstractLauncher):
     # Launches a homogeneous cluster of plain GMIs intended for onprem DC/OS
     def __init__(self, config: dict):
-        """ For this to work, you must set the GOOGLE_APPLICATION_CREDENTIALS environment variable to the path of your
-        json file that contains the credentials for your Google service account
-        """
-        credentials_path = util.set_from_env('GOOGLE_APPLICATION_CREDENTIALS')
-        credentials = util.read_file(credentials_path)
-        self.gce_wrapper = gce.GceWrapper(json.loads(credentials), credentials_path)
+        self.gce_wrapper = gce.GceWrapper()
         self.config = config
 
     @property
@@ -57,7 +51,8 @@ class BareClusterLauncher(util.AbstractLauncher):
             self.config['machine_type'],
             self.config['image_project'],
             self.config['ssh_user'],
-            self.config['ssh_public_key'])
+            self.config['ssh_public_key'],
+            self.config['disable_updates'])
         return self.config
 
     def key_helper(self):
