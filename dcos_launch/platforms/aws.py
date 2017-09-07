@@ -298,6 +298,14 @@ class CfStack:
 
         wait_loop()
 
+    def wait_for_deploy_complete(self):
+        self.wait_for_complete(transition_states=['CREATE_IN_PROGRESS', 'UPDATE_IN_PROGRESS',
+                                                  'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS'],
+                               end_states=['CREATE_COMPLETE', 'UPDATE_COMPLETE'])
+
+    def wait_for_delete_complete(self):
+        self.wait_for_complete(transition_states=['DELETE_IN_PROGRESS'], end_states=['DELETE_COMPLETE'])
+
     @retry_boto_rate_limits
     def get_stack_events(self):
         log.debug('Requesting stack events')
