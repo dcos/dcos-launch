@@ -3,8 +3,7 @@
 
 `dcos-launch` is a portable linux executable to create, wait for provisioning, describe, test/validate, and destroy an arbitrary cluster.
 
-`dcos-launch` can be used as development tool, but it is also shipped as an executable with every DC/OS build. E.g. to get the current `testing/master` version of DC/OS, use this url:
-`https://downloads.dcos.io/dcos-launch/bin/linux/dcos-launch`
+`dcos-launch` is backwards compatible to older verions of DC/OS. Thus, it can be used as a development or CI tool for deploying clusters into your workflow. To get the current binary of this repo, download here: `https://downloads.dcos.io/dcos-launch/bin/linux/dcos-launch`
 
 ## Features
 `dcos-launch` provides the following:
