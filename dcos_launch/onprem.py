@@ -86,6 +86,7 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
             onprem_config['ip_detect_public_contents'] = yaml.dump(pkg_resources.resource_string(
                 'dcos_launch', 'ip-detect/{}_public.sh'.format(self.config['platform'])).decode())
         if 'fault_domain_detect_contents' not in onprem_config:
+            onprem_config['fault_domain_enabled'] = 'true'
             onprem_config['fault_domain_detect_contents'] = yaml.dump(pkg_resources.resource_string(
                 'dcos_launch', 'fault-domain-detect/{}.sh'.format(self.config['platform'])).decode())
         # For no good reason the installer uses 'ip_detect_script' instead of 'ip_detect_contents'
