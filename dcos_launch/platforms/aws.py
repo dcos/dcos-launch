@@ -307,9 +307,13 @@ class CfStack:
     @retry_boto_rate_limits
     def update_tags(self, tags: dict):
         cf_tags = [{'Key': k, 'Value': v} for k, v in tags.items()]
+        new_keys = tags.keys()
+        for tag in self.stack.tags:
+            if tag['Key'] not in new_keys:
+                cf_tags.append(tag)
         log.info('Updating tags of stack {} to {}'.format(self.stack.name, tags))
         return self.stack.update(Capabilities=['CAPABILITY_IAM'],
-                                 Parameters=([{'ParameterKey': 'KeyName', 'UsePreviousValue': True}]),
+                                 Parameters=self.stack.parameters,
                                  UsePreviousTemplate=True,
                                  Tags=cf_tags)
 
