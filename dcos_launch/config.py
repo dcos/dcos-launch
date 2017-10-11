@@ -258,6 +258,10 @@ AWS_ONPREM_SCHEMA = {
     'instance_type': {
         'type': 'string',
         'required': True},
+    'security': {
+        'type': 'string',
+        'required': False,
+        'allowed': ['permissive', 'strict', 'disabled']},
     'admin_location': {
         'type': 'string',
         'required': True,
