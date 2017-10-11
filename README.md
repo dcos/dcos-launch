@@ -9,8 +9,15 @@ In the case of the onprem provider, `dcos-launch` provides the capability to cre
 
 The primary purpose of `dcos-launch` is to provide a turn-key deployment experience across a wide variety of configurations without having to handle any of the lower-level cloud APIs. As such, `dcos-launch` includes a [command line interface](dcos_launch/README.md) and is packaged as a pyinstaller [binary](https://downloads.dcos.io/dcos-launch/bin/linux/dcos-launch) for easy portability.
 
+## Installation
+```
+git clone https://github.com/dcos/dcos-launch.git
+cd dcos-launch
+pip3 install -r requirements.txt && pip3 install -e .
+```
+
 ## System Requirements
-* linux operating system
+* Python 3
 * local SSH client at /usr/bin/ssh
 
 ## Developing
