@@ -24,6 +24,7 @@ If you do not have a linux environment or for whatever reason your local SSH cli
 
 To build to development container:
 ```
+cd tests
 docker build -t dcos-launch-dev:latest .
 ```
 and to then work in the environment:
@@ -37,6 +38,23 @@ python3.5 -m venv env
 . env/bin/activate
 pip3 install -r requirements.txt
 python setup.py develop
+```
+Also, a [Docker image](Dockerfile) is used to ship dcos-launch instead of a binary.
+Note: dcos-launch requires the use of local file paths, so you will need to volume mount:
+```
+docker run -it -v /my/home/dir:/dcos-launch create
+```
+To make this slightly easier, use dcos-launch-docker.sh. Example:
+```
+mkdir foo
+cat <<EOF > foo/config.yaml
+---
+launch_config_version: 1
+provider: aws
+...
+EOF
+
+./dcos-launch-docker.sh create -c foo/config.yaml
 ```
 
 ## Running Tests with tox
