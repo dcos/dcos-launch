@@ -31,7 +31,8 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
                 self.config['template_parameters'],
                 template_url=self.config.get('template_url'),
                 template_body=self.config.get('template_body'),
-                disable_rollback=self.config['disable_rollback'])
+                disable_rollback=self.config['disable_rollback'],
+                tags=self.config.get('tags'))
         except Exception as ex:
             self.delete_temp_resources(temp_resources)
             raise dcos_launch.util.LauncherError('ProviderError', None) from ex

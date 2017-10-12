@@ -11,3 +11,6 @@ template_parameters:
     SlaveInstanceCount: 1
 ssh_user: core
 ssh_private_key_filename: /tmp/aawpei3
+tags:
+    expiration: 2hours
+    owner: mesosphere
