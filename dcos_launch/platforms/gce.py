@@ -127,6 +127,10 @@ IGNITION_CONFIG = """
 """
 
 
+def tag_dict_to_gce_format(tags: dict):
+    return [{'key': k, 'value': v} for k, v in tags.items()]
+
+
 # Function decorator that adds detail to potential googleapiclient.errors.HttpError exceptions with code 404 or 409
 def catch_http_exceptions(f):
     @wraps(f)
@@ -202,14 +206,17 @@ class GceWrapper:
         return network_info
 
     @catch_http_exceptions
-    def create_deployment(self, name: str, deployment_config: dict):
+    def create_deployment(self, name: str, deployment_config: dict, tags: dict=None):
+        if tags is None:
+            tags = dict()
         body = {
             'name': name,
             'description': """{"cluster_type": "DC/OS Onprem on GCE"}""",
             'target': {
                 'config': {
                     'content': yaml.dump(deployment_config, default_flow_style=False)}
-            }
+            },
+            'labels': tag_dict_to_gce_format(tags)
         }
 
         log.info('Creating GCE deployment...')
@@ -301,7 +308,7 @@ class Deployment:
         info['target'] = {
             'config': {'content': yaml.dump(self.get_resources(), default_flow_style=False)}
         }
-        info['labels'] = [{'key': k, 'value': v} for k, v in tags.items()]
+        info['labels'] = tag_dict_to_gce_format(tags)
         response = self.gce_wrapper.deployment_manager.deployments().update(project=self.gce_wrapper.project_id,
                                                                             deployment=self.name, body=info).execute()
         log.debug('update_tags response: ' + str(response))
@@ -338,7 +345,8 @@ class BareClusterDeployment(Deployment):
             image_project: str,
             ssh_user: str,
             ssh_public_key: str,
-            disable_updates: bool):
+            disable_updates: bool,
+            tags: dict=None):
         template_name = name + '-template'
         network_name = name + '-network'
         firewall_name = name + '-norules'
@@ -382,7 +390,7 @@ class BareClusterDeployment(Deployment):
             }
             deployment_config['resources'][1]['properties']['properties']['metadata']['items'].append(user_data)
 
-        gce_wrapper.create_deployment(name, deployment_config)
+        gce_wrapper.create_deployment(name, deployment_config, tags=tags)
         return deployment
 
     @property
