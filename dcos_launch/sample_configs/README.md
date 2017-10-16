@@ -22,7 +22,7 @@ across a variety of provider APIs.
 
 ### Credentials
 Credentials should be kept secure and as such, they are read exclusively through the environment.
-* AWS: Must set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. Can optionally provide `AWS_REGION` which can be set as `aws_location` in the config.
+* AWS: Must set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. Can optionally provide `AWS_REGION` which can be set as `aws_region` in the config.
 * Azure: Must set `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`. Can optionally provide `AZURE_LOCATION` which can be set as `azure_location` in the config
 * GCE: Must set either `GCE_CREDENTIALS` to your JSON service account credentials or `GCE_CREDENTIALS_PATH` to the path of the file containing those JSON credentials.
 
