@@ -174,7 +174,10 @@ COMMON_SCHEMA = {
         'default': False},
     'zen_helper': {
         'type': 'boolean',
-        'default': False}}
+        'default': False},
+    'tags': {
+        'type': 'dict',
+        'required': False}}
 
 
 TEMPLATE_DEPLOY_COMMON_SCHEMA = {

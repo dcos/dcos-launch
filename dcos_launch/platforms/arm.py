@@ -75,7 +75,9 @@ class AzureWrapper:
         # location is included to keep a similar model as dcos_launch.platforms.aws.BotoWrapper
         self.location = location
 
-    def deploy_template_to_new_resource_group(self, template_url, group_name, parameters):
+    def deploy_template_to_new_resource_group(self, template_url, group_name, parameters, tags=None):
+        if tags is None:
+            tags = dict()
         log.info('Checking deployment parameters vs template before starting...')
         deployment_properties = self.create_deployment_properties(
             template_url, parameters)
@@ -96,7 +98,7 @@ class AzureWrapper:
         with contextlib.ExitStack() as stack:
             self.rmc.resource_groups.create_or_update(
                 group_name,
-                ResourceGroup(location=self.location))
+                ResourceGroup(location=self.location, tags=tags))
             # Ensure the resource group will be deleted if the following steps fail
             stack.callback(self.rmc.resource_groups.delete, group_name)
             log.info('Resource group created: {}'.format(group_name))

@@ -41,6 +41,10 @@ def param_dict_to_aws_format(user_parameters):
     return [{'ParameterKey': str(k), 'ParameterValue': str(v)} for k, v in user_parameters.items()]
 
 
+def tag_dict_to_aws_format(tag_dict: dict):
+    return [{'Key': k, 'Value': v} for k, v in tag_dict.items()]
+
+
 def retry_boto_rate_limits(boto_fn, wait=2, timeout=60 * 60):
     """Decorator to make boto functions resilient to AWS rate limiting and throttling.
     If one of these errors is encounterd, the function will sleep for a geometrically
@@ -153,7 +157,8 @@ class BotoWrapper:
             template_url: str=None,
             template_body: str=None,
             deploy_timeout: int=60,
-            disable_rollback: bool=False):
+            disable_rollback: bool=False,
+            tags=None):
         """Pulls template and checks user params versus temlate params.
         Does simple casting of strings or numbers
         Starts stack creation if validation is successful
@@ -173,6 +178,8 @@ class BotoWrapper:
         else:
             assert template_url is not None, 'template_url must be set if template_body is not provided'
             args['TemplateURL'] = template_url
+        if tags is not None:
+            args['Tags'] = tag_dict_to_aws_format(tags)
         return self.resource('cloudformation').create_stack(**args)
 
     def create_vpc_tagged(self, cidr, name_tag):
@@ -306,7 +313,7 @@ class CfStack:
 
     @retry_boto_rate_limits
     def update_tags(self, tags: dict):
-        cf_tags = [{'Key': k, 'Value': v} for k, v in tags.items()]
+        cf_tags = tag_dict_to_aws_format(tags)
         new_keys = tags.keys()
         for tag in self.stack.tags:
             if tag['Key'] not in new_keys:

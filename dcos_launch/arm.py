@@ -24,7 +24,8 @@ class AzureResourceGroupLauncher(dcos_launch.util.AbstractLauncher):
         self.azure_wrapper.deploy_template_to_new_resource_group(
             self.config['template_url'],
             self.config['deployment_name'],
-            self.config['template_parameters'])
+            self.config['template_parameters'],
+            self.config.get('tags'))
         return self.config
 
     def wait(self):

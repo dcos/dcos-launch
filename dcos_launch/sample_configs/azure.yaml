@@ -13,3 +13,6 @@ template_parameters:
     agentCount: 4
     oauthEnabled: false
     nameSuffix: 12435
+tags:
+    expiration: 2weeks
+    owner: mesosphere
