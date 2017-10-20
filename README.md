@@ -57,3 +57,7 @@ Simply run `tox` and the following will be executed:
 * pyinstaller for packaging dcos-launch
 
 Note: these can be triggered individually by supplying the `-e` option to `tox`
+
+### More docs
+- [User guide](./dcos_launch/README.md)
+- [Config docs and examples](./dcos_launch/sample_configs/README.md)

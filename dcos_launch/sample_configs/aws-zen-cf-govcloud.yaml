@@ -1,0 +1,20 @@
+---
+launch_config_version: 1
+deployment_name: msy-20171017-1327-zen
+template_url: https://s3-us-gov-west-1.amazonaws.com/govcloud.downloads.dcos.io/dcos/testing/margaret/pull/1544/permissive/ee.el7-zen-1.json
+provider: aws
+aws_region: us-gov-west-1
+key_helper: true
+zen_helper: true
+template_parameters:
+    AdminLocation: 0.0.0.0/0
+    PublicAgentInstanceCount: 1
+    PrivateAgentInstanceCount: 2
+    PublicAgentInstanceType: m4.large
+    PrivateAgentInstanceType: m4.large
+    MasterInstanceType: m4.large
+    InternetGateway: igw-32ac6157
+    Vpc: vpc-3cfa0359
+    PublicSubnet: subnet-0530bf60
+    PrivateSubnet: subnet-2930bf4c
+ssh_user: centos
