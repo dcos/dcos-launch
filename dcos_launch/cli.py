@@ -71,7 +71,7 @@ def do_main(args):
 
     config_path = args['--config-path']
     if args['create']:
-        config = dcos_launch.config.get_validated_config(config_path)
+        config = dcos_launch.config.get_validated_config_from_path(config_path)
         info_path = args['--info-path']
         if os.path.exists(info_path):
             raise dcos_launch.util.LauncherError(
