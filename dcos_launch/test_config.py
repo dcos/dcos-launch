@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from dcos_launch.config import LaunchValidator, get_validated_config
+from dcos_launch.config import LaunchValidator, get_validated_config_from_path
 from dcos_launch.util import LauncherError, get_temp_config_path
 
 
@@ -41,20 +41,20 @@ def test_launch_validator(mock_home, mock_relative_path):
 
 class TestAwsCloudformation:
     def test_basic(self, aws_cf_config_path):
-        get_validated_config(aws_cf_config_path)
+        get_validated_config_from_path(aws_cf_config_path)
 
     def test_with_key_helper(self, aws_cf_with_helper_config_path):
-        get_validated_config(aws_cf_with_helper_config_path)
+        get_validated_config_from_path(aws_cf_with_helper_config_path)
 
     def test_with_zen_helper(self, aws_zen_cf_config_path):
-        get_validated_config(aws_zen_cf_config_path)
+        get_validated_config_from_path(aws_zen_cf_config_path)
 
     def test_without_pytest_support(self, aws_cf_no_pytest_config_path):
-        get_validated_config(aws_cf_no_pytest_config_path)
+        get_validated_config_from_path(aws_cf_no_pytest_config_path)
 
     def test_error_with_invalid_field(self, tmpdir):
         with pytest.raises(LauncherError) as exinfo:
-            get_validated_config(
+            get_validated_config_from_path(
                 get_temp_config_path(
                     tmpdir, 'aws-cf-with-helper.yaml', update={'installer_url': 'foobar'}))
         assert exinfo.value.error == 'ValidationError'
@@ -63,14 +63,14 @@ class TestAwsCloudformation:
 
 class TestAzureTemplate:
     def test_basic(self, azure_config_path):
-        get_validated_config(azure_config_path)
+        get_validated_config_from_path(azure_config_path)
 
     def test_with_key_helper(self, azure_with_helper_config_path):
-        get_validated_config(azure_with_helper_config_path)
+        get_validated_config_from_path(azure_with_helper_config_path)
 
     def test_error_with_invalid_field(self, tmpdir):
         with pytest.raises(LauncherError) as exinfo:
-            get_validated_config(
+            get_validated_config_from_path(
                 get_temp_config_path(
                     tmpdir, 'azure-with-helper.yaml', update={'num_masters': '0.0.0'}))
         assert exinfo.value.error == 'ValidationError'
@@ -79,14 +79,14 @@ class TestAzureTemplate:
 
 class TestAwsOnprem:
     def test_basic(self, aws_onprem_config_path):
-        get_validated_config(aws_onprem_config_path)
+        get_validated_config_from_path(aws_onprem_config_path)
 
     def test_with_key_helper(self, aws_onprem_with_helper_config_path):
-        get_validated_config(aws_onprem_with_helper_config_path)
+        get_validated_config_from_path(aws_onprem_with_helper_config_path)
 
     def test_error_with_nested_config(self, tmpdir):
         with pytest.raises(LauncherError) as exinfo:
-            get_validated_config(
+            get_validated_config_from_path(
                 get_temp_config_path(
                     tmpdir, 'aws-onprem-with-helper.yaml',
                     update={'dcos_config': {
@@ -96,7 +96,7 @@ class TestAwsOnprem:
         assert 'ip_detect' in exinfo.value.msg
 
     def test_error_is_skipped_in_nested_config(self, tmpdir):
-        get_validated_config(
+        get_validated_config_from_path(
             get_temp_config_path(
                 tmpdir, 'aws-onprem-with-helper.yaml',
                 update={'dcos_config': {'provider': 'aws'}}))
@@ -104,14 +104,14 @@ class TestAwsOnprem:
 
 class TestGceOnprem:
     def test_basic(self, gce_onprem_config_path):
-        get_validated_config(gce_onprem_config_path)
+        get_validated_config_from_path(gce_onprem_config_path)
 
     def test_with_key_helper(self, gce_onprem_with_helper_config_path):
-        get_validated_config(gce_onprem_with_helper_config_path)
+        get_validated_config_from_path(gce_onprem_with_helper_config_path)
 
     def test_error_with_invalid_field(self, tmpdir):
         with pytest.raises(LauncherError) as exinfo:
-            get_validated_config(
+            get_validated_config_from_path(
                 get_temp_config_path(
                     tmpdir, 'gce-onprem-with-helper.yaml', update={'num_masters': '0.0.0'}))
         assert exinfo.value.error == 'ValidationError'

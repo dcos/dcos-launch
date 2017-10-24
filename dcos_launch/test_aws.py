@@ -38,7 +38,7 @@ def test_missing_aws_stack(aws_cf_config_path, monkeypatch):
     """ Tests that clean and appropriate errors will be raised
     """
     monkeypatch.setattr(dcos_launch.platforms.aws, 'fetch_stack', mock_stack_not_found)
-    config = dcos_launch.config.get_validated_config(aws_cf_config_path)
+    config = dcos_launch.config.get_validated_config_from_path(aws_cf_config_path)
     aws_launcher = dcos_launch.get_launcher(config)
 
     def check_stack_error(cmd, args):
@@ -55,7 +55,7 @@ def test_missing_aws_stack(aws_cf_config_path, monkeypatch):
 
 
 def test_key_helper(aws_cf_with_helper_config_path):
-    config = dcos_launch.config.get_validated_config(aws_cf_with_helper_config_path)
+    config = dcos_launch.config.get_validated_config_from_path(aws_cf_with_helper_config_path)
     aws_launcher = dcos_launch.get_launcher(config)
     temp_resources = aws_launcher.key_helper()
     assert temp_resources['key_name'] == config['deployment_name']
@@ -64,7 +64,7 @@ def test_key_helper(aws_cf_with_helper_config_path):
 
 
 def test_zen_helper(aws_zen_cf_config_path):
-    config = dcos_launch.config.get_validated_config(aws_zen_cf_config_path)
+    config = dcos_launch.config.get_validated_config_from_path(aws_zen_cf_config_path)
     aws_launcher = dcos_launch.get_launcher(config)
     temp_resources = aws_launcher.zen_helper()
     assert temp_resources['vpc'] == dcos_launch.util.MOCK_VPC_ID

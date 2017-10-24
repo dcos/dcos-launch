@@ -76,32 +76,40 @@ def _raise_errors(validator: LaunchValidator):
     raise util.LauncherError('ValidationError', message)
 
 
-def get_validated_config(config_path: str) -> dict:
+def get_validated_config_from_path(config_path: str) -> dict:
+    config = load_config(config_path)
+    config_dir = os.path.dirname(config_path)
+    return get_validated_config(config, config_dir)
+
+
+def get_validated_config(user_config: dict, config_dir: str) -> dict:
     """ Returns validated a finalized argument dictionary for dcos-launch
     Given the huge range of configuration space provided by this configuration
     file, it must be processed in three steps (common, provider-specifc,
     platform-specific)
+    Args:
+        use_config: options (perhaps incomplete) provided by the user
+        config_dir: path for the config file for resolving relative
+            file links
     """
-    config = load_config(config_path)
-    config_dir = os.path.dirname(config_path)
     # validate against the fields common to all configs
     validator = LaunchValidator(COMMON_SCHEMA, config_dir=config_dir, allow_unknown=True)
-    if not validator.validate(config):
+    if not validator.validate(user_config):
         _raise_errors(validator)
 
     # add provider specific information to the basic validator
-    provider = validator.normalized(config)['provider']
+    provider = validator.normalized(user_config)['provider']
     if provider == 'onprem':
         validator.schema.update(ONPREM_DEPLOY_COMMON_SCHEMA)
     else:
         validator.schema.update(TEMPLATE_DEPLOY_COMMON_SCHEMA)
 
     # validate again before attempting to add platform information
-    if not validator.validate(config):
+    if not validator.validate(user_config):
         _raise_errors(validator)
 
     # use the intermediate provider-validated config to add the platform schema
-    platform = validator.normalized(config)['platform']
+    platform = validator.normalized(user_config)['platform']
     if platform == 'aws':
         validator.schema.update({
             'aws_region': {
@@ -133,9 +141,9 @@ def get_validated_config(config_path: str) -> dict:
 
     # do final validation
     validator.allow_unknown = False
-    if not validator.validate(config):
+    if not validator.validate(user_config):
         _raise_errors(validator)
-    return validator.normalized(config)
+    return validator.normalized(user_config)
 
 
 COMMON_SCHEMA = {

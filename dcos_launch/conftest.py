@@ -275,7 +275,7 @@ def check_success(capsys, tmpdir, config_path):
     info JSON and stdout description JSON for more specific checks
     """
     # Test launcher directly first
-    config = dcos_launch.config.get_validated_config(config_path)
+    config = dcos_launch.config.get_validated_config_from_path(config_path)
     launcher = dcos_launch.get_launcher(config)
     info = launcher.create()
     # Grab the launcher again with the output from create
