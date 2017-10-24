@@ -479,7 +479,7 @@ class DcosZenCfStack(CfStack):
                   self.public_agent_stack]:
             try:
                 s.delete()
-            except:
+            except Exception:
                 log.exception('Delete encountered an error!')
         super().delete()
 
