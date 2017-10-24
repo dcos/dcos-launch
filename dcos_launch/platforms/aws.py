@@ -138,7 +138,7 @@ class BotoWrapper:
     def get_all_stacks(self):
         """Get all AWS CloudFormation stacks in all regions."""
         for stack in self.get_service_resources('cloudformation', 'stacks'):
-            yield CfStack(stack.name, self)
+            yield CfStack(stack.stack_name, self)
 
     @retry_boto_rate_limits
     def get_all_keypairs(self):
@@ -341,12 +341,9 @@ class CfStack:
 
     @retry_boto_rate_limits
     def delete(self):
-        stack_id = self.stack.stack_id
-        log.info('Deleting stack: {}'.format(stack_id))
-        # boto stacks become unusable after deletion (e.g. status/info checks) if name-based
-        self.stack = self.boto_wrapper.resource('cloudformation').Stack(stack_id)
+        log.info('Deleting stack: {}'.format(self.stack.stack_name))
         self.stack.delete()
-        log.info('Delete successfully initiated for {}'.format(stack_id))
+        log.info('Delete successfully initiated for {}'.format(self.stack.stack_name))
 
 
 class CleanupS3BucketMixin:
@@ -374,10 +371,8 @@ class DcosCfStack(CleanupS3BucketMixin, CfStack):
             'AdminLocation': admin_location,
             'PublicSlaveInstanceCount': str(public_agents),
             'SlaveInstanceCount': str(private_agents)}
-        stack = boto_wrapper.create_stack(stack_name, parameters, template_url=template_url)
-        # Use stack_name as the binding identifier. At time of implementation,
-        # stack.stack_name returns stack_id if Stack was created with ID
-        return cls(stack.stack_id, boto_wrapper), SSH_INFO['coreos']
+        boto_wrapper.create_stack(stack_name, parameters, template_url=template_url)
+        return cls(stack_name, boto_wrapper), SSH_INFO['coreos']
 
     @property
     def master_instances(self):
@@ -445,7 +440,7 @@ class DcosZenCfStack(CfStack):
             'PrivateAgentInstanceCount': private_agents,
             'PrivateAgentInstanceType': private_agent_type,
             'PrivateSubnet': private_subnet}
-        stack = boto_wrapper.create_stack(stack_name, parameters, template_url=template_url)
+        boto_wrapper.create_stack(stack_name, parameters, template_url=template_url)
         os_string = None
         try:
             os_string = template_url.split('/')[-1].split('.')[-2].split('-')[0]
@@ -455,7 +450,7 @@ class DcosZenCfStack(CfStack):
             if os_string is not None:
                 log.critical('No SSH info for OS string: {}'.format(os_string))
             raise
-        return cls(stack.stack_id, boto_wrapper), ssh_info
+        return cls(stack_name, boto_wrapper), ssh_info
 
     @property
     def master_stack(self):
@@ -478,8 +473,6 @@ class DcosZenCfStack(CfStack):
 
     def delete(self):
         log.info('Starting deletion of Zen CF stack')
-        # boto stacks become unusable after deletion (e.g. status/info checks) if name-based
-        self.stack = self.boto_wrapper.resource('cloudformation').Stack(self.stack.stack_id)
         # These resources might have failed to create or been removed prior, except their
         # failures and log it out
         for s in [self.infrastructure, self.master_stack, self.private_agent_stack,
@@ -538,8 +531,8 @@ class BareClusterCfStack(CfStack):
             'InstanceType': instance_type,
             'AmiCode': instance_ami,
         }
-        stack = boto_wrapper.create_stack(stack_name, parameters, template_body=template)
-        return cls(stack.stack_id, boto_wrapper)
+        boto_wrapper.create_stack(stack_name, parameters, template_body=template)
+        return cls(stack_name, boto_wrapper)
 
     @property
     def instances(self):
