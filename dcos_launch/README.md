@@ -71,9 +71,3 @@ If you have enabled termination protection, when you are done with your cluster,
 ### Can I stop a TeamCity cluster from being deleted?
 
 At this time you cannot prevent TeamCity from deleting a cluster.
-
-### More docs
-
-- [Accessing TeamCity Provided Clusters](https://wiki.mesosphere.com/display/DCOS/Accessing+Teamcity+Provided+Clusters)
-- [Running Integration Tests](https://wiki.mesosphere.com/display/DCOS/Integration+Tests)
-- [Debugging Integration Tests](https://wiki.mesosphere.com/display/DCOS/Accessing+Teamcity+Provided+Clusters)
