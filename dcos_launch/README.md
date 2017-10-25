@@ -48,3 +48,26 @@ Log level. By default, the log level is info. By using this option you will also
 
 ### `-e LIST`
 Custom environment variables to include. This option allows passing through environment variables from the current environment into the testing environment. The list is comma delimited and any provided environment variables will override the automatically injected ones. Required variables that are automatically injected include `MASTER_HOSTS`, `SLAVE_HOSTS`, `PUBLIC_MASTER_HOSTS`, `PUBLIC_SLAVE_HOSTS`, `DCOS_DNS_ADDRESS`. E.g. `dcos-launch pytest -e MASTER_HOSTS -- test_composition.py`, `ENABLE_RESILIENCY_TESTS=true dcos-launch pytest -e ENABLE_RESILIENCY_TESTS,MASTER_HOSTS -- test_applications.py`
+
+## FAQ
+
+### How can I keep my cluster from being deleted?
+
+By default the AWS-managed clusters will be garbage-collected after 2 hours. You can extend the cluster's life through [CCM](https://ccm.mesosphere.com), but if for some reason this isn't working, you need to enable termination protection manually.
+
+If you know in advance that you want to completely disable cluster termination, you can set the `disable_rollback` parameter in your config file to `true`.
+
+If you have already launched a cluster without rollback protection, you can enable the protection manually.
+
+1. Log into the AWS console through [OneLogin](https://mesosphere.onelogin.com)
+2. Go to the CloudFormation console and search for your cluster. The Stack Name will be what you provided for `deployment_name` in the launch config.
+3. Click on the stack to view its Stack Detail page. In the upper right hand corner there should be a dropdown button for `Other Actions`. Select `Change termination protection` and enable termination protection.
+
+
+***Don't forget to delete your cluster!***
+
+If you have enabled termination protection, when you are done with your cluster, disable the termination protection again and then delete it through `dcos-launch delete` or manually through the CloudFormation console
+
+### Can I stop a TeamCity cluster from being deleted?
+
+At this time you cannot prevent TeamCity from deleting a cluster.

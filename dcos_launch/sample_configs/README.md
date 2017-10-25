@@ -35,6 +35,7 @@ _Note_: DC/OS deployed from aws or azure provider do not technically need `ssh_u
 ### Options
 * `key_helper`: generate private SSH keys for the underlying hosts if `true`. In `platform: aws`, this means the user does not have to supply `KeyName` in the template parameters and dcos-launch will fill it in. Similarly, in `platform: azure`, `sshRSAPublicKey` is populated automatically. In the aws case, this key will be deleted from EC2 when the deployment is deleted with dcos-launch
 * `zen_helper`: only to be used with `provider: aws` and zen templates. If `true`, then the network prerequisites for launching a zen cluster will be provided if missing. The resources potentially covered are: Vpc, InternetGateway, PrivateSubnet, and PublicSubnet. As with `key_helper`, these resources will be deleted if dcos-launch is used for destroying the deployment
+* `disable_rollback` (for AWS clusters): (`true` or `false`) This is false by default if omitted. Disabling rollback will prevent your cluster from being garbage-collected, so make sure you delete it when you are done. See [here](../README.md) for instructions on how to delete the cluster if you have enabled rollback protection.
 
 ### Support
 * `onprem` can only be provisioned via `aws` platform
