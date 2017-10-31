@@ -30,11 +30,6 @@ def load_config(config_path: str) -> dict:
         raise util.LauncherError('MissingConfig', None) from ex
 
 
-def validate_url(field, value, error):
-    if not value.startswith('http'):
-        error(field, 'Not a valid HTTP URL')
-
-
 def load_ssh_private_key(doc):
     if doc.get('key_helper') == 'true':
         return 'unset'
@@ -196,8 +191,7 @@ TEMPLATE_DEPLOY_COMMON_SCHEMA = {
         'default_setter': lambda doc: doc['provider']},
     'template_url': {
         'type': 'string',
-        'required': True,
-        'validator': validate_url},
+        'required': True},
     'template_parameters': {
         'type': 'dict',
         'required': True}}
@@ -209,7 +203,6 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'required': True,
         'allowed': ['aws', 'gce']},
     'installer_url': {
-        'validator': validate_url,
         'type': 'string',
         'required': True},
     'installer_port': {
