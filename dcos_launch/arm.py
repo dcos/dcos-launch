@@ -9,13 +9,23 @@ log = logging.getLogger(__name__)
 
 
 class AzureResourceGroupLauncher(dcos_launch.util.AbstractLauncher):
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, env=None):
+        if env is None:
+            azure_subscription_id = dcos_launch.util.set_from_env('AZURE_SUBSCRIPTION_ID')
+            azure_client_id = dcos_launch.util.set_from_env('AZURE_CLIENT_ID')
+            azure_client_secret = dcos_launch.util.set_from_env('AZURE_CLIENT_SECRET')
+            azure_tenant_id = dcos_launch.util.set_from_env('AZURE_TENANT_ID')
+        else:
+            azure_subscription_id = env['AZURE_SUBSCRIPTION_ID']
+            azure_client_id = env['AZURE_CLIENT_ID']
+            azure_client_secret = env['AZURE_CLIENT_SECRET']
+            azure_tenant_id = env['AZURE_TENANT_ID']
         self.azure_wrapper = dcos_launch.platforms.arm.AzureWrapper(
             config['azure_location'],
-            dcos_launch.util.set_from_env('AZURE_SUBSCRIPTION_ID'),
-            dcos_launch.util.set_from_env('AZURE_CLIENT_ID'),
-            dcos_launch.util.set_from_env('AZURE_CLIENT_SECRET'),
-            dcos_launch.util.set_from_env('AZURE_TENANT_ID'))
+            azure_subscription_id,
+            azure_client_id,
+            azure_client_secret,
+            azure_tenant_id)
         self.config = config
         log.debug('Using Azure Resource Group Launcher')
 
