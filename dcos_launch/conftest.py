@@ -48,7 +48,7 @@ class MockStack:
 
 
 class MockGceWrapper:
-    def __init__(self):
+    def __init__(self, credentials_dict):
         DeploymentManagerMock = namedtuple('DeploymentManagerMock', 'deployments')
         DeploymentFunctionsMock = namedtuple('DeploymentFunctionsMock', 'insert delete get')
         ApiRequestMock = namedtuple('ApiRequestMock', 'execute')
@@ -150,7 +150,7 @@ def mocked_azure(monkeypatch, mocked_test_runner):
 
 @pytest.fixture
 def mocked_gce(monkeypatch):
-    monkeypatch.setenv('GCE_CREDENTIALS', '{}')
+    monkeypatch.setenv('GCE_CREDENTIALS', '{"project_id":"foobar"}')
     monkeypatch.setenv('GCE_ZONE', 'us-west1-a')
     monkeypatch.setattr(dcos_launch.platforms.gce.GceWrapper, '__init__', MockGceWrapper.__init__)
     monkeypatch.setattr(dcos_launch.platforms.gce.GceWrapper, 'get_instance_info',

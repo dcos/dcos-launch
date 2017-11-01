@@ -5,7 +5,6 @@ Cloud Deployment Manager results in simpler code and far fewer API calls.
 
 import copy
 import logging
-import json
 import typing
 import yaml
 from functools import wraps
@@ -15,7 +14,6 @@ from googleapiclient.errors import HttpError
 from oauth2client.service_account import ServiceAccountCredentials
 from retrying import retry
 
-from dcos_launch import util
 from dcos_test_utils.helpers import Host
 
 log = logging.getLogger(__name__)
@@ -150,7 +148,7 @@ def catch_http_exceptions(f):
 
 class GceWrapper:
     @catch_http_exceptions
-    def __init__(self, creds_env_var_name='GCE_CREDENTIALS', creds_path_env_var_name='GCE_CREDENTIALS_PATH'):
+    def __init__(self, credentials_dict):
         """
         Build GCE service account credentials from info stored in environment variables, then build a GCE API wrapper
             with those credentials. Only one of the two environment variables must be set.
@@ -158,19 +156,6 @@ class GceWrapper:
         :param creds_path_env_var_name: string that contains the path to the file containing your GCE service account
             credentials.
         """
-        help_msg = """You must set either the {} environment variable to the JSON credentials for your service account
-        or set {}, which must contain the path to a file containing those JSON credentials.
-        """.format(creds_env_var_name, creds_path_env_var_name)
-        try:
-            json_credentials = util.set_from_env(creds_env_var_name)
-        except util.LauncherError:
-            try:
-                json_credentials_path = util.set_from_env(creds_path_env_var_name)
-            except util.LauncherError:
-                raise util.LauncherError('MissingEnvironmentVariable', help_msg)
-            json_credentials = util.read_file(json_credentials_path)
-
-        credentials_dict = json.loads(json_credentials)
         credentials = ServiceAccountCredentials.from_json_keyfile_dict(
             credentials_dict, scopes='https://www.googleapis.com/auth/cloud-platform')
 
