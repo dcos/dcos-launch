@@ -1,5 +1,6 @@
 import copy
 import logging
+import os
 import subprocess
 
 import pkg_resources
@@ -18,10 +19,13 @@ STATE_FILE = 'LAST_COMPLETED_STAGE'
 
 
 class OnpremLauncher(dcos_launch.util.AbstractLauncher):
-    def __init__(self, config):
+    def __init__(self, config, env=None):
         # can only be set during the wait command
         self.bootstrap_host = None
         self.config = config
+        if env is None:
+            env = os.environ.copy()
+        self.env = env
 
     def create(self):
         return self.get_bare_cluster_launcher().create()
@@ -34,9 +38,9 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
 
     def get_bare_cluster_launcher(self):
         if self.config['platform'] == 'aws':
-            return dcos_launch.aws.BareClusterLauncher(self.config)
+            return dcos_launch.aws.BareClusterLauncher(self.config, env=self.env)
         elif self.config['platform'] == 'gce':
-            return dcos_launch.gce.BareClusterLauncher(self.config)
+            return dcos_launch.gce.BareClusterLauncher(self.config, env=self.env)
         else:
             raise dcos_launch.util.LauncherError(
                 'PlatformNotSupported',
