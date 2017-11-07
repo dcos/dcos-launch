@@ -30,6 +30,16 @@
         "Description": "Image id of desired OS",
         "Type": "String"
     },
+    "BootstrapAmiCode": {
+      "Description": "Image id of desired OS for bootstrap node",
+      "Type": "String"
+    },
+    "BootstrapInstanceType": {
+      "Description": "EC2 PV instance type (m3.medium, etc.",
+      "Type": "String",
+      "Default": "m4.xlarge",
+      "ConstraintDescription": "Must be a valid EC2 PV instance type."
+    },
     "ClusterSize": {
       "Default": "3",
       "MinValue": "1",
@@ -322,6 +332,72 @@
           }
         ]
       }
-    }
+    },
+    "BootstrapServerPlaceholderAutoScale": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "DependsOn" : "PublicRoute",
+      "Properties": {
+        "AvailabilityZones" : [{ "Fn::GetAtt" : [ "PublicSubnet", "AvailabilityZone" ] }],
+        "VPCZoneIdentifier" : [{ "Ref" : "PublicSubnet" }],
+        "LaunchConfigurationName": {
+          "Ref": "BareServerLaunchConfig"
+        },
+        "MinSize": "1",
+        "MaxSize": "1",
+        "DesiredCapacity": "1",
+        "Tags" : [
+          {
+            "Key" : "Network",
+            "Value" : "Public",
+            "PropagateAtLaunch" : "true"
+            }
+          ]
+      }
+    },
+    "BootstrapServerPlaceholderLaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "AssociatePublicIpAddress" : "true",
+        "ImageId": {
+          "Ref": "BootstrapAmiCode"
+        },
+        "InstanceType": {
+          "Ref": "BootstrapInstanceType"
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "ExternalSecurityGroup"
+          },
+          {
+            "Ref": "InternalSecurityGroup"
+          }
+        ],
+        "IamInstanceProfile": {
+            "Ref": "BareInstanceProfile"
+        },
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": "150",
+              "DeleteOnTermination": "true",
+              "VolumeType": "gp2"
+            }
+          },
+          {
+            "DeviceName": "/dev/sdb",
+            "Ebs": {
+              "VolumeSize": "150",
+              "DeleteOnTermination": "true",
+              "VolumeType": "gp2",
+              "SnapshotId": { "Fn::FindInMap" : [ "SDBSnapshot", { "Ref" : "AWS::Region" }, "snap"]}
+            }
+          }
+        ]
+      }
+    },
   }
 }
