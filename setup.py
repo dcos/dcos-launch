@@ -26,7 +26,7 @@ setup(
         'docopt',
         'google-api-python-client',
         'oauth2client==3.0.0',
-        'pyinstaller==3.2',
+        'pyinstaller==3.3',
         'py',
         'pytest',
         'pyyaml',
