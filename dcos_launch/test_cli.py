@@ -1,8 +1,10 @@
+import re
 import shutil
 
 import pytest
 from docopt import DocoptExit
 
+import dcos_launch
 from dcos_launch.cli import main
 
 
@@ -43,3 +45,10 @@ def test_missing_input(tmpdir):
     with tmpdir.as_cwd():
         for cmd in ['create', 'wait', 'describe', 'delete', 'pytest']:
             assert main([cmd]) == 1
+
+
+def test_version():
+    """Ensure version exists and properly formatted
+    """
+    assert main(['version']) == 0
+    assert re.compile("^\d+\.\d+\.\d+$").match(dcos_launch.VERSION) is not None
