@@ -147,7 +147,7 @@ class BareClusterLauncher(DcosCloudformationLauncher):
             'AmiCode': self.config['instance_ami'],
             # Bootstrap instance is currently instantiated as a single-server AutoScaleGroup which is terrible and is
             # intended to be updated to be configured properly as an EC2 instance later
-            'BootstrapInstanceType': self.config['bootsrap_instance_type'],
+            'BootstrapInstanceType': self.config['bootstrap_instance_type'],
             'BootstrapAmiCode': self.config['bootstrap_ami']
         }
         if not self.config['key_helper']:
