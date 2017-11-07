@@ -262,6 +262,11 @@ AWS_ONPREM_SCHEMA = {
         'required': False,
         'default': 'cent-os-7-dcos-prereqs',
         'allowed': list(aws.OS_SSH_INFO.keys())},
+    'bootstrap_os_name': {
+        'type': 'string',
+        'required': False,
+        'default': 'cent-os-7-dcos-prereqs',
+        'allowed': list(aws.OS_SSH_INFO.keys())},
     'instance_ami': {
         'type': 'string',
         'required': True,
@@ -272,7 +277,7 @@ AWS_ONPREM_SCHEMA = {
     'bootstrap_instance_ami': {
         'type': 'string',
         'required': True,
-        'default_setter': lambda doc: aws.OS_AMIS[doc['os_name']][doc['aws_region']]},
+        'default_setter': lambda doc: aws.OS_AMIS[doc['bootstrap_os_name']][doc['aws_region']]},
     'bootstrap_instance_type': {
         'type': 'string',
         'required': True,
