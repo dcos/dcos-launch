@@ -6,6 +6,7 @@ Usage:
   dcos-launch describe [-L LEVEL -i PATH]
   dcos-launch pytest [-L LEVEL -i PATH -e LIST] [--] [<pytest_extras>]...
   dcos-launch delete [-L LEVEL -i PATH]
+  dcos-launch version
 
 Commands:
   create    Reads the file given by --config-path, creates the cluster
@@ -15,8 +16,9 @@ Commands:
   wait      Block until the cluster is up and running.
   describe  Return additional information about the composition of the cluster.
   pytest    Runs integration test suite on cluster. Can optionally supply
-              options and arguments to pytest
+              options and arguments to pytest.
   delete    Destroying the provided cluster deployment.
+  version   Display the version number and exit.
 
 Options:
   -c PATH --config-path=PATH
@@ -69,6 +71,10 @@ def load_json(filename):
 def do_main(args):
     logger.setup(args['--log-level'].upper())
 
+    if args['version']:
+        print(dcos_launch.VERSION)
+        return 0
+
     config_path = args['--config-path']
     if args['create']:
         config = dcos_launch.config.get_validated_config_from_path(config_path)
@@ -119,7 +125,7 @@ def do_main(args):
 
 
 def main(argv=None):
-    args = docopt(__doc__, argv=argv, version='DC/OS Launch v.0.1')
+    args = docopt(__doc__, argv=argv, version='dcos-launch {}'.format(dcos_launch.VERSION))
 
     try:
         return do_main(args)
