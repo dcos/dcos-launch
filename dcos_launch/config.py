@@ -269,6 +269,14 @@ AWS_ONPREM_SCHEMA = {
     'instance_type': {
         'type': 'string',
         'required': True},
+    'bootstrap_instance_ami': {
+        'type': 'string',
+        'required': True,
+        'default_setter': lambda doc: aws.OS_AMIS[doc['os_name']][doc['aws_region']]},
+    'bootstrap_instance_type': {
+        'type': 'string',
+        'required': True,
+        'default': 'm4.xlarge'},
     'admin_location': {
         'type': 'string',
         'required': True,
