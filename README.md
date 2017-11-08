@@ -15,9 +15,12 @@ The primary purpose of `dcos-launch` is to provide a turn-key deployment experie
 
 * local SSH client at /usr/bin/ssh
 
-### Linux binary
+### Binary installation
 
-`dcos-launch` is packaged as a [pyinstaller binary](https://downloads.dcos.io/dcos-launch/bin/linux/dcos-launch) for easy portability on linux-based systems.
+`dcos-launch` is packaged as a [PyInstaller](https://www.pyinstaller.org/) binary for easy portability.
+
+* [Linux](https://downloads.dcos.io/dcos-launch/bin/linux/dcos-launch)
+* [Mac](https://downloads.dcos.io/dcos-launch/bin/mac/dcos-launch)
 
 ### Python-based (development) installation
 
