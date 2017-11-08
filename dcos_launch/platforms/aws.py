@@ -536,11 +536,21 @@ class BareClusterCfStack(CfStack):
 
     @property
     def instances(self):
+        """ only represents the cluster instances (i.e. NOT bootstrap)
+        """
         yield from self.boto_wrapper.get_auto_scaling_instances(
             self.stack.Resource('BareServerAutoScale').physical_resource_id)
 
-    def get_host_ips(self):
+    @property
+    def bootstrap_instances(self):
+        yield from self.boto_wrapper.get_auto_scaling_instances(
+            self.stack.Resource('BootstrapServerPlaceholderAutoScale').physical_resource_id)
+
+    def get_cluster_host_ips(self):
         return instances_to_hosts(self.instances)
+
+    def get_bootstrap_ip(self):
+        return instances_to_hosts(self.bootstrap_instances)[0]
 
 
 SSH_INFO = {

@@ -43,10 +43,11 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
                 'Platform currently not supported for onprem: {}'.format(self.config['platform']))
 
     def get_onprem_cluster(self):
+        cluster_launcher = self.get_bare_cluster_launcher()
         return dcos_test_utils.onprem.OnpremCluster.from_hosts(
             ssh_client=self.get_ssh_client(),
-            bootstrap_host=self.bootstrap_host,
-            cluster_hosts=self.get_bare_cluster_launcher().get_hosts(),
+            bootstrap_host=cluster_launcher.get_bootstrap_host(),
+            cluster_hosts=cluster_launcher.get_cluster_hosts(),
             num_masters=int(self.config['num_masters']),
             num_private_agents=int(self.config['num_private_agents']),
             num_public_agents=int(self.config['num_public_agents']))

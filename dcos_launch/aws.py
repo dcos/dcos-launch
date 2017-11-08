@@ -133,7 +133,7 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
             raise dcos_launch.util.LauncherError('StackNotFound', None) from ex
 
 
-class BareClusterLauncher(DcosCloudformationLauncher):
+class BareClusterLauncher(DcosCloudformationLauncher, dcos_launch.util.AbstractOnpremClusterLauncher):
     """ Launches a homogeneous cluster of plain AMIs intended for onprem DC/OS
     """
     def create(self):
@@ -157,8 +157,11 @@ class BareClusterLauncher(DcosCloudformationLauncher):
             'template_parameters': template_parameters})
         return super().create()
 
-    def get_hosts(self):
-        return self.stack.get_host_ips()
+    def get_cluster_hosts(self):
+        return self.stack.get_cluster_host_ips()
+
+    def get_bootstrap_host(self):
+        return self.stack.get_bootstrap_ip()
 
     def test(self, args, env, test_host=None, test_port=22):
         raise NotImplementedError('Bare clusters cannot be tested!')

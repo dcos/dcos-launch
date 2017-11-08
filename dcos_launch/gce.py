@@ -13,7 +13,7 @@ from googleapiclient.errors import HttpError
 log = logging.getLogger(__name__)
 
 
-class BareClusterLauncher(util.AbstractLauncher):
+class BareClusterLauncher(util.AbstractLauncher, util.AbstractOnpremClusterLauncher):
     # Launches a homogeneous cluster of plain GMIs intended for onprem DC/OS
     def __init__(self, config: dict, env=None):
         if env is None:
@@ -78,8 +78,11 @@ class BareClusterLauncher(util.AbstractLauncher):
             self.config['ssh_private_key'] = private_key.decode()
             self.config['ssh_public_key'] = public_key.decode()
 
-    def get_hosts(self) -> [Host]:
-        return list(self.deployment.hosts)
+    def get_cluster_hosts(self) -> [Host]:
+        return list(self.deployment.hosts)[1:]
+
+    def get_bootstrap_host(self) -> Host:
+        return list(self.deployment.hosts)[0]
 
     def wait(self):
         """ Waits for the deployment to complete: first, the network that will contain the cluster is deployed. Once

@@ -159,9 +159,10 @@ def mocked_gce(monkeypatch):
                         lambda _, __: [{'instance': 'mock'}])
     monkeypatch.setattr(dcos_launch.gce.BareClusterLauncher, 'key_helper', lambda self: self.config.update(
         {'ssh_private_key': dcos_launch.util.MOCK_SSH_KEY_DATA, 'ssh_public_key': dcos_launch.util.MOCK_SSH_KEY_DATA}))
-    monkeypatch.setattr(dcos_launch.gce.BareClusterLauncher, 'get_hosts', lambda self: [mock_pub_priv_host] *
-                        (1 + self.config['num_masters'] + self.config['num_public_agents'] +
+    monkeypatch.setattr(dcos_launch.gce.BareClusterLauncher, 'get_cluster_hosts', lambda self: [mock_pub_priv_host] *
+                        (self.config['num_masters'] + self.config['num_public_agents'] +
                          self.config['num_private_agents']))
+    monkeypatch.setattr(dcos_launch.gce.BareClusterLauncher, 'get_bootstrap_host', lambda self: mock_pub_priv_host)
 
 
 class MockInstaller(dcos_test_utils.onprem.DcosInstallerApiSession):
@@ -204,7 +205,9 @@ def mock_bare_cluster_hosts(monkeypatch, mocked_aws_cf, mocked_test_runner, mock
 def mocked_aws_cfstack_bare_cluster(monkeypatch, mock_bare_cluster_hosts):
     monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, '__init__', stub(None))
     monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, 'delete', stub(None))
-    monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, 'get_host_ips', stub([mock_pub_priv_host] * 4))
+    monkeypatch.setattr(
+        dcos_launch.platforms.aws.BareClusterCfStack, 'get_cluster_host_ips', stub([mock_pub_priv_host] * 4))
+    monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, 'get_bootstrap_ip', stub(mock_pub_priv_host))
     monkeypatch.setattr(
         dcos_launch.platforms.aws, 'fetch_stack', lambda stack_name,
         bw: dcos_launch.platforms.aws.BareClusterCfStack(stack_name, bw))
