@@ -182,3 +182,14 @@ def generate_rsa_keypair(key_size=2048):
         format=serialization.PublicFormat.OpenSSH)
 
     return privkey_pem, pubkey_pem
+
+
+class AbstractOnpremClusterLauncher(metaclass=abc.ABCMeta):
+    """ Defines the methods that an object must have to
+    support the onprem launcher
+    """
+    def get_bootstrap_host(self):
+        raise NotImplementedError()
+
+    def get_cluster_hosts(self):
+        raise NotImplementedError()

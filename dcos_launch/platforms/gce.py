@@ -380,11 +380,16 @@ class BareClusterDeployment(Deployment):
 
     @property
     def instance_names(self):
+        # only returns the names of the
         for instance in self.gce_wrapper.list_group_instances(self.instance_group_name, self.zone):
             yield instance['instance'].split('/')[-1]
 
     @property
     def hosts(self):
+        """ order of return here determines cluster composition, so make sure its consistent
+        """
+        output_list = list()
         for name in self.instance_names:
             info = self.gce_wrapper.get_instance_network_properties(name, self.zone)
-            yield Host(private_ip=info['networkIP'], public_ip=info['accessConfigs'][0]['natIP'])
+            output_list.append(Host(private_ip=info['networkIP'], public_ip=info['accessConfigs'][0]['natIP']))
+        return sorted(output_list)

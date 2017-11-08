@@ -133,7 +133,7 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
             raise dcos_launch.util.LauncherError('StackNotFound', None) from ex
 
 
-class BareClusterLauncher(DcosCloudformationLauncher):
+class BareClusterLauncher(DcosCloudformationLauncher, dcos_launch.util.AbstractOnpremClusterLauncher):
     """ Launches a homogeneous cluster of plain AMIs intended for onprem DC/OS
     """
     def create(self):
@@ -141,11 +141,15 @@ class BareClusterLauncher(DcosCloudformationLauncher):
         """
         template_parameters = {
             'AllowAccessFrom': self.config['admin_location'],
-            # cluster size is +1 for the bootstrap node
-            'ClusterSize': (1 + self.config['num_masters'] + self.config['num_public_agents'] +
+            'ClusterSize': (self.config['num_masters'] + self.config['num_public_agents'] +
                             self.config['num_private_agents']),
             'InstanceType': self.config['instance_type'],
-            'AmiCode': self.config['instance_ami']}
+            'AmiCode': self.config['instance_ami'],
+            # Bootstrap instance is currently instantiated as a single-server AutoScaleGroup which is terrible and is
+            # intended to be updated to be configured properly as an EC2 instance later
+            'BootstrapInstanceType': self.config['bootstrap_instance_type'],
+            'BootstrapAmiCode': self.config['bootstrap_instance_ami']
+        }
         if not self.config['key_helper']:
             template_parameters['KeyName'] = self.config['aws_key_name']
         self.config.update({
@@ -153,8 +157,11 @@ class BareClusterLauncher(DcosCloudformationLauncher):
             'template_parameters': template_parameters})
         return super().create()
 
-    def get_hosts(self):
-        return self.stack.get_host_ips()
+    def get_cluster_hosts(self):
+        return self.stack.get_cluster_host_ips()
+
+    def get_bootstrap_host(self):
+        return self.stack.get_bootstrap_ip()
 
     def test(self, args, env, test_host=None, test_port=22):
         raise NotImplementedError('Bare clusters cannot be tested!')

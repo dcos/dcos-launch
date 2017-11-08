@@ -261,7 +261,13 @@ AWS_ONPREM_SCHEMA = {
         # not required because machine image can be set directly
         'required': False,
         'default': 'cent-os-7-dcos-prereqs',
-        'allowed': list(aws.OS_SSH_INFO.keys())},
+        'allowed': list(aws.OS_AMIS.keys())},
+    'bootstrap_os_name': {
+        'type': 'string',
+        'required': False,
+        # bootstrap node requires docker to be installed
+        'default': 'cent-os-7-dcos-prereqs',
+        'allowed': list(aws.OS_AMIS.keys())},
     'instance_ami': {
         'type': 'string',
         'required': True,
@@ -269,6 +275,14 @@ AWS_ONPREM_SCHEMA = {
     'instance_type': {
         'type': 'string',
         'required': True},
+    'bootstrap_instance_ami': {
+        'type': 'string',
+        'required': True,
+        'default_setter': lambda doc: aws.OS_AMIS[doc['bootstrap_os_name']][doc['aws_region']]},
+    'bootstrap_instance_type': {
+        'type': 'string',
+        'required': True,
+        'default': 'm4.xlarge'},
     'admin_location': {
         'type': 'string',
         'required': True,
