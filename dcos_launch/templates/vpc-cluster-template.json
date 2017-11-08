@@ -325,7 +325,7 @@
         "AvailabilityZones" : [{ "Fn::GetAtt" : [ "PublicSubnet", "AvailabilityZone" ] }],
         "VPCZoneIdentifier" : [{ "Ref" : "PublicSubnet" }],
         "LaunchConfigurationName": {
-          "Ref": "BareServerLaunchConfig"
+          "Ref": "BootstrapServerPlaceholderLaunchConfig"
         },
         "MinSize": "1",
         "MaxSize": "1",
