@@ -265,7 +265,7 @@ AWS_ONPREM_SCHEMA = {
     'bootstrap_os_name': {
         'type': 'string',
         'required': False,
-        'default': 'cent-os-7-dcos-prereqs',
+        'default_setter': lambda doc: doc.get('os_name') or 'cent-os-7-dcos-prereqs',
         'allowed': list(aws.OS_AMIS.keys())},
     'instance_ami': {
         'type': 'string',
