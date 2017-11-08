@@ -119,6 +119,21 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
             last_complete = None
 
         if last_complete is None:
+            for host in cluster.hosts:
+                log.info('Manually checking SELinux and time synchonrization...')
+                # FIXME: either make this controllable by an option
+                #        or ensure the entire dcos-launch os_name map
+                #        can work without this
+                with self.get_ssh_client().tunnel(host.public_ip) as t:
+                    log.debug('Attempting to configure: ' + host.public_ip)
+                    try:
+                        t.command(['sudo', 'setenforce', 'permissive'])
+                        t.command(['sudo', 'systemctl', 'reset-failed'])
+                        t.command(['sudo', 'systemctl', 'restart', 'chronyd.service'])
+                    except subprocess.CalledProcessEror:
+                        # could be an unexpected operation system
+                        log.exception('Manual host setup failed!')
+                        pass
             cluster.setup_installer_server(self.config['installer_url'], False)
             last_complete = 'SETUP'
             self.post_state(last_complete)
