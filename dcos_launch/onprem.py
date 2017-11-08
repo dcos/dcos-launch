@@ -45,7 +45,8 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
     def get_onprem_cluster(self):
         return dcos_test_utils.onprem.OnpremCluster.from_hosts(
             ssh_client=self.get_ssh_client(),
-            hosts=self.get_bare_cluster_launcher().get_hosts(),
+            bootstrap_host=self.bootstrap_host,
+            cluster_hosts=self.get_bare_cluster_launcher().get_hosts(),
             num_masters=int(self.config['num_masters']),
             num_private_agents=int(self.config['num_private_agents']),
             num_public_agents=int(self.config['num_public_agents']))
