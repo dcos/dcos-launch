@@ -266,7 +266,7 @@ AWS_ONPREM_SCHEMA = {
         'type': 'string',
         'required': False,
         # bootstrap node requires docker to be installed
-        'default_setter': 'cent-os-7-dcos-prereqs',
+        'default': 'cent-os-7-dcos-prereqs',
         'allowed': list(aws.OS_AMIS.keys())},
     'instance_ami': {
         'type': 'string',
