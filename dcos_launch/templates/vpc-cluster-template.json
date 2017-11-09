@@ -318,41 +318,32 @@
         ]
       }
     },
-    "BootstrapServerPlaceholderAutoScale": {
-      "Type": "AWS::AutoScaling::AutoScalingGroup",
-      "DependsOn" : "PublicRoute",
+    "BootstrapInstanceConfig": {
+      "Type": "AWS::EC2::Instance",
       "Properties": {
-        "AvailabilityZones" : [{ "Fn::GetAtt" : [ "PublicSubnet", "AvailabilityZone" ] }],
-        "VPCZoneIdentifier" : [{ "Ref" : "PublicSubnet" }],
-        "LaunchConfigurationName": {
-          "Ref": "BootstrapServerPlaceholderLaunchConfig"
+        "BlockDeviceMappings" : [{
+          "DeviceName": "/dev/sda1",
+          "Ebs": {
+              "VolumeSize": "30",
+              "DeleteOnTermination": "true",
+              "VolumeType": "gp2"
+          }
         },
-        "MinSize": "1",
-        "MaxSize": "1",
-        "DesiredCapacity": "1",
-        "Tags" : [
-          {
-            "Key" : "Network",
-            "Value" : "Public",
-            "PropagateAtLaunch" : "true"
-            }
-          ]
-      }
-    },
-    "BootstrapServerPlaceholderLaunchConfig": {
-      "Type": "AWS::AutoScaling::LaunchConfiguration",
-      "Properties": {
-        "AssociatePublicIpAddress": "true",
-        "ImageId": {
+        {
+          "DeviceName": "/dev/sdb",
+          "VirtualName": "ephemeral0"
+        }],
+        "IamInstanceProfile" : { "Ref": "BareInstanceProfile" },
+        "ImageId" : {
           "Ref": "BootstrapAmiCode"
         },
-        "InstanceType": {
+        "InstanceType" : {
           "Ref": "BootstrapInstanceType"
         },
-        "KeyName": {
+        "KeyName" : {
           "Ref": "KeyName"
         },
-        "SecurityGroups": [
+        "SecurityGroups" : [
           {
             "Ref": "ExternalSecurityGroup"
           },
@@ -360,24 +351,7 @@
             "Ref": "InternalSecurityGroup"
           }
         ],
-        "IamInstanceProfile": {
-          "Ref": "BareInstanceProfile"
-        },
-        "BlockDeviceMappings": [
-          {
-            "DeviceName": "/dev/sda1",
-            "Ebs": {
-              "VolumeSize": "30",
-              "DeleteOnTermination": "true",
-              "VolumeType": "gp2"
-            }
-          },
-          {
-
-            "DeviceName": "/dev/sdb",
-            "VirtualName": "ephemeral0"
-          }
-        ]
+        "SubnetId" : { "Ref": "PublicSubnet" }
       }
     }
   }

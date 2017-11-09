@@ -333,41 +333,37 @@
         ]
       }
     },
-    "BootstrapServerPlaceholderAutoScale": {
-      "Type": "AWS::AutoScaling::AutoScalingGroup",
-      "DependsOn" : "PublicRoute",
+    "BootstrapInstanceConfig": {
+      "Type": "AWS::EC2::Instance",
       "Properties": {
-        "AvailabilityZones" : [{ "Fn::GetAtt" : [ "PublicSubnet", "AvailabilityZone" ] }],
-        "VPCZoneIdentifier" : [{ "Ref" : "PublicSubnet" }],
-        "LaunchConfigurationName": {
-          "Ref": "BootstrapServerPlaceholderLaunchConfig"
+        "BlockDeviceMappings" : [{
+          "DeviceName": "/dev/sda1",
+          "Ebs": {
+              "VolumeSize": "150",
+              "DeleteOnTermination": "true",
+              "VolumeType": "gp2"
+          }
         },
-        "MinSize": "1",
-        "MaxSize": "1",
-        "DesiredCapacity": "1",
-        "Tags" : [
-          {
-            "Key" : "Network",
-            "Value" : "Public",
-            "PropagateAtLaunch" : "true"
-            }
-          ]
-      }
-    },
-    "BootstrapServerPlaceholderLaunchConfig": {
-      "Type": "AWS::AutoScaling::LaunchConfiguration",
-      "Properties": {
-        "AssociatePublicIpAddress" : "true",
-        "ImageId": {
+        {
+          "DeviceName": "/dev/sdb",
+          "Ebs": {
+              "VolumeSize": "150",
+              "DeleteOnTermination": "true",
+              "VolumeType": "gp2",
+              "SnapshotId": { "Fn::FindInMap" : [ "SDBSnapshot", { "Fef": "AWS::Region" }, "snap"]}
+          }
+        }],
+        "IamInstanceProfile" : { "Ref": "BareInstanceProfile" },
+        "ImageId" : {
           "Ref": "BootstrapAmiCode"
         },
-        "InstanceType": {
+        "InstanceType" : {
           "Ref": "BootstrapInstanceType"
         },
-        "KeyName": {
+        "KeyName" : {
           "Ref": "KeyName"
         },
-        "SecurityGroups": [
+        "SecurityGroups" : [
           {
             "Ref": "ExternalSecurityGroup"
           },
@@ -375,29 +371,8 @@
             "Ref": "InternalSecurityGroup"
           }
         ],
-        "IamInstanceProfile": {
-            "Ref": "BareInstanceProfile"
-        },
-        "BlockDeviceMappings": [
-          {
-            "DeviceName": "/dev/sda1",
-            "Ebs": {
-              "VolumeSize": "150",
-              "DeleteOnTermination": "true",
-              "VolumeType": "gp2"
-            }
-          },
-          {
-            "DeviceName": "/dev/sdb",
-            "Ebs": {
-              "VolumeSize": "150",
-              "DeleteOnTermination": "true",
-              "VolumeType": "gp2",
-              "SnapshotId": { "Fn::FindInMap" : [ "SDBSnapshot", { "Ref" : "AWS::Region" }, "snap"]}
-            }
-          }
-        ]
+        "SubnetId" : { "Ref": "PublicSubnet" }
       }
-    },
+    }
   }
 }
