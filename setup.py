@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='dcos-launch',
-    version='0.1',
+    version='0.1.0',
     description='DC/OS cluster provisioning',
     url='https://dcos.io',
     author='Mesosphere, Inc.',

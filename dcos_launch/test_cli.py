@@ -1,3 +1,4 @@
+import re
 import shutil
 
 import pytest
@@ -43,3 +44,12 @@ def test_missing_input(tmpdir):
     with tmpdir.as_cwd():
         for cmd in ['create', 'wait', 'describe', 'delete', 'pytest']:
             assert main([cmd]) == 1
+
+
+def test_version(capsys):
+    """Ensure version exists and properly formatted
+    """
+    with pytest.raises(SystemExit):
+        main(['--version'])
+    out, err = capsys.readouterr()
+    assert re.compile("^dcos-launch \d+\.\d+\.\d+$").match(out) is not None
