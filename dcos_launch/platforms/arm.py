@@ -289,6 +289,15 @@ class DcosAzureResourceGroup:
         return [Host(nic_to_host(nic).private_ip, public_lb_ip)
                 for nic in self.get_scale_set_nics('public')]
 
+    def update_tags(self, new_tags: dict):
+        rg = self.azure_wrapper.rmc.resource_groups.get(self.group_name)
+        if rg.tags is None:
+            rg.tags = dict()
+        rg.tags.update(new_tags)
+        self.azure_wrapper.rmc.resource_groups.patch(rg.name, {
+            'tags': rg.tags,
+            'location': rg.location}, raw=True)
+
     def delete(self):
         log.info('Triggering delete')
         self.azure_wrapper.rmc.resource_groups.delete(self.group_name, raw=True)
