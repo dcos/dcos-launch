@@ -5,6 +5,9 @@ import dcos_launch.onprem
 import dcos_launch.util
 
 
+VERSION = '0.1.0'
+
+
 def get_launcher(config, env=None):
     """Returns the correct class of launcher from a validated launch config dict
     """

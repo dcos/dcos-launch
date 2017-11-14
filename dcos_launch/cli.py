@@ -119,7 +119,7 @@ def do_main(args):
 
 
 def main(argv=None):
-    args = docopt(__doc__, argv=argv, version='DC/OS Launch v.0.1')
+    args = docopt(__doc__, argv=argv, version='dcos-launch {}'.format(dcos_launch.VERSION))
 
     try:
         return do_main(args)
