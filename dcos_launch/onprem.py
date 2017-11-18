@@ -1,4 +1,3 @@
-import copy
 import logging
 import os
 import subprocess
@@ -149,17 +148,11 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         well as the basic provider info
         """
         cluster = self.get_onprem_cluster()
-        extra_info = {
+        return {
             'bootstrap_host': dcos_launch.util.convert_host_list([cluster.bootstrap_host])[0],
             'masters': dcos_launch.util.convert_host_list(cluster.get_master_ips()),
             'private_agents': dcos_launch.util.convert_host_list(cluster.get_private_agent_ips()),
             'public_agents': dcos_launch.util.convert_host_list(cluster.get_public_agent_ips())}
-        desc = copy.copy(self.config)
-        desc.update(extra_info)
-        # blackout unwanted fields
-        desc.pop('template_body', None)
-        desc.pop('template_parameters', None)
-        return desc
 
     def delete(self):
         """ just deletes the hardware
