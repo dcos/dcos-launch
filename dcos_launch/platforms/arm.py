@@ -55,12 +55,14 @@ def check_array(arr):
     return arr
 
 
-def nic_to_host(nic):
+def nic_to_host(nic, public_ip=None):
     assert len(nic.ip_configurations) == 1
     ip_config = nic.ip_configurations[0]
-    if ip_config.public_ip_address is None:
+    if ip_config.public_ip_address is None and public_ip is None:
         return Host(ip_config.private_ip_address, None)
-    return Host(ip_config.private_ip_address, ip_config.public_ip_address.ip_address)
+    if public_ip is None:
+        return Host(ip_config.private_ip_address, ip_config.public_ip_address.ip_address)
+    return Host(ip_config.private_ip_address, public_ip)
 
 
 class AzureWrapper:
@@ -75,12 +77,13 @@ class AzureWrapper:
         # location is included to keep a similar model as dcos_launch.platforms.aws.BotoWrapper
         self.location = location
 
-    def deploy_template_to_new_resource_group(self, template_url, group_name, parameters, tags=None):
+    def deploy_template_to_new_resource_group(
+            self, template_url, group_name, parameters, tags=None, template=None):
         if tags is None:
             tags = dict()
         log.info('Checking deployment parameters vs template before starting...')
         deployment_properties = self.create_deployment_properties(
-            template_url, parameters)
+            template_url, parameters, template=template)
         deployment_name = DEPLOYMENT_NAME.format(group_name)
         # Resource group must be created before validation can occur
         if self.rmc.resource_groups.check_existence(group_name):
@@ -114,7 +117,7 @@ class AzureWrapper:
             stack.pop_all()
         log.info('Successfully started template deployment')
 
-    def create_deployment_properties(self, template_url, parameters):
+    def create_deployment_properties(self, template_url, parameters, template: dict=None):
         """ Pulls the targeted template, checks parameter specs and casts
         user provided parameters to the appropriate type. Assertion is raised
         if there are unused parameters or invalid casting
@@ -122,16 +125,17 @@ class AzureWrapper:
         user_parameters = copy.deepcopy(parameters)
         type_cast_map = {
             'string': str,
-            'secureString': str,
+            'securestring': str,
             'int': int,
             'bool': bool,
             'object': check_json_object,
             'secureObject': check_json_object,
             'array': check_array}
         log.debug('Pulling Azure template for parameter validation...')
-        r = requests.get(template_url)
-        r.raise_for_status()
-        template = r.json()
+        if template is None:
+            r = requests.get(template_url)
+            r.raise_for_status()
+            template = r.json()
         if 'parameters' not in template:
             assert user_parameters is None, 'This template does not support parameters, ' \
                 'yet parameters were supplied: {}'.format(user_parameters)
@@ -246,16 +250,16 @@ class DcosAzureResourceGroup:
         yield from self.azure_wrapper.rmc.resource_groups.list_resources(
             self.group_name, filter=(filter_string))
 
-    def get_scale_set_nics(self, name_substring):
+    def get_scale_set_nics(self, name_substring=None):
         for resource in self.list_resources("resourceType eq 'Microsoft.Compute/virtualMachineScaleSets'"):
-            if name_substring not in resource.name:
+            if name_substring and name_substring not in resource.name:
                 continue
             yield from self.azure_wrapper.nmc.network_interfaces.list_virtual_machine_scale_set_network_interfaces(
                 self.group_name, resource.name)
 
-    def get_public_ip_address(self, name_substring):
+    def get_public_ip_address(self, name_substring=None):
         for resource in self.list_resources("resourceType eq 'Microsoft.Network/publicIPAddresses'"):
-            if name_substring not in resource.name:
+            if name_substring and name_substring not in resource.name:
                 continue
             return self.azure_wrapper.nmc.public_ip_addresses.get(self.group_name, resource.name)
 
@@ -310,3 +314,33 @@ class DcosAzureResourceGroup:
 
     def __exit__(self, exc_type, exc, exc_tb):
         self.delete()
+
+
+class HybridDcosAzureResourceGroup(DcosAzureResourceGroup):
+    def get_master_ips(self):
+        public_lb_ip = self.public_master_lb_fqdn
+        return [nic_to_host(nic, public_lb_ip) for nic in self.master_nics]
+
+    def get_linux_private_agent_ips(self):
+        return [nic_to_host(nic) for nic in self.get_scale_set_nics('linpri')]
+
+    def get_linux_public_agent_ips(self):
+        return [nic_to_host(nic, self.linux_public_agent_lb_fqdn)
+                for nic in self.get_scale_set_nics('linpub')]
+
+    def get_windows_public_agent_ips(self):
+        # this VMSS name is derived from this being the 0-th element in the VMSS list
+        return [nic_to_host(nic, self.windows_public_agent_lb_fqdn)
+                for nic in self.get_scale_set_nics('acs900-vmss')]
+
+    def get_windows_private_agent_ips(self):
+        # this VMSS name is derived from this being the 1-th element in the VMSS list
+        return [nic_to_host(nic) for nic in self.get_scale_set_nics('acs901-vmss')]
+
+    @property
+    def linux_public_agent_lb_fqdn(self):
+        return self.get_public_ip_address('agent-ip-linpub').dns_settings.fqdn
+
+    @property
+    def windows_public_agent_lb_fqdn(self):
+        return self.get_public_ip_address('agent-ip-wpub').dns_settings.fqdn
