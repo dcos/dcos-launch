@@ -475,9 +475,9 @@ class DcosZenCfStack(CfStack):
         log.info('Starting deletion of Zen CF stack')
         # These resources might have failed to create or been removed prior, except their
         # failures and log it out
-        for s in [self.infrastructure, self.master_stack, self.private_agent_stack,
-                  self.public_agent_stack]:
+        for nested_stack in ['infrastructure', 'master_stack', 'private_agent_stack', 'public_agent_stack']:
             try:
+                s = getattr(self, nested_stack)
                 s.delete()
             except Exception:
                 log.exception('Delete encountered an error!')
