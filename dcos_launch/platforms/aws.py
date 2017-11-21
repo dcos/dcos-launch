@@ -352,8 +352,12 @@ class CleanupS3BucketMixin:
     leaking cloud resources.
     """
     def delete(self):
-        self.boto_wrapper.empty_and_delete_bucket(
-            self.stack.Resource('ExhibitorS3Bucket').physical_resource_id)
+        try:
+            self.boto_wrapper.empty_and_delete_bucket(
+                self.stack.Resource('ExhibitorS3Bucket').physical_resource_id)
+        except Exception:
+            # Exhibitor S3 Bucket might not be a resource
+            log.exception('Failed to get S3 bucket physical ID')
         super().delete()
 
 
