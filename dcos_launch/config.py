@@ -122,12 +122,14 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
                 'default': False}})
         if provider == 'onprem':
             validator.schema.update(AWS_ONPREM_SCHEMA)
-    elif platform == 'gcp':
+    elif platform in ('gcp', 'gce'):
         validator.schema.update({
             'gce_zone': {
                 'type': 'string',
                 'required': True,
                 'default_setter': lambda doc: util.set_from_env('GCE_ZONE')}})
+        # only use gcp here on out
+        user_config['platform'] = 'gcp'
         if provider == 'onprem':
             validator.schema.update(GCP_ONPREM_SCHEMA)
     elif platform == 'azure':
@@ -207,7 +209,8 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
     'platform': {
         'type': 'string',
         'required': True,
-        'allowed': ['aws', 'gcp']},
+        # allow gce but remap it to GCP during validation
+        'allowed': ['aws', 'gcp', 'gce']},
     'installer_url': {
         'validator': validate_url,
         'type': 'string',
