@@ -338,7 +338,7 @@ class BareClusterDeployment(Deployment):
         return self.name + '-network'
 
     @property
-    def filewall_name(self):
+    def firewall_name(self):
         return self.name + '-firewall'
 
     def __init__(self, gcp_wrapper, name, zone):

@@ -45,12 +45,12 @@ setup(
             'sample_configs/*.yaml',
             'ip-detect/aws.sh',
             'ip-detect/aws_public.sh',
-            'ip-detect/gce.sh',
-            'ip-detect/gce_public.sh',
+            'ip-detect/gcp.sh',
+            'ip-detect/gcp_public.sh',
             'templates/vpc-cluster-template.json',
             'templates/vpc-ebs-only-cluster-template.json',
             'fault-domain-detect/aws.sh',
-            'fault-domain-detect/gce.sh'
+            'fault-domain-detect/gcp.sh'
         ],
     }
 )
