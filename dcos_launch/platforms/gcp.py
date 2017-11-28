@@ -146,7 +146,7 @@ def catch_http_exceptions(f):
     return handle_exception
 
 
-class GceWrapper:
+class GcpWrapper:
     @catch_http_exceptions
     def __init__(self, credentials_dict):
         """
@@ -211,26 +211,39 @@ class GceWrapper:
 
     @catch_http_exceptions
     def get_deployments(self):
+        """ iterates over all current deployments, returning a generic Deployment class
+        when there is no instanceGroupManager to establish that we are dealing with
+        a BareClusterDeployment. Any deployments that are in the process of being deleted
+        are skipped to avoid query errors on deleted deployments
+        """
         request = self.deployment_manager.deployments().list(project=self.project_id)
         while request is not None:
             response = request.execute()
             for deployment_info in response.get('deployments', []):
                 # we don't want to retrieve deployments that are in the process of being deleted
-                if deployment_info['operation']['operationType'] != 'deleted':
-                    yield Deployment(self, deployment_info['name'])
+                if deployment_info['operation']['operationType'] == 'deleted':
+                    continue
+                deployment = Deployment(self, deployment_info['name'])
+                zone = None
+                for r in deployment.get_resources()['resources']:
+                    if r['type'] == 'compute.v1.instanceGroupManager':
+                        zone = r.get('properties', dict).get('zone')
+                if zone is None:
+                    yield deployment
+                else:
+                    yield BareClusterDeployment(self, deployment_info['name'], zone)
             request = self.deployment_manager.deployments().list_next(previous_request=request,
                                                                       previous_response=response)
 
 
 class Deployment:
-    def __init__(self, gce_wrapper: GceWrapper, name: str, zone: str=None):
-        self.gce_wrapper = gce_wrapper
+    def __init__(self, gcp_wrapper: GcpWrapper, name: str):
+        self.gcp_wrapper = gcp_wrapper
         self.name = name
-        self.zone = zone
 
     @catch_http_exceptions
     def delete(self):
-        response = self.gce_wrapper.deployment_manager.deployments().delete(project=self.gce_wrapper.project_id,
+        response = self.gcp_wrapper.deployment_manager.deployments().delete(project=self.gcp_wrapper.project_id,
                                                                             deployment=self.name).execute()
         log.debug('delete response: ' + str(response))
 
@@ -239,7 +252,7 @@ class Deployment:
         """ Returns the dictionary representation of a GCE deployment resource. For details on the contents of this
         resource, see https://cloud.google.com/deployment-manager/docs/reference/latest/deployments#resource
         """
-        response = self.gce_wrapper.deployment_manager.deployments().get(project=self.gce_wrapper.project_id,
+        response = self.gcp_wrapper.deployment_manager.deployments().get(project=self.gcp_wrapper.project_id,
                                                                          deployment=self.name).execute()
         log.debug('get_info response: ' + str(response))
         return response
@@ -264,7 +277,7 @@ class Deployment:
 
     def get_resources(self):
         resources = []
-        request = self.gce_wrapper.deployment_manager.resources().list(project=self.gce_wrapper.project_id,
+        request = self.gcp_wrapper.deployment_manager.resources().list(project=self.gcp_wrapper.project_id,
                                                                        deployment=self.name)
         while request is not None:
             response = request.execute()
@@ -282,19 +295,19 @@ class Deployment:
                         resource[key] = yaml.load(resource[key])
 
                 resources.append(resource)
-            request = self.gce_wrapper.deployment_manager.resources().list_next(previous_request=request,
+            request = self.gcp_wrapper.deployment_manager.resources().list_next(previous_request=request,
                                                                                 previous_response=response)
         return {'resources': resources}
 
     def update_tags(self, tags):
-        info = self.gce_wrapper.deployment_manager.deployments().get(project=self.gce_wrapper.project_id,
+        info = self.gcp_wrapper.deployment_manager.deployments().get(project=self.gcp_wrapper.project_id,
                                                                      deployment=self.name).execute()
         # we need to get the resources because they're not provided in the info and they're necessary for update
         info['target'] = {
             'config': {'content': yaml.dump(self.get_resources(), default_flow_style=False)}
         }
         info['labels'] = tag_dict_to_gce_format(tags)
-        response = self.gce_wrapper.deployment_manager.deployments().update(project=self.gce_wrapper.project_id,
+        response = self.gcp_wrapper.deployment_manager.deployments().update(project=self.gcp_wrapper.project_id,
                                                                             deployment=self.name, body=info).execute()
         log.debug('update_tags response: ' + str(response))
         return response
@@ -316,10 +329,29 @@ class BareClusterDeployment(Deployment):
     def instance_group_name(self):
         return self.name + '-group'
 
+    @property
+    def template_name(self):
+        return self.name + '-template'
+
+    @property
+    def network_name(self):
+        return self.name + '-network'
+
+    @property
+    def filewall_name(self):
+        return self.name + '-firewall'
+
+    def __init__(self, gcp_wrapper, name, zone):
+        """ zone argument dictates where the single managed
+        instance group will be deployed to
+        """
+        super().__init__(gcp_wrapper, name)
+        self.zone = zone
+
     @classmethod
     def create(
             cls,
-            gce_wrapper: GceWrapper,
+            gcp_wrapper: GcpWrapper,
             name: str,
             zone: str,
             node_count: int,
@@ -332,34 +364,31 @@ class BareClusterDeployment(Deployment):
             ssh_public_key: str,
             disable_updates: bool,
             tags: dict=None):
-        template_name = name + '-template'
-        network_name = name + '-network'
-        firewall_name = name + '-norules'
 
-        deployment = cls(gce_wrapper, name, zone)
+        deployment = cls(gcp_wrapper, name, zone)
 
-        network_resource = NETWORK_TEMPLATE.format(name=network_name)
+        network_resource = NETWORK_TEMPLATE.format(name=deployment.network_name)
         instance_template_resource = INSTANCE_TEMPLATE.format(
-            project=gce_wrapper.project_id,
+            project=gcp_wrapper.project_id,
             sourceImage=source_image,
-            name=template_name,
+            name=deployment.template_name,
             machineType=machine_type,
             imageProject=image_project,
             zone=zone,
             ssh_user=ssh_user,
             ssh_public_key=ssh_public_key,
-            network=network_name,
+            network=deployment.network_name,
             diskSizeGb=disk_size,
             diskType=disk_type)
         instance_group_resource = MANAGED_INSTANCE_GROUP_TEMPLATE.format(
             name=deployment.instance_group_name,
-            instance_template_name=template_name,
+            instance_template_name=deployment.template_name,
             size=node_count,
             zone=zone,
-            network=network_name)
+            network=deployment.network_name)
         firewall_resource = FIREWALL_TEMPLATE.format(
-            name=firewall_name,
-            network=network_name)
+            name=deployment.firewall_name,
+            network=deployment.network_name)
 
         deployment_config = {
             'resources': [yaml.load(network_resource),
@@ -375,13 +404,13 @@ class BareClusterDeployment(Deployment):
             }
             deployment_config['resources'][1]['properties']['properties']['metadata']['items'].append(user_data)
 
-        gce_wrapper.create_deployment(name, deployment_config, tags=tags)
+        gcp_wrapper.create_deployment(name, deployment_config, tags=tags)
         return deployment
 
     @property
     def instance_names(self):
         # only returns the names of the
-        for instance in self.gce_wrapper.list_group_instances(self.instance_group_name, self.zone):
+        for instance in self.gcp_wrapper.list_group_instances(self.instance_group_name, self.zone):
             yield instance['instance'].split('/')[-1]
 
     @property
@@ -390,6 +419,6 @@ class BareClusterDeployment(Deployment):
         """
         output_list = list()
         for name in self.instance_names:
-            info = self.gce_wrapper.get_instance_network_properties(name, self.zone)
+            info = self.gcp_wrapper.get_instance_network_properties(name, self.zone)
             output_list.append(Host(private_ip=info['networkIP'], public_ip=info['accessConfigs'][0]['natIP']))
         return sorted(output_list)

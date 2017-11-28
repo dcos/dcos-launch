@@ -4,7 +4,7 @@ import cerberus
 import yaml
 
 from dcos_launch import util
-from dcos_launch.platforms import aws, gce
+from dcos_launch.platforms import aws, gcp
 
 
 def expand_path(path: str, relative_dir: str) -> str:
@@ -122,14 +122,14 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
                 'default': False}})
         if provider == 'onprem':
             validator.schema.update(AWS_ONPREM_SCHEMA)
-    elif platform == 'gce':
+    elif platform == 'gcp':
         validator.schema.update({
             'gce_zone': {
                 'type': 'string',
                 'required': True,
                 'default_setter': lambda doc: util.set_from_env('GCE_ZONE')}})
         if provider == 'onprem':
-            validator.schema.update(GCE_ONPREM_SCHEMA)
+            validator.schema.update(GCP_ONPREM_SCHEMA)
     elif platform == 'azure':
         validator.schema.update({
             'azure_location': {
@@ -207,7 +207,7 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
     'platform': {
         'type': 'string',
         'required': True,
-        'allowed': ['aws', 'gce']},
+        'allowed': ['aws', 'gcp']},
     'installer_url': {
         'validator': validate_url,
         'type': 'string',
@@ -311,7 +311,7 @@ def deduce_image_project(doc: dict):
                              centos-cloud, rhel-cloud, ubuntu-os-cloud, coreos-cloud and debian-cloud.""")
 
 
-GCE_ONPREM_SCHEMA = {
+GCP_ONPREM_SCHEMA = {
     'machine_type': {
         'type': 'string',
         'required': False,
@@ -324,7 +324,7 @@ GCE_ONPREM_SCHEMA = {
     'source_image': {
         'type': 'string',
         'required': False,
-        'default_setter': lambda doc: 'family/' + gce.OS_IMAGE_FAMILIES.get(doc['os_name'], doc['os_name'])},
+        'default_setter': lambda doc: 'family/' + gcp.OS_IMAGE_FAMILIES.get(doc['os_name'], doc['os_name'])},
     'image_project': {
         'type': 'string',
         'required': False,
