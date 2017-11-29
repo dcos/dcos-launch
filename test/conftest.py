@@ -266,8 +266,8 @@ def gcp_onprem_with_helper_config_path(tmpdir, mock_bare_cluster_hosts, mocked_g
 
 
 @pytest.fixture
-def gcp_onprem_with_fd_helper_config_path(tmpdir, mock_bare_cluster_hosts, mocked_gce):
-    return get_temp_config_path(tmpdir, 'gce-onprem-with-fd-helper.yaml')
+def gcp_onprem_with_fd_helper_config_path(tmpdir, mock_bare_cluster_hosts, mocked_gcp):
+    return get_temp_config_path(tmpdir, 'gcp-onprem-with-fd-helper.yaml')
 
 
 def check_cli(cmd):
