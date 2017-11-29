@@ -119,5 +119,6 @@ class TestGcpOnprem:
 
     def test_with_fd_helper(self, gcp_onprem_with_fd_helper_config_path):
         config = get_validated_config_from_path(gcp_onprem_with_fd_helper_config_path)
-        assert config['num_private_agents'] == 1
-        assert config['fault_domain_helper'] == dict()
+        assert config['num_private_agents'] == 9
+        assert config['num_public_agents'] == 5
+        assert set(config['fault_domain_helper'].keys()) == {'Europe', 'USA', 'Asia'}

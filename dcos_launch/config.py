@@ -234,17 +234,21 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'type': 'integer',
         'default': 9000},
     'num_private_agents': {
-        # 'type': 'integer',
+        'type': 'integer',
         'required': False,
         'min': 0,
-        # 'default_setter': lambda doc: sum((fd['num_zone_private_agents'] for fd in doc['fault_domain_helper']))},
-        'default_setter': lambda doc: '|||'.join([str(fd['region_name']) for fd in doc['fault_domain_helper']])},
-        #'default_setter': lambda doc: _get_num_agents(doc, 'num_private_agents')},
+        # note: cannot assume nested schema values will be populated with defaults
+        #   when the default setter runs
+        'default_setter': lambda doc: sum(
+            [v.get('num_private_agents',  0) for v in doc['fault_domain_helper'].values()])},
     'num_public_agents': {
         'type': 'integer',
         'required': False,
-        'min': 0},
-        # 'default_setter': lambda doc: _get_num_agents(doc, 'num_public_agents')},
+        'min': 0,
+        # note: cannot assume nested schema values will be populated with defaults
+        #   when the default setter runs
+        'default_setter': lambda doc: sum(
+            [v.get('num_public_agents',  0) for v in doc['fault_domain_helper'].values()])},
     'num_masters': {
         'type': 'integer',
         'allowed': [1, 3, 5, 7, 9],
@@ -272,28 +276,26 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
                 'coerce': 'expand_local_path',
                 'excludes': 'fault_domain_script_contents'}}},
     'fault_domain_helper': {
-        'type': 'list',
+        'type': 'dict',
         'required': False,
-        'schema': {
+        'keyschema': {'type': 'string'},
+        'valueschema': {
             'type': 'dict',
             'schema': {
-                'region_name': {
-                    'type': 'string',
-                    'required': True},
                 'num_zones': {
+                    'required': True,
                     'type': 'integer',
-                    'required': False,
                     'default': 1},
                 'num_private_agents': {
-                    'type': 'integer',
                     'required': True,
+                    'type': 'integer',
                     'default': 0},
                 'num_public_agents': {
+                    'required': True,
                     'type': 'integer',
-                    'required': False,
-                    'default': 0},
+                    'default': 0}
                 }
-            },
+            }
         }
     }
 
