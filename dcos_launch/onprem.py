@@ -6,7 +6,7 @@ import pkg_resources
 import yaml
 
 import dcos_launch.aws
-import dcos_launch.gce
+import dcos_launch.gcp
 import dcos_launch.util
 import dcos_launch.platforms.aws
 import dcos_test_utils.onprem
@@ -38,8 +38,8 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
     def get_bare_cluster_launcher(self):
         if self.config['platform'] == 'aws':
             return dcos_launch.aws.BareClusterLauncher(self.config, env=self.env)
-        elif self.config['platform'] == 'gce':
-            return dcos_launch.gce.BareClusterLauncher(self.config, env=self.env)
+        elif self.config['platform'] == 'gcp':
+            return dcos_launch.gcp.BareClusterLauncher(self.config, env=self.env)
         else:
             raise dcos_launch.util.LauncherError(
                 'PlatformNotSupported',

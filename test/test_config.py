@@ -102,17 +102,17 @@ class TestAwsOnprem:
                 update={'dcos_config': {'provider': 'aws'}}))
 
 
-class TestGceOnprem:
-    def test_basic(self, gce_onprem_config_path):
-        get_validated_config_from_path(gce_onprem_config_path)
+class TestGcpOnprem:
+    def test_basic(self, gcp_onprem_config_path):
+        get_validated_config_from_path(gcp_onprem_config_path)
 
-    def test_with_key_helper(self, gce_onprem_with_helper_config_path):
-        get_validated_config_from_path(gce_onprem_with_helper_config_path)
+    def test_with_key_helper(self, gcp_onprem_with_helper_config_path):
+        get_validated_config_from_path(gcp_onprem_with_helper_config_path)
 
     def test_error_with_invalid_field(self, tmpdir):
         with pytest.raises(LauncherError) as exinfo:
             get_validated_config_from_path(
                 get_temp_config_path(
-                    tmpdir, 'gce-onprem-with-helper.yaml', update={'num_masters': '0.0.0'}))
+                    tmpdir, 'gcp-onprem-with-helper.yaml', update={'num_masters': '0.0.0'}))
         assert exinfo.value.error == 'ValidationError'
         assert 'num_masters' in exinfo.value.msg

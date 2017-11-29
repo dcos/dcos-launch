@@ -2,7 +2,7 @@
 launch_config_version: 1
 deployment_name: dcos-onprem-gce
 installer_url: https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh
-platform: gce
+platform: gcp
 provider: onprem
 os_name: coreos
 dcos_config:

@@ -5,7 +5,7 @@ import logging
 import os
 
 from dcos_launch import util
-from dcos_launch.platforms import gce
+from dcos_launch.platforms import gcp
 from dcos_test_utils.helpers import Host
 
 from googleapiclient.errors import HttpError
@@ -22,12 +22,14 @@ class BareClusterLauncher(util.AbstractLauncher, util.AbstractOnpremClusterLaunc
             json_credentials = env['GCE_CREDENTIALS']
         elif 'GCE_CREDENTIALS_PATH' in env:
             json_credentials = util.read_file(env['GCE_CREDENTIALS_PATH'])
+        elif 'GOOGLE_APPLICATION_CREDENTIALS' in env:
+            json_credentials = util.read_file(env['GOOGLE_APPLICATION_CREDENTIALS'])
         else:
             raise util.LauncherError(
                 'MissingParameter', 'Either GCE_CREDENTIALS or GCE_CREDENTIALS_PATH must be set in env')
         credentials_dict = json.loads(json_credentials)
 
-        self.gce_wrapper = gce.GceWrapper(credentials_dict)
+        self.gcp_wrapper = gcp.GcpWrapper(credentials_dict)
         self.config = config
 
     @property
@@ -36,7 +38,7 @@ class BareClusterLauncher(util.AbstractLauncher, util.AbstractOnpremClusterLaunc
         corresponding real deployment (active machines) exists and doesn't contain any errors.
         """
         try:
-            deployment = gce.BareClusterDeployment(self.gce_wrapper, self.config['deployment_name'],
+            deployment = gcp.BareClusterDeployment(self.gcp_wrapper, self.config['deployment_name'],
                                                    self.config['gce_zone'])
             info = deployment.get_info()
             errors = info['operation'].get('error')
@@ -53,8 +55,8 @@ class BareClusterLauncher(util.AbstractLauncher, util.AbstractOnpremClusterLaunc
         self.key_helper()
         node_count = 1 + (self.config['num_masters'] + self.config['num_public_agents']
                           + self.config['num_private_agents'])
-        gce.BareClusterDeployment.create(
-            self.gce_wrapper,
+        gcp.BareClusterDeployment.create(
+            self.gcp_wrapper,
             self.config['deployment_name'],
             self.config['gce_zone'],
             node_count,
