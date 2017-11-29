@@ -116,3 +116,8 @@ class TestGcpOnprem:
                     tmpdir, 'gcp-onprem-with-helper.yaml', update={'num_masters': '0.0.0'}))
         assert exinfo.value.error == 'ValidationError'
         assert 'num_masters' in exinfo.value.msg
+
+    def test_with_fd_helper(self, gcp_onprem_with_fd_helper_config_path):
+        config = get_validated_config_from_path(gcp_onprem_with_fd_helper_config_path)
+        assert config['num_private_agents'] == 1
+        assert config['fault_domain_helper'] == dict()

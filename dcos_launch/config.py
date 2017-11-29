@@ -205,6 +205,21 @@ TEMPLATE_DEPLOY_COMMON_SCHEMA = {
         'required': True}}
 
 
+def _validate_fault_domain_helper(field, value, error):
+    for fd in value:
+        pass
+
+    if not value.startswith('http'):
+        error(field, 'Not a valid HTTP URL')
+
+
+def _get_num_agents(doc: dict, field_name: str):
+    total = 0
+    for fd in doc.get('fault_domain_helper', list()):
+        total += fd[field_name]
+    return total
+
+
 ONPREM_DEPLOY_COMMON_SCHEMA = {
     'platform': {
         'type': 'string',
@@ -219,13 +234,17 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'type': 'integer',
         'default': 9000},
     'num_private_agents': {
-        'type': 'integer',
-        'required': True,
-        'min': 0},
+        # 'type': 'integer',
+        'required': False,
+        'min': 0,
+        # 'default_setter': lambda doc: sum((fd['num_zone_private_agents'] for fd in doc['fault_domain_helper']))},
+        'default_setter': lambda doc: '|||'.join([str(fd['region_name']) for fd in doc['fault_domain_helper']])},
+        #'default_setter': lambda doc: _get_num_agents(doc, 'num_private_agents')},
     'num_public_agents': {
         'type': 'integer',
-        'required': True,
+        'required': False,
         'min': 0},
+        # 'default_setter': lambda doc: _get_num_agents(doc, 'num_public_agents')},
     'num_masters': {
         'type': 'integer',
         'allowed': [1, 3, 5, 7, 9],
@@ -251,7 +270,32 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
             'public_agent_list': {'readonly': True},
             'fault_domain_script_filename': {
                 'coerce': 'expand_local_path',
-                'excludes': 'fault_domain_script_contents'}}}}
+                'excludes': 'fault_domain_script_contents'}}},
+    'fault_domain_helper': {
+        'type': 'list',
+        'required': False,
+        'schema': {
+            'type': 'dict',
+            'schema': {
+                'region_name': {
+                    'type': 'string',
+                    'required': True},
+                'num_zones': {
+                    'type': 'integer',
+                    'required': False,
+                    'default': 1},
+                'num_private_agents': {
+                    'type': 'integer',
+                    'required': True,
+                    'default': 0},
+                'num_public_agents': {
+                    'type': 'integer',
+                    'required': False,
+                    'default': 0},
+                }
+            },
+        }
+    }
 
 
 AWS_ONPREM_SCHEMA = {

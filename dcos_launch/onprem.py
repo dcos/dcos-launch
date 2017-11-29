@@ -90,14 +90,67 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
             # despite being almost identical aws_public.sh will crash the installer if not safely dumped
             onprem_config['ip_detect_public_contents'] = yaml.dump(pkg_resources.resource_string(
                 'dcos_launch', 'ip-detect/{}_public.sh'.format(self.config['platform'])).decode())
-        if 'fault_domain_detect_contents' not in onprem_config:
+        # set the fault domain scipt
+        if 'fault_domain_detect_contents' not in onprem_config and 'fault_domain_helper' not in self.config:
             onprem_config['fault_domain_detect_contents'] = yaml.dump(pkg_resources.resource_string(
                 'dcos_launch', 'fault-domain-detect/{}.sh'.format(self.config['platform'])).decode())
+        elif 'fault_domain_helper' in self.config:
+            onprem_config['fault_domain_detect_contents'] = yaml.dump(self._fault_domain_helper())
+
         # For no good reason the installer uses 'ip_detect_script' instead of 'ip_detect_contents'
         onprem_config['ip_detect_script'] = onprem_config['ip_detect_contents']
         del onprem_config['ip_detect_contents']
         log.debug('Generated cluster configuration: {}'.format(onprem_config))
         return onprem_config
+
+    def _fault_domain_helper(self):
+        """ Will create a script with cluster hostnames baked in so that
+        an arbitary cluster/zone composition can be provided
+        """
+        region_zone_map = dict()
+        cluster = self.get_onprem_cluster()
+        public_agents = cluster.get_public_agent_ips()
+        private_agents = cluster.get_private_agent_ips()
+        for fd in self.config['fault_domain_helper']:
+            z_i = 0  # zones iterator
+            z_mod = fd['num_zones']  # zones modulo
+            zones = list(range(1, z_mod + 1))
+            for n in range(fd['num_public_agents']):
+                while len(public_agents) > 0:
+                    # distribute out the nodes across the zones until we run out
+                    agent = public_agents.pop()
+                    hostname = self.get_ssh_client().command(agent.public_ip, ['hostname'])
+                    region_zone_map[hostname] = fd['region_name'] + '-' + str(zones[z_i % z_mod])
+                    z_i += 1
+            for _ in range(fd['num_private_agents']):
+                while len(private_agents) > 0:
+                    # distribute out the nodes across the zones until we run out
+                    agent = private_agents.pop()
+                    hostname = self.get_ssh_client().command(agent.public_ip, ['hostname'])
+                    region_zone_map[hostname] = fd['region_name'] + '-' + str(zones[z_i % z_mod])
+                    z_i += 1
+        # now format the hostname-zone map into a BASH case statement
+        case_template = """
+{hostname})
+    REGION={region}
+    ZONE={zone} ;;
+"""
+        case_str = ""
+        for host, zone in region_zone_map.items():
+            case_str += case_template.format(
+                    hostname=host,
+                    region=fd['region_name'],
+                    zone=zone)
+
+        bash_script = """
+#!/bin/bash
+hostname=$(hostname)
+case $hostname in
+{cases}
+esac
+echo "{{\"fault_domain\":{{\"region\":{{\"name\": $REGION}},\"zone\":{{\"name\": $ZONE}}}}}}"
+"""
+        return bash_script.format(cases=case_str)
 
     def wait(self):
         log.info('Waiting for bare cluster provisioning status..')
