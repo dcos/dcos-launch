@@ -239,16 +239,18 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'min': 0,
         # note: cannot assume nested schema values will be populated with defaults
         #   when the default setter runs
-        'default_setter': lambda doc: sum(
-            [v.get('num_private_agents',  0) for v in doc['fault_domain_helper'].values()])},
+        'default_setter': lambda doc:
+            sum([v.get('num_private_agents',  0) for v in doc['fault_domain_helper'].values()])
+            if 'fault_domain_helper' in doc else 0},
     'num_public_agents': {
         'type': 'integer',
         'required': False,
         'min': 0,
         # note: cannot assume nested schema values will be populated with defaults
         #   when the default setter runs
-        'default_setter': lambda doc: sum(
-            [v.get('num_public_agents',  0) for v in doc['fault_domain_helper'].values()])},
+        'default_setter': lambda doc:
+            sum([v.get('num_public_agents',  0) for v in doc['fault_domain_helper'].values()])
+            if 'fault_domain_helper' in doc else 0},
     'num_masters': {
         'type': 'integer',
         'allowed': [1, 3, 5, 7, 9],

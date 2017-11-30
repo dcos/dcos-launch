@@ -37,7 +37,7 @@ _Note_: DC/OS deployed from aws or azure provider do not technically need `ssh_u
 ### Options
 * `key_helper`: generate private SSH keys for the underlying hosts if `true`. In `platform: aws`, this means the user does not have to supply `KeyName` in the template parameters and dcos-launch will fill it in. Similarly, in `platform: azure`, `sshRSAPublicKey` is populated automatically. In the aws case, this key will be deleted from EC2 when the deployment is deleted with dcos-launch
 * `zen_helper`: only to be used with `provider: aws` and zen templates. If `true`, then the network prerequisites for launching a zen cluster will be provided if missing. The resources potentially covered are: Vpc, InternetGateway, PrivateSubnet, and PublicSubnet. As with `key_helper`, these resources will be deleted if dcos-launch is used for destroying the deployment
-* `fault_domain_helper`: only to be used with `provider: onprem`. This option allows defining an abitrary number of named regions by creating a spoofed fault-domain-detect script. Each region can configure the number of private agents, public agents, and sub-zones. Agents are assigned distributed evenly amonst the zones within a region per a given role. E.G. consider this fault domain helper:
+* `fault_domain_helper`: only to be used with `provider: onprem`. This option allows defining an abitrary number of named regions by creating a spoofed fault-domain-detect script. Each region can configure the number of private agents, public agents, and sub-zones. Agents are assigned distributed evenly amongst the zones within a region per a given role (private/public). E.G. consider this fault domain helper:
 ```
 fault_domain_helper:
     USA:
