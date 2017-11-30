@@ -23,6 +23,7 @@ fault_domain_helper:
     USA:
       num_zones: 2
       num_private_agents: 4
+      local: true
     Asia:
       num_public_agents: 1
     Europe:

@@ -37,12 +37,14 @@ _Note_: DC/OS deployed from aws or azure provider do not technically need `ssh_u
 ### Options
 * `key_helper`: generate private SSH keys for the underlying hosts if `true`. In `platform: aws`, this means the user does not have to supply `KeyName` in the template parameters and dcos-launch will fill it in. Similarly, in `platform: azure`, `sshRSAPublicKey` is populated automatically. In the aws case, this key will be deleted from EC2 when the deployment is deleted with dcos-launch
 * `zen_helper`: only to be used with `provider: aws` and zen templates. If `true`, then the network prerequisites for launching a zen cluster will be provided if missing. The resources potentially covered are: Vpc, InternetGateway, PrivateSubnet, and PublicSubnet. As with `key_helper`, these resources will be deleted if dcos-launch is used for destroying the deployment
-* `fault_domain_helper`: only to be used with `provider: onprem`. This option allows defining an abitrary number of named regions by creating a spoofed fault-domain-detect script. Each region can configure the number of private agents, public agents, and sub-zones. Agents are assigned distributed evenly amongst the zones within a region per a given role (private/public). E.G. consider this fault domain helper:
+* `fault_domain_helper`: only to be used with `provider: onprem`. This option allows defining an abitrary number of named regions by creating a spoofed fault-domain-detect script. Each region can configure the number of private agents, public agents, and sub-zones. One region *must* declared with `local: true` to desginate it as the region which will host the masters. Agents are assigned distributed evenly amongst the zones within a region per a given role (master/private/public). E.G. consider this fault domain helper:
 ```
+num_masters: 3
 fault_domain_helper:
     USA:
         num_zones: 2
         num_private_agents: 3
+        local: true
     Germany:
         num_zones: 3
         num_public_agents: 2
@@ -53,9 +55,11 @@ fault_domain_helper:
 will produce the following region/zones:
 ```
 USA-1:
-    private_agents: 2
-USA-2:
+    masters: 2
     private_agents: 1
+USA-2:
+    masters: 1
+    private_agents: 2
 Germany-1:
     public_agents: 1
     private_agents: 1

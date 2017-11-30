@@ -43,6 +43,7 @@ def test_fault_domain_helper(check_cli_success, gcp_onprem_with_fd_helper_config
     # set the onprem cluster to return the correct number of mocked nodes, these names are throw awawy
     mock_private_agent_ips = list((helpers.Host('foo', 'bar') for _ in range(config['num_private_agents'])))
     mock_public_agent_ips = list((helpers.Host('foo', 'bar') for _ in range(config['num_public_agents'])))
+    mock_master_ips = list((helpers.Host('foo', 'bar') for _ in range(config['num_masters'])))
     monkeypatch.setattr(
         dcos_test_utils.onprem.OnpremCluster,
         'get_private_agent_ips',
@@ -51,10 +52,14 @@ def test_fault_domain_helper(check_cli_success, gcp_onprem_with_fd_helper_config
         dcos_test_utils.onprem.OnpremCluster,
         'get_public_agent_ips',
         lambda *args, **kwargs: mock_public_agent_ips)
+    monkeypatch.setattr(
+        dcos_test_utils.onprem.OnpremCluster,
+        'get_master_ips',
+        lambda *args, **kwargs: mock_master_ips)
     # now mock the hostnames that will be returned by the SSH command
-    total_agents = config['num_private_agents'] + config['num_public_agents']
+    total_nodes = config['num_private_agents'] + config['num_public_agents'] + config['num_masters']
     # tail with '\n' to mimic reality
-    hostname_stack = list((s.encode() for s in ('host-' + str(i) + '\n' for i in range(total_agents))))
+    hostname_stack = list((s.encode() for s in ('host-' + str(i) + '\n' for i in range(total_nodes))))
     hostname_list = list(hostname_stack)
     monkeypatch.setattr(
         dcos_test_utils.ssh_client.SshClient,
@@ -76,9 +81,13 @@ def test_fault_domain_helper(check_cli_success, gcp_onprem_with_fd_helper_config
             fd_json = json.loads(fd_out.decode())
             assert 'region' in fd_json['fault_domain']
             assert 'zone' in fd_json['fault_domain']
-            results[fd_json['fault_domain']['region']['name']].append(int(fd_json['fault_domain']['zone']['name']))
+            results[fd_json['fault_domain']['region']['name']].append(fd_json['fault_domain']['zone']['name'])
     for region, info in config['fault_domain_helper'].items():
         # assert there are the correct number of assignments per region
-        assert len(results[region]) == info['num_private_agents'] + info['num_public_agents']
+        if info['local']:
+            assert len(results[region]) == \
+                info['num_private_agents'] + info['num_public_agents'] + config['num_masters']
+        else:
+            assert len(results[region]) == info['num_private_agents'] + info['num_public_agents']
         # assert there are the correct number of zones in the region
-        assert set(range(1, info['num_zones'] + 1)) == set(results[region])
+        assert set([region + '-' + str(i) for i in range(1, info['num_zones'] + 1)]) == set(results[region])

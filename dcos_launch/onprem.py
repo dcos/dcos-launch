@@ -113,6 +113,7 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         cluster = self.get_onprem_cluster()
         public_agents = cluster.get_public_agent_ips()
         private_agents = cluster.get_private_agent_ips()
+        masters = cluster.get_master_ips()
         case_str = ""
         case_template = """
 {hostname})
@@ -123,19 +124,25 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
             z_i = 0  # zones iterator
             z_mod = info['num_zones']  # zones modulo
             zones = list(range(1, z_mod + 1))
+            if info['local']:
+                while len(masters) > 0:
+                    hostname = self.get_ssh_client().command(
+                        masters.pop().public_ip, ['hostname']).decode().strip('\n')
+                    region_zone_map[hostname] = region + '-' + str(zones[z_i % z_mod])
+                    z_i += 1
             for _ in range(info['num_public_agents']):
                 if len(public_agents) > 0:
                     # distribute out the nodes across the zones until we run out
-                    agent = public_agents.pop()
-                    hostname = self.get_ssh_client().command(agent.public_ip, ['hostname']).decode().strip('\n')
-                    region_zone_map[hostname] = str(zones[z_i % z_mod])
+                    hostname = self.get_ssh_client().command(
+                        public_agents.pop().public_ip, ['hostname']).decode().strip('\n')
+                    region_zone_map[hostname] = region + '-' + str(zones[z_i % z_mod])
                     z_i += 1
             for _ in range(info['num_private_agents']):
                 if len(private_agents) > 0:
                     # distribute out the nodes across the zones until we run out
-                    agent = private_agents.pop()
-                    hostname = self.get_ssh_client().command(agent.public_ip, ['hostname']).decode().strip('\n')
-                    region_zone_map[hostname] = str(zones[z_i % z_mod])
+                    hostname = self.get_ssh_client().command(
+                        private_agents.pop().public_ip, ['hostname']).decode().strip('\n')
+                    region_zone_map[hostname] = region + '-' + str(zones[z_i % z_mod])
                     z_i += 1
             # now format the hostname-zone map into a BASH case statement
             for host, zone in region_zone_map.items():

@@ -206,11 +206,14 @@ TEMPLATE_DEPLOY_COMMON_SCHEMA = {
 
 
 def _validate_fault_domain_helper(field, value, error):
-    for fd in value:
-        pass
-
-    if not value.startswith('http'):
-        error(field, 'Not a valid HTTP URL')
+    have_primary_region = False
+    for region, info in value.items():
+        if info['local'] and have_primary_region:
+            error(field, 'Cannot have more than one region with masters!')
+        elif info['local']:
+            have_primary_region = True
+    if not have_primary_region:
+        error(field, 'Must have one region declared with `local: true` (i.e. the master region)')
 
 
 def _get_num_agents(doc: dict, field_name: str):
@@ -295,9 +298,14 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
                 'num_public_agents': {
                     'required': True,
                     'type': 'integer',
-                    'default': 0}
+                    'default': 0},
+                'local': {
+                    'required': True,
+                    'type': 'boolean',
+                    'default': False}
                 }
-            }
+            },
+        'validator': _validate_fault_domain_helper
         }
     }
 
