@@ -70,4 +70,4 @@ Europe-1:
 ```
 
 ### Support
-* `onprem` can only be provisioned via `aws` platform
+* `onprem` can only be provisioned via `aws` and `gcp` platforms
