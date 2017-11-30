@@ -30,10 +30,12 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         return self.get_bare_cluster_launcher().create()
 
     def post_state(self, state):
-        self.get_ssh_client().command(self.bootstrap_host, ['printf', state, '>', STATE_FILE])
+        self.get_ssh_client(user='bootstrap_ssh_user'). \
+            command(self.bootstrap_host, ['printf', state, '>', STATE_FILE])
 
     def get_last_state(self):
-        return self.get_ssh_client().command(self.bootstrap_host, ['cat', STATE_FILE]).decode().strip()
+        return self.get_ssh_client(user='bootstrap_ssh_user'). \
+            command(self.bootstrap_host, ['cat', STATE_FILE]).decode().strip()
 
     def get_bare_cluster_launcher(self):
         if self.config['platform'] == 'aws':
@@ -48,7 +50,8 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
     def get_onprem_cluster(self):
         cluster_launcher = self.get_bare_cluster_launcher()
         return dcos_test_utils.onprem.OnpremCluster.from_hosts(
-            ssh_client=self.get_ssh_client(),
+            # the onprem cluster object only uses the ssh client to talk to BS host
+            ssh_client=self.get_ssh_client(user='bootstrap_ssh_user'),
             bootstrap_host=cluster_launcher.get_bootstrap_host(),
             cluster_hosts=cluster_launcher.get_cluster_hosts(),
             num_masters=int(self.config['num_masters']),
@@ -103,13 +106,19 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         log.info('Waiting for bare cluster provisioning status..')
         self.get_bare_cluster_launcher().wait()
         cluster = self.get_onprem_cluster()
-        log.info('Waiting for SSH connectivity to cluster host...')
-        for host in cluster.hosts:
-            cluster.ssh_client.wait_for_ssh_connection(host.public_ip, self.config['ssh_port'])
-
         self.bootstrap_host = cluster.bootstrap_host.public_ip
+        log.info('Waiting for SSH connectivity to cluster host...')
+        self.get_ssh_client(user='bootstrap_ssh_user').wait_for_ssh_connection(
+            self.bootstrap_host, self.config['ssh_port'])
+        host_ssh_client = self.get_ssh_client()
+        for host in cluster.hosts:
+            # bootstrap host might have a separate SSH user and therefore has
+            # already been checked
+            if host == cluster.bootstrap_host:
+                continue
+            host_ssh_client.wait_for_ssh_connection(host.public_ip, self.config['ssh_port'])
         try:
-            self.get_ssh_client().command(self.bootstrap_host, ['test', '-f', STATE_FILE])
+            self.get_ssh_client(user='bootstrap_ssh_user').command(self.bootstrap_host, ['test', '-f', STATE_FILE])
             last_complete = self.get_last_state()
             log.info('Detected previous launch state, continuing '
                      'from last complete stage ({})'.format(last_complete))

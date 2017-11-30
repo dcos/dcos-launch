@@ -65,8 +65,8 @@ class LauncherError(Exception):
 
 
 class AbstractLauncher(metaclass=abc.ABCMeta):
-    def get_ssh_client(self):
-        return dcos_test_utils.ssh_client.SshClient(self.config['ssh_user'], self.config['ssh_private_key'])
+    def get_ssh_client(self, user='ssh_user'):
+        return dcos_test_utils.ssh_client.SshClient(self.config[user], self.config['ssh_private_key'])
 
     def __init__(self, config: dict, env=None):
         raise NotImplementedError()

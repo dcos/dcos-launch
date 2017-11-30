@@ -290,6 +290,10 @@ AWS_ONPREM_SCHEMA = {
         'type': 'string',
         'required': True,
         'default': '0.0.0.0/0'},
+    'bootstrap_ssh_user': {
+        'required': True,
+        'type': 'string',
+        'default_setter': lambda doc: aws.OS_SSH_INFO[doc['bootstrap_os_name']].user},
     'ssh_user': {
         'required': True,
         'type': 'string',
@@ -343,6 +347,11 @@ GCP_ONPREM_SCHEMA = {
         'type': 'string',
         'required': False,
         'default': 'pd-ssd'},
+    # FIXME: GCP needs to have an os/ssh_user mapping
+    'bootstrap_ssh_user': {
+        'required': True,
+        'type': 'string',
+        'default': 'core'},
     'disable_updates': {
         'type': 'boolean',
         'required': False,
