@@ -216,13 +216,6 @@ def _validate_fault_domain_helper(field, value, error):
         error(field, 'Must have one region declared with `local: true` (i.e. the master region)')
 
 
-def _get_num_agents(doc: dict, field_name: str):
-    total = 0
-    for fd in doc.get('fault_domain_helper', list()):
-        total += fd[field_name]
-    return total
-
-
 ONPREM_DEPLOY_COMMON_SCHEMA = {
     'platform': {
         'type': 'string',
