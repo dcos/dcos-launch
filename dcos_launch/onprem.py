@@ -103,9 +103,11 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         log.debug('Generated cluster configuration: {}'.format(onprem_config))
         return onprem_config
 
-    def _fault_domain_helper(self):
+    def _fault_domain_helper(self) -> str:
         """ Will create a script with cluster hostnames baked in so that
         an arbitary cluster/zone composition can be provided
+        Note: agent count has already been validated by the config module so
+            we can assume everything will be correct here
         """
         region_zone_map = dict()
         cluster = self.get_onprem_cluster()
@@ -125,14 +127,14 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
                 if len(public_agents) > 0:
                     # distribute out the nodes across the zones until we run out
                     agent = public_agents.pop()
-                    hostname = self.get_ssh_client().command(agent.public_ip, ['hostname']).decode()
+                    hostname = self.get_ssh_client().command(agent.public_ip, ['hostname']).decode().strip('\n')
                     region_zone_map[hostname] = str(zones[z_i % z_mod])
                     z_i += 1
             for _ in range(info['num_private_agents']):
                 if len(private_agents) > 0:
                     # distribute out the nodes across the zones until we run out
                     agent = private_agents.pop()
-                    hostname = self.get_ssh_client().command(agent.public_ip, ['hostname']).decode()
+                    hostname = self.get_ssh_client().command(agent.public_ip, ['hostname']).decode().strip('\n')
                     region_zone_map[hostname] = str(zones[z_i % z_mod])
                     z_i += 1
             # now format the hostname-zone map into a BASH case statement

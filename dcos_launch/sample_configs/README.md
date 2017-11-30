@@ -10,6 +10,8 @@ across a variety of provider APIs.
 - [Zen AWS Cloudformation](aws-zen-cf.yaml)
 - [Onprem Install on AWS Bare Cluster](aws-onprem.yaml)
 - [Azure Template Deployment](azure.yaml)
+- [Onprem Installation on Google Cloud Platform](gcp-onprem-with-helper.yaml)
+- [GCP Onprem with fault-domain helper](gcp-onprem-with-fd-helper.yaml)
 
 ## Keywords and Definitions
 ### Required Fields
@@ -24,7 +26,7 @@ across a variety of provider APIs.
 Credentials should be kept secure and as such, they are read exclusively through the environment.
 * AWS: Must set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. Can optionally provide `AWS_REGION` which can be set as `aws_region` in the config.
 * Azure: Must set `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`. Can optionally provide `AZURE_LOCATION` which can be set as `azure_location` in the config
-* GCE: Must set either `GCE_CREDENTIALS` to your JSON service account credentials or `GCE_CREDENTIALS_PATH` to the path of the file containing those JSON credentials.
+* GCP: Must set either `GCE_CREDENTIALS` to your JSON service account credentials or `GOOGLE_APPLICATION_CREDENTIALS` to the path of the file containing those JSON credentials.
 
 ### Conditionally Required Fields
 * `ssh_user`: If `provider: onprem` is used, then the host VM configuration is known to dcos-launch and this value will be calculated. Otherwise, it should always be supplied, and must be supplied for `provider: onprem`
@@ -35,6 +37,37 @@ _Note_: DC/OS deployed from aws or azure provider do not technically need `ssh_u
 ### Options
 * `key_helper`: generate private SSH keys for the underlying hosts if `true`. In `platform: aws`, this means the user does not have to supply `KeyName` in the template parameters and dcos-launch will fill it in. Similarly, in `platform: azure`, `sshRSAPublicKey` is populated automatically. In the aws case, this key will be deleted from EC2 when the deployment is deleted with dcos-launch
 * `zen_helper`: only to be used with `provider: aws` and zen templates. If `true`, then the network prerequisites for launching a zen cluster will be provided if missing. The resources potentially covered are: Vpc, InternetGateway, PrivateSubnet, and PublicSubnet. As with `key_helper`, these resources will be deleted if dcos-launch is used for destroying the deployment
+* `fault_domain_helper`: only to be used with `provider: onprem`. This option allows defining an abitrary number of named regions by creating a spoofed fault-domain-detect script. Each region can configure the number of private agents, public agents, and sub-zones. Agents are assigned distributed evenly amonst the zones within a region per a given role. E.G. consider this fault domain helper:
+```
+fault_domain_helper:
+    USA:
+        num_zones: 2
+        num_private_agents: 3
+    Germany:
+        num_zones: 3
+        num_public_agents: 2
+        num_private_agents: 4
+    Europe:
+        num_private_agents: 1
+```
+will produce the following region/zones:
+```
+USA-1:
+    private_agents: 2
+USA-2:
+    private_agents: 1
+Germany-1:
+    public_agents: 1
+    private_agents: 1
+Germany-2:
+    public_agents: 1
+    private_agents: 1
+Germany-3:
+    public_agents: 0
+    private_agents: 2
+Europe-1:
+    private_agents: 1
+```
 
 ### Support
 * `onprem` can only be provisioned via `aws` platform

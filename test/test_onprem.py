@@ -53,7 +53,8 @@ def test_fault_domain_helper(check_cli_success, gcp_onprem_with_fd_helper_config
         lambda *args, **kwargs: mock_public_agent_ips)
     # now mock the hostnames that will be returned by the SSH command
     total_agents = config['num_private_agents'] + config['num_public_agents']
-    hostname_stack = list((s.encode() for s in ('host-' + str(i) for i in range(total_agents))))
+    # tail with '\n' to mimic reality
+    hostname_stack = list((s.encode() for s in ('host-' + str(i) + '\n' for i in range(total_agents))))
     hostname_list = list(hostname_stack)
     monkeypatch.setattr(
         dcos_test_utils.ssh_client.SshClient,
@@ -67,7 +68,10 @@ def test_fault_domain_helper(check_cli_success, gcp_onprem_with_fd_helper_config
             script_path = tmpdir.join('fault-domain-detect.sh')
             script_path.write(fd_script)
             subprocess.check_call([
-                'sed', '-i', 's/hostname=$(hostname)/hostname={}/g'.format(host.decode()), str(script_path)])
+                # strip \n here as this is hacking the processed script
+                'sed', '-i',
+                's/hostname=$(hostname)/hostname={}/g'.format(host.decode().strip('\n')),
+                str(script_path)])
             fd_out = subprocess.check_output(['bash', str(script_path)])
             fd_json = json.loads(fd_out.decode())
             assert 'region' in fd_json['fault_domain']
