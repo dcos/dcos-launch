@@ -205,6 +205,17 @@ TEMPLATE_DEPLOY_COMMON_SCHEMA = {
         'required': True}}
 
 
+def _validate_fault_domain_helper(field, value, error):
+    have_primary_region = False
+    for region, info in value.items():
+        if info['local'] and have_primary_region:
+            error(field, 'Cannot have more than one region with masters!')
+        elif info['local']:
+            have_primary_region = True
+    if not have_primary_region:
+        error(field, 'Must have one region declared with `local: true` (i.e. the master region)')
+
+
 ONPREM_DEPLOY_COMMON_SCHEMA = {
     'platform': {
         'type': 'string',
@@ -220,12 +231,22 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'default': 9000},
     'num_private_agents': {
         'type': 'integer',
-        'required': True,
-        'min': 0},
+        'required': False,
+        'min': 0,
+        # note: cannot assume nested schema values will be populated with defaults
+        #   when the default setter runs
+        'default_setter': lambda doc:
+            sum([v.get('num_private_agents',  0) for v in doc['fault_domain_helper'].values()])
+            if 'fault_domain_helper' in doc else 0},
     'num_public_agents': {
         'type': 'integer',
-        'required': True,
-        'min': 0},
+        'required': False,
+        'min': 0,
+        # note: cannot assume nested schema values will be populated with defaults
+        #   when the default setter runs
+        'default_setter': lambda doc:
+            sum([v.get('num_public_agents',  0) for v in doc['fault_domain_helper'].values()])
+            if 'fault_domain_helper' in doc else 0},
     'num_masters': {
         'type': 'integer',
         'allowed': [1, 3, 5, 7, 9],
@@ -251,7 +272,35 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
             'public_agent_list': {'readonly': True},
             'fault_domain_script_filename': {
                 'coerce': 'expand_local_path',
-                'excludes': 'fault_domain_script_contents'}}}}
+                'excludes': 'fault_domain_script_contents'}}},
+    'fault_domain_helper': {
+        'type': 'dict',
+        'required': False,
+        'keyschema': {'type': 'string'},
+        'valueschema': {
+            'type': 'dict',
+            'schema': {
+                'num_zones': {
+                    'required': True,
+                    'type': 'integer',
+                    'default': 1},
+                'num_private_agents': {
+                    'required': True,
+                    'type': 'integer',
+                    'default': 0},
+                'num_public_agents': {
+                    'required': True,
+                    'type': 'integer',
+                    'default': 0},
+                'local': {
+                    'required': True,
+                    'type': 'boolean',
+                    'default': False}
+                }
+            },
+        'validator': _validate_fault_domain_helper
+        }
+    }
 
 
 AWS_ONPREM_SCHEMA = {
