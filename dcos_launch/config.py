@@ -351,7 +351,7 @@ GCP_ONPREM_SCHEMA = {
     'bootstrap_ssh_user': {
         'required': True,
         'type': 'string',
-        'default': 'core'},
+        'default_setter': lambda doc: doc['ssh_user']},
     'disable_updates': {
         'type': 'boolean',
         'required': False,
