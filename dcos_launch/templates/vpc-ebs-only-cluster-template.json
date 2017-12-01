@@ -250,7 +250,9 @@
                 "ec2:CopySnapshot",
                 "ec2:DeleteSnapshot",
                 "ec2:DescribeSnapshots",
-                "ec2:DescribeSnapshotAttribute"
+                "ec2:DescribeSnapshotAttribute",
+                "elasticloadbalancing:*",
+                "ec2:Describe*"
               ],
               "Effect": "Allow"
             }
@@ -287,6 +289,11 @@
             "Key" : "Network",
             "Value" : "Public",
             "PropagateAtLaunch" : "true"
+          },
+          {
+            "Key" : "KubernetesCluster",
+            "Value" : "k8s-dev",
+            "PropagateAtLaunch" : "true"
             }
           ]
       }
@@ -315,9 +322,6 @@
         "IamInstanceProfile": {
             "Ref": "BareInstanceProfile"
         },
-        "Tags" : [
-          { "Key" : "KubernetesCluster", "Value" : "k8s-dev" }
-        ],
         "BlockDeviceMappings": [
           {
             "DeviceName": "/dev/sda1",
