@@ -117,6 +117,9 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
             if host == cluster.bootstrap_host:
                 continue
             host_ssh_client.wait_for_ssh_connection(host.public_ip, self.config['ssh_port'])
+        # print the IPs for use in live-debugging the installation
+        log.info('Cluster master IP(s): {}'.format(cluster.masters))
+        log.info('Cluster public agent IP(s): {}'.format(cluster.public_agents))
         try:
             self.get_ssh_client(user='bootstrap_ssh_user').command(self.bootstrap_host, ['test', '-f', STATE_FILE])
             last_complete = self.get_last_state()
