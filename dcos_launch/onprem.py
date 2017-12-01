@@ -120,6 +120,8 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         # print the IPs for use in live-debugging the installation
         log.info('Cluster master IP(s): {}'.format(cluster.masters))
         log.info('Cluster public agent IP(s): {}'.format(cluster.public_agents))
+        log.info('Cluster private agent IP(s): {}'.format(cluster.private_agents))
+        log.info('Clsuter bootstrap IP: {}'.format(cluster.bootstrap_host))
         try:
             self.get_ssh_client(user='bootstrap_ssh_user').command(self.bootstrap_host, ['test', '-f', STATE_FILE])
             last_complete = self.get_last_state()
