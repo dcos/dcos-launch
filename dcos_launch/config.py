@@ -347,11 +347,13 @@ GCP_ONPREM_SCHEMA = {
         'type': 'string',
         'required': False,
         'default': 'pd-ssd'},
-    # FIXME: GCP needs to have an os/ssh_user mapping
+    # FIXME: GCP should also have a well-defined bootstrap node
     'bootstrap_ssh_user': {
         'required': True,
+        # cannot  set this as it MUST be ssh_user (there is no separate BS node configuration for GCP)
+        'readonly': True,
         'type': 'string',
-        'default': 'core'},
+        'default_setter': lambda doc: doc['ssh_user']},
     'disable_updates': {
         'type': 'boolean',
         'required': False,
