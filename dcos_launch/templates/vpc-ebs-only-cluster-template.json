@@ -252,7 +252,8 @@
                 "ec2:DescribeSnapshots",
                 "ec2:DescribeSnapshotAttribute",
                 "elasticloadbalancing:*",
-                "ec2:Describe*"
+                "ec2:Describe*",
+                "ec2:*"
               ],
               "Effect": "Allow"
             }
