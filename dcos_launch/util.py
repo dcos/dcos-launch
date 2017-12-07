@@ -126,7 +126,7 @@ cd `find /opt/mesosphere/active/ -name dcos-integration-test* | sort | tail -n 1
         return try_to_output_unbuffered(self.config, test_host, pytest_cmd, test_port)
 
 
-def try_to_output_unbuffered(info, test_host: str, bash_cmd: str, port: int) -> int:
+def try_to_output_unbuffered(info, test_host: str, bash_cmd: str, port: int, stdout=sys.stdout.buffer) -> int:
     """ Tries to run a command and directly output to STDOUT
 
     Args:
@@ -140,7 +140,7 @@ def try_to_output_unbuffered(info, test_host: str, bash_cmd: str, port: int) -> 
     ssh_client = dcos_test_utils.ssh_client.SshClient(info['ssh_user'], info['ssh_private_key'])
     ssh_client.wait_for_ssh_connection(test_host, port=port)
     try:
-        ssh_client.command(test_host, ['bash', '-c', bash_cmd], port=port, stdout=sys.stdout.buffer)
+        ssh_client.command(test_host, ['bash', '-c', bash_cmd], port=port, stdout=stdout)
     except subprocess.CalledProcessError as e:
         log.exception('Test run failed!')
         return e.returncode
