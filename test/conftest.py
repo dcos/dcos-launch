@@ -44,7 +44,7 @@ def mocked_test_runner(monkeypatch):
 def mock_ssh_client(monkeypatch):
     # monkeypatch.setattr(dcos_test_utils.ssh_client, 'Tunnelled', MockTunnelled)
     monkeypatch.setattr(dcos_test_utils.ssh_client, 'open_tunnel', mocked_context)
-    monkeypatch.setattr(dcos_test_utils.ssh_client.SshClient, 'command', stub(b''))
+    monkeypatch.setattr(dcos_test_utils.ssh_client.SshClient, 'command', stub(b'Hooray, everything worked'))
     monkeypatch.setattr(dcos_test_utils.ssh_client.SshClient, 'get_home_dir', stub(b''))
     # need to nullify platforms.onprem
     monkeypatch.setattr(dcos_launch.platforms.onprem, 'prepare_bootstrap', stub('foo'))
@@ -271,6 +271,13 @@ def check_success(capsys, tmpdir, config_path):
     launcher.wait()
     launcher.describe()
     launcher.test([], {})
+    # check that option to write test output to file works
+    test_log_path = str(tmpdir.join('test_logs.txt'))
+    with open(test_log_path, 'wr') as log_handle:
+        launcher.test([], {}, output=log_handle)
+        logs = log_handle.read()
+        assert logs == 'Hooray, everything worked'
+
     launcher.delete()
 
     info_path = str(tmpdir.join('my_specific_info.json'))  # test non-default name
