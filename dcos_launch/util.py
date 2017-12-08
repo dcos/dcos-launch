@@ -140,7 +140,7 @@ def try_to_output_unbuffered(info, test_host: str, bash_cmd: str, port: int, std
     """
     ssh_client = dcos_test_utils.ssh_client.SshClient(info['ssh_user'], info['ssh_private_key'])
     ssh_client.wait_for_ssh_connection(test_host, port=port)
-    log.info('stdout in try_to_output_unbuffered: {}'.format(stdout))
+    print('stdout in try_to_output_unbuffered: {}'.format(stdout))
     try:
         if stdout is None:
             stdout = sys.stdout.buffer
