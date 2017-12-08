@@ -1,6 +1,5 @@
 import logging
 import os
-import subprocess
 
 import pkg_resources
 import yaml
@@ -8,13 +7,10 @@ import yaml
 import dcos_launch.aws
 import dcos_launch.gcp
 import dcos_launch.util
-import dcos_launch.platforms.aws
-import dcos_test_utils.onprem
-from dcos_test_utils.helpers import Url
+from dcos_launch import platforms
+from dcos_test_utils import onprem, ssh_client
 
 log = logging.getLogger(__name__)
-
-STATE_FILE = 'LAST_COMPLETED_STAGE'
 
 
 class OnpremLauncher(dcos_launch.util.AbstractLauncher):
@@ -29,14 +25,6 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
     def create(self):
         return self.get_bare_cluster_launcher().create()
 
-    def post_state(self, state):
-        self.get_ssh_client(user='bootstrap_ssh_user'). \
-            command(self.bootstrap_host, ['printf', state, '>', STATE_FILE])
-
-    def get_last_state(self):
-        return self.get_ssh_client(user='bootstrap_ssh_user'). \
-            command(self.bootstrap_host, ['cat', STATE_FILE]).decode().strip()
-
     def get_bare_cluster_launcher(self):
         if self.config['platform'] == 'aws':
             return dcos_launch.aws.BareClusterLauncher(self.config, env=self.env)
@@ -49,7 +37,7 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
 
     def get_onprem_cluster(self):
         cluster_launcher = self.get_bare_cluster_launcher()
-        return dcos_test_utils.onprem.OnpremCluster.from_hosts(
+        return onprem.OnpremCluster.from_hosts(
             # the onprem cluster object only uses the ssh client to talk to BS host
             ssh_client=self.get_ssh_client(user='bootstrap_ssh_user'),
             bootstrap_host=cluster_launcher.get_bootstrap_host(),
@@ -58,22 +46,27 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
             num_private_agents=int(self.config['num_private_agents']),
             num_public_agents=int(self.config['num_public_agents']))
 
-    def get_completed_onprem_config(self, cluster: dcos_test_utils.onprem.OnpremCluster) -> dict:
+    def get_completed_onprem_config(self, cluster: onprem.OnpremCluster, bootstrap_ssh_client) -> dict:
         onprem_config = self.config['dcos_config']
+        onprem_config['num_masters'] = self.config['num_masters']
         # First, try and retrieve the agent list from the cluster
-        onprem_config['agent_list'] = [h.private_ip for h in cluster.private_agents]
-        onprem_config['public_agent_list'] = [h.private_ip for h in cluster.public_agents]
-        onprem_config['master_list'] = [h.private_ip for h in cluster.masters]
         # if the user wanted to use exhibitor as the backend, then start it
-        if onprem_config.get('exhibitor_storage_backend') == 'zookeeper':
-            onprem_config['exhibitor_zk_hosts'] = cluster.start_bootstrap_zk()
+        exhibitor_backend = onprem_config.get('exhibitor_storage_backend')
+        if exhibitor_backend == 'zookeeper':
+            zk_service_name = 'dcos-bootstrap-zk'
+            with bootstrap_ssh_client.tunnel(cluster.bootstrap_host.public_ip) as t:
+                if not ssh_client.get_docker_service_status(t, zk_service_name):
+                    ssh_client.start_docker_service(
+                        t,
+                        zk_service_name,
+                        ['--publish=2181:2181', '--publish=2888:2888', '--publish=3888:3888', 'jplock/zookeeper'])
+                onprem_config['exhibitor_zk_hosts'] = cluster.bootstrap_host.private_ip + ':2181'
+        elif exhibitor_backend == 'static':
+            onprem_config['master_list'] = [h.private_ip for h in cluster.masters]
         # if key helper is true then ssh key must be injected, or the key
         # must have been provided as a file and still needs to be injected
         if self.config['key_helper'] or 'ssh_key' not in onprem_config:
             onprem_config['ssh_key'] = self.config['ssh_private_key']
-        # check if ssh user was not provided
-        if 'ssh_user' not in onprem_config:
-            onprem_config['ssh_user'] = self.config['ssh_user']
         # check if the user provided any filenames and convert them into content
         for key_name in ('ip_detect_filename', 'ip_detect_public_filename',
                          'fault_domain_script_filename'):
@@ -100,9 +93,6 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         elif 'fault_domain_helper' in self.config:
             onprem_config['fault_domain_detect_contents'] = yaml.dump(self._fault_domain_helper())
 
-        # For no good reason the installer uses 'ip_detect_script' instead of 'ip_detect_contents'
-        onprem_config['ip_detect_script'] = onprem_config['ip_detect_contents']
-        del onprem_config['ip_detect_contents']
         log.debug('Generated cluster configuration: {}'.format(onprem_config))
         return onprem_config
 
@@ -166,59 +156,16 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
         return bash_script.format(cases=case_str)
 
     def wait(self):
-        log.info('Waiting for bare cluster provisioning status..')
-        self.get_bare_cluster_launcher().wait()
-        cluster = self.get_onprem_cluster()
-        self.bootstrap_host = cluster.bootstrap_host.public_ip
-        log.info('Waiting for SSH connectivity to cluster host...')
-        self.get_ssh_client(user='bootstrap_ssh_user').wait_for_ssh_connection(
-            self.bootstrap_host, self.config['ssh_port'])
-        host_ssh_client = self.get_ssh_client()
-        for host in cluster.hosts:
-            # bootstrap host might have a separate SSH user and therefore has
-            # already been checked
-            if host == cluster.bootstrap_host:
-                continue
-            host_ssh_client.wait_for_ssh_connection(host.public_ip, self.config['ssh_port'])
-        # print the IPs for use in live-debugging the installation
-        log.info('Cluster master IP(s): {}'.format(cluster.masters))
-        log.info('Cluster public agent IP(s): {}'.format(cluster.public_agents))
-        log.info('Cluster private agent IP(s): {}'.format(cluster.private_agents))
-        log.info('Cluster bootstrap IP: {}'.format(cluster.bootstrap_host))
-        try:
-            self.get_ssh_client(user='bootstrap_ssh_user').command(self.bootstrap_host, ['test', '-f', STATE_FILE])
-            last_complete = self.get_last_state()
-            log.info('Detected previous launch state, continuing '
-                     'from last complete stage ({})'.format(last_complete))
-        except subprocess.CalledProcessError:
-            log.info('No installation state file detected; beginning fresh install...')
-            last_complete = None
-
-        if last_complete is None:
-            cluster.setup_installer_server(self.config['installer_url'], False)
-            last_complete = 'SETUP'
-            self.post_state(last_complete)
-
-        installer = dcos_test_utils.onprem.DcosInstallerApiSession(Url(
-            'http', self.bootstrap_host, '', '', '', self.config['installer_port']))
-        if last_complete == 'SETUP':
-            last_complete = 'GENCONF'
-            installer.genconf(self.get_completed_onprem_config(cluster))
-            self.post_state(last_complete)
-        if last_complete == 'GENCONF':
-            installer.preflight()
-            last_complete = 'PREFLIGHT'
-            self.post_state(last_complete)
-        if last_complete == 'PREFLIGHT':
-            installer.deploy()
-            last_complete = 'DEPLOY'
-            self.post_state(last_complete)
-        if last_complete == 'DEPLOY':
-            installer.postflight()
-            last_complete = 'POSTFLIGHT'
-            self.post_state(last_complete)
-        if last_complete != 'POSTFLIGHT':
-            raise dcos_launch.util.LauncherError('InconsistentState', 'State on bootstrap host is: ' + last_complete)
+        cluster = self.get_bare_cluster_launcher()
+        cluster.wait()
+        platforms.onprem.install_dcos(
+            cluster,
+            self.config['installer_url'],
+            self.get_ssh_client(user='bootstrap_ssh_user'),
+            self.get_ssh_client(),
+            self.config['prereqs_script_path'],
+            self.config['onprem_install_parallelism'],
+            self.config['install_logs_enabled'])
 
     def describe(self):
         """ returns host information stored in the config as

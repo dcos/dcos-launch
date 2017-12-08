@@ -1,77 +1,125 @@
-""" Methods for facilitating installation with the onprem installer
-
-    def wait(self):
-        log.info('Waiting for bare cluster provisioning status..')
-        self.get_bare_cluster_launcher().wait()
-        cluster = self.get_onprem_cluster()
-        self.bootstrap_host = cluster.bootstrap_host.public_ip
-        log.info('Waiting for SSH connectivity to cluster host...')
-        self.get_ssh_client(user='bootstrap_ssh_user').wait_for_ssh_connection(
-            self.bootstrap_host, self.config['ssh_port'])
-        host_ssh_client = self.get_ssh_client()
-        for host in cluster.hosts:
-            # bootstrap host might have a separate SSH user and therefore has
-            # already been checked
-            if host == cluster.bootstrap_host:
-                continue
-            host_ssh_client.wait_for_ssh_connection(host.public_ip, self.config['ssh_port'])
-        # print the IPs for use in live-debugging the installation
-        log.info('Cluster master IP(s): {}'.format(cluster.masters))
-        log.info('Cluster public agent IP(s): {}'.format(cluster.public_agents))
-        log.info('Cluster private agent IP(s): {}'.format(cluster.private_agents))
-        log.info('Cluster bootstrap IP: {}'.format(cluster.bootstrap_host))
-        try:
-            self.get_ssh_client(user='bootstrap_ssh_user').command(self.bootstrap_host, ['test', '-f', STATE_FILE])
-            last_complete = self.get_last_state()
-            log.info('Detected previous launch state, continuing '
-                     'from last complete stage ({})'.format(last_complete))
-        except subprocess.CalledProcessError:
-            log.info('No installation state file detected; beginning fresh install...')
-            last_complete = None
-
-        if last_complete is None:
-            cluster.setup_installer_server(self.config['installer_url'], False)
-            last_complete = 'SETUP'
-            self.post_state(last_complete)
-
-        installer = dcos_test_utils.onprem.DcosInstallerApiSession(Url(
-            'http', self.bootstrap_host, '', '', '', self.config['installer_port']))
-        if last_complete == 'SETUP':
-            last_complete = 'GENCONF'
-            installer.genconf(self.get_completed_onprem_config(cluster))
-            self.post_state(last_complete)
-        if last_complete == 'GENCONF':
-            installer.preflight()
-            last_complete = 'PREFLIGHT'
-            self.post_state(last_complete)
-        if last_complete == 'PREFLIGHT':
-            installer.deploy()
-            last_complete = 'DEPLOY'
-            self.post_state(last_complete)
-        if last_complete == 'DEPLOY':
-            installer.postflight()
-            last_complete = 'POSTFLIGHT'
-            self.post_state(last_complete)
-        if last_complete != 'POSTFLIGHT':
-            raise dcos_launch.util.LauncherError('InconsistentState', 'State on bootstrap host is: ' + last_complete)
-
 """
+"""
+import asyncio
 import logging
 import os
 
 import retrying
+import yaml
+
+from dcos_test_utils import helpers, ssh_client
+
+from dcos_launch import util
 
 log = logging.getLogger(__name__)
 
 
-def do_install():
-    """ Procedure:
-    1. Veryify SSH connectivity to all hosts that will be SSHd to
-    2. open a tunnel to bootstrap host
-    3. setup bootstrap host (download installer, optionally start ZK, start nginx)
-    4. for each node type, trigger an installation, logging the output locally (if desired?)
+def get_runner(
+        cluster,
+        node_type: str,
+        ssh: ssh_client.SshClient):
+    targets = [host.public_ip for host in getattr(cluster, node_type)]
+    return ssh_client.MultiRunner(
+        ssh.user,
+        ssh.key,
+        targets)
+
+
+def check_results(results):
+    for result in results:
+        if result['returncode'] != 0:
+            print(result['stderr'])
+    # FIXME: have meaningful error handling
+
+
+@asyncio.coroutine
+def run_in_parallel(*coroutines):
+    """ takes coroutines that return lists of futures and waits upon those
     """
-    pass
+    all_tasks = list()
+    for coroutine in coroutines:
+        sub_tasks = yield from coroutine
+        all_tasks.extend(sub_tasks)
+    yield from asyncio.wait(all_tasks)
+    return [task.result() for task in all_tasks]
+
+
+def install_dcos(
+        cluster,
+        download_url: str,
+        bootstrap_client,
+        node_client,
+        prereqs_script_path: str,
+        parallelism: int,
+        logging_enabled: bool,
+        genconf_dir: str=None):
+    # Check to make sure we can talk to the cluster
+    bootstrap_client.wait_for_ssh_connection(cluster.bootstrap_host.public_ip)
+    for host in cluster.cluster_hosts:
+        node_client.wait_for_ssh_connection(host.public_ip)
+    # do genconf and configure bootstrap if necessary
+    bootstrap_script_url = prepare_bootstrap(
+        bootstrap_client, cluster.bootstrap_host.public_ip, download_url)
+    all_runner = get_runner(cluster, 'cluster_hosts', node_client)
+    # install prereqs if enabled
+    if prereqs_script_path:
+        check_results(all_runner.run_command('run_async', [util.read_file(prereqs_script_path)]))
+    # download install script from boostrap host and run it
+    remote_script_path = '/tmp/install_dcos.sh'
+    do_preflight(all_runner, remote_script_path, bootstrap_script_url)
+    do_deploy(cluster, node_client, parallelism, remote_script_path)
+    do_postflight(all_runner)
+
+
+def prepare_bootstrap(
+        bootstrap_client,
+        bootstrap_host: str,
+        download_url: str,
+        config: dict):
+    """ Will setup a host as a 'bootstrap' host. This includes:
+    * making the genconf/ dir in the bootstrap home dir
+    * downloading dcos_generate_config.sh
+    """
+    with bootstrap_client.tunnel(bootstrap_host) as t:
+        t.command(['mkdir', '-p', 'genconf'])
+        bootstrap_home = t.command(['pwd']).decode().strip()
+        installer_path = os.path.join(bootstrap_home, 'dcos_generate_config.sh')
+        download_dcos_installer(t, installer_path, download_url)
+        return do_genconf(t, config, installer_path)
+
+
+def do_genconf(ssh_tunnel, config: dict, installer_path: str) -> str:
+    """
+    run --genconf with the installer
+    if an nginx is running, kill it
+    start the nginx to host the files
+    return the bootstrap_url
+    """
+    tmp_config = helpers.session_tempfile(yaml.dump(config))
+    installer_dir = os.path.dirname(installer_path)
+    # copy config to genconf/
+    ssh_tunnel.copy_file(tmp_config, os.path.join(installer_dir, 'genconf/config.yaml'))
+    # try --genconf
+    ssh_tunnel.command(['sudo', 'bash', installer_path, '--genconf'])
+    # if OK we just need to restart nginx
+    host_share_path = os.path.join(installer_dir, 'genconf/serve')
+    volume_mount = host_share_path + ':/usr/share/nginx/html'
+    nginx_service_name = 'dcos-bootstrap-nginx'
+    if get_docker_service_status(ssh_tunnel, nginx_service_name):
+        ssh_tunnel.command(['sudo', 'docker', 'rm', '-f', nginx_service_name])
+    start_docker_service(
+        ssh_tunnel,
+        nginx_service_name,
+        ['--publish=80:80', '--volume=' + volume_mount, 'nginx'])
+    bootstrap_host_url = ssh_tunnel.host + ':80'
+    return bootstrap_host_url + '/dcos_install.sh'
+
+
+def curl(download_url, out_path) -> list:
+    """ returns a robust curl command in list form
+    """
+    return ['curl', '-fLsSv', '--retry', '20', '-Y', '100000', '-y', '60',
+            '--create-dirs', '-o', out_path, download_url]
 
 
 @retrying.retry(wait_fixed=3000, stop_max_delay=300 * 1000)
@@ -82,41 +130,86 @@ def download_dcos_installer(ssh_tunnel, installer_path, download_url):
     """
     log.info('Attempting to download installer from: ' + download_url)
     try:
-        ssh_tunnel.command(['curl', '-fLsSv', '--retry', '20', '-Y', '100000', '-y', '60',
-                            '--create-dirs', '-o', installer_path, download_url])
+        ssh_tunnel.command(curl(download_url, installer_path))
     except Exception:
         log.exception('Download failed!')
         raise
 
 
-def setup_bootstrap(ssh_tunnel, zookeeper=False):
-    if zookeeper:
-        check_or_start_docker_service(
-            ssh_tunnel,
-            'dcos-bootstrap-zk',
-            ['--publish=2181:2181', '--publish=2888:2888', '--publish=3888:3888', 'jplock/zookeeper'])
-        zk_host = ssh_tunnel.host + ':2181'
-        assert zk_host
-
-    host_share_path = os.path.join(ssh_tunnel.command(['pwd']).decode().strip(), 'genconf/serve')
-    volume_mount = host_share_path + ':/usr/share/nginx/html'
-    check_or_start_docker_service(
-        ssh_tunnel,
-        'dcos-bootstrap-nginx',
-        ['--publish=80:80', '--volume=' + volume_mount, 'nginx'])
-    bootstrap_host_url = ssh_tunnel.host + ':80'
-    return bootstrap_host_url
+def get_docker_service_status(ssh_tunnel, docker_name: str) -> str:
+    return ssh_tunnel.command(
+        ['sudo', 'docker', 'ps', '-q', '--filter', 'name=' + docker_name,
+         '--filter', 'status=running']).decode().strip()
 
 
-def check_or_start_docker_service(ssh_tunnel, docker_name: str, docker_args: list):
-    """ Checks to see if a given docker service is running on the host
-    host. If not, the service will be started
-    """
-    run_status = ssh_tunnel.command(
-        ['docker', 'ps', '-q', '--filter', 'name=' + docker_name, '--filter', 'status=running']).decode().strip()
-    if run_status != '':
-        log.warn('Using currently running {name} container: {status}'.format(
-            name=docker_name, status=run_status))
-        return
+def start_docker_service(ssh_tunnel, docker_name: str, docker_args: list):
     ssh_tunnel.command(
-        ['docker', 'run', '--name', docker_name, '--detach=true'] + docker_args)
+        ['sudo', 'docker', 'run', '--name', docker_name, '--detach=true'] + docker_args)
+
+
+def do_preflight(runner, remote_script_path, bootstrap_script_url):
+    preflight_script_template = """
+mkdir -p {remote_script_dir}
+{download_cmd}
+sudo bash {remote_script_path} --preflight-only master
+"""
+    preflight_script = preflight_script_template.format(
+        remote_script_dir=os.path.dirname(remote_script_path),
+        download_cmd=' '.join(curl(bootstrap_script_url, remote_script_path)),
+        remote_script_path=remote_script_path)
+    check_results(runner.run_command('run_async', [preflight_script]))
+
+
+def do_deploy(cluster, node_client, parallelism, remote_script_path):
+    # make distinct runners
+    master_runner = get_runner(cluster, 'masters', node_client)
+    private_agent_runner = get_runner(cluster, 'private_agents', node_client)
+    public_agent_runner = get_runner(cluster, 'public_agents', node_client)
+
+    # make shared semaphor or all
+    sem = asyncio.Semaphore(parallelism)
+    master_deploy = master_runner.start_command_on_hosts(
+        'run_async', ['sudo', 'bash', remote_script_path, 'master'], sem=sem)
+    private_agent_deploy = private_agent_runner.start_command_on_hosts(
+        'run_async', ['sudo', 'bash', remote_script_path, 'private_agent'], sem=sem)
+    public_agent_deploy = public_agent_runner.start_command_on_hosts(
+        'run_async', ['sudo', 'bash', remote_script_path, 'public_agent'], sem=sem)
+    loop = asyncio.new_event_loop()
+    try:
+        asyncio.set_event_loop(loop)
+        results = loop.run_until_complete(
+                run_in_parallel(master_deploy, private_agent_deploy, public_agent_deploy))
+    finally:
+        loop.close()
+    check_results(results)
+
+
+def do_postflight(runner):
+    postflight_script = """
+if [ -f /opt/mesosphere/etc/dcos-diagnostics-runner-config.json ]; then
+    for check_type in node-poststart cluster; do
+        T=900
+        until OUT=$(sudo /opt/mesosphere/bin/dcos-shell /opt/mesosphere/bin/3dt check $check_type) || [[ T -eq 0 ]]; do
+            sleep 1
+            let T=T-1
+        done
+        RETCODE=$?
+        echo $OUT
+        if [[ RETCODE -ne 0 ]]; then
+            exit $RETCODE
+        fi
+    done
+else
+    T=900
+    until OUT=$(sudo /opt/mesosphere/bin/./3dt --diag) || [[ T -eq 0 ]]; do
+        sleep 1
+        let T=T-1
+    done
+    RETCODE=$?
+    for value in $OUT; do
+        echo $value
+    done
+fi
+exit $RETCODE
+"""
+    check_results(runner.run_command('run_async', [postflight_script]))
