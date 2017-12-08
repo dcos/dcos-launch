@@ -9,10 +9,22 @@ import dcos_launch
 import dcos_launch.cli
 import dcos_launch.config
 import dcos_launch.onprem
+import dcos_launch.platforms
 import dcos_test_utils
 import dcos_test_utils.ssh_client
 from dcos_launch.util import get_temp_config_path, stub
 from dcos_test_utils.helpers import Host
+
+
+class MockTunnelled:
+    def __init__(self, base_cmd: list, target: str):
+        pass
+
+    def command(self, cmd, **kwargs):
+        return b''
+
+    def copy_file(self, src, dst):
+        pass
 
 
 @contextmanager
@@ -20,7 +32,7 @@ def mocked_context(*args, **kwargs):
     """ To be directly patched into an ssh.tunnel invocation to prevent
     any real SSH attempt
     """
-    yield type('Tunnelled', (object,), {})
+    yield MockTunnelled(list(), 'foo')
 
 
 @pytest.fixture
@@ -30,9 +42,13 @@ def mocked_test_runner(monkeypatch):
 
 @pytest.fixture
 def mock_ssh_client(monkeypatch):
+    # monkeypatch.setattr(dcos_test_utils.ssh_client, 'Tunnelled', MockTunnelled)
     monkeypatch.setattr(dcos_test_utils.ssh_client, 'open_tunnel', mocked_context)
     monkeypatch.setattr(dcos_test_utils.ssh_client.SshClient, 'command', stub(b''))
     monkeypatch.setattr(dcos_test_utils.ssh_client.SshClient, 'get_home_dir', stub(b''))
+    # need to nullify platforms.onprem
+    monkeypatch.setattr(dcos_launch.platforms.onprem, 'prepare_bootstrap', stub('foo'))
+    monkeypatch.setattr(dcos_launch.platforms.onprem, 'install_dcos', stub(None))
 
 
 @pytest.fixture
@@ -149,7 +165,7 @@ def mocked_azure(monkeypatch, mocked_test_runner):
 
 
 @pytest.fixture
-def mocked_gcp(monkeypatch):
+def mocked_gcp(monkeypatch, mock_ssh_client):
     monkeypatch.setenv('GCE_CREDENTIALS', '{"project_id":"foobar"}')
     monkeypatch.setenv('GCE_ZONE', 'us-west1-a')
     monkeypatch.setattr(dcos_launch.platforms.gcp.GcpWrapper, '__init__', MockGceWrapper.__init__)
@@ -166,7 +182,7 @@ def mocked_gcp(monkeypatch):
 
 
 @pytest.fixture
-def mocked_aws_cfstack_bare_cluster(monkeypatch):
+def mocked_aws_cfstack_bare_cluster(monkeypatch, mock_ssh_client, mocked_aws_cf):
     monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, '__init__', stub(None))
     monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, 'delete', stub(None))
     monkeypatch.setattr(

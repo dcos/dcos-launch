@@ -59,8 +59,7 @@ def install_dcos(
         node_client: ssh_client.SshClient,
         prereqs_script_path: str,
         bootstrap_script_url: str,
-        parallelism: int,
-        config: dict):
+        parallelism: int):
     """ TODO: add ability to copy entire genconf/ dir
     """
     # Check to make sure we can talk to the cluster
@@ -117,7 +116,6 @@ def do_genconf(
         ssh_tunnel,
         nginx_service_name,
         ['--publish=80:80', '--volume=' + volume_mount, 'nginx'])
-    return ssh_tunnel.host + ':80/dcos_install.sh'
 
 
 def curl(download_url: str, out_path: str) -> list:

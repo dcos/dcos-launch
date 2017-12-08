@@ -4,33 +4,31 @@ import os
 import pkg_resources
 import yaml
 
-import dcos_launch.aws
-import dcos_launch.gcp
-import dcos_launch.util
-from dcos_launch import platforms
-from dcos_test_utils import onprem, ssh_client
+from dcos_launch import aws, gcp, util
+from dcos_launch.platforms import onprem as platforms_onprem
+from dcos_test_utils import onprem
 
 log = logging.getLogger(__name__)
 
 
-class OnpremLauncher(dcos_launch.util.AbstractLauncher):
+class OnpremLauncher(util.AbstractLauncher):
     def __init__(self, config, env=None):
         self.config = config
         if env is None:
             env = os.environ.copy()
         self.env = env
-        self.bootstrap_client = self.get_ssh_client(user='bootstrap_ssh_user')
+        self.bootstrap_ssh_client = self.get_ssh_client(user='bootstrap_ssh_user')
 
     def create(self):
         return self.get_bare_cluster_launcher().create()
 
     def get_bare_cluster_launcher(self):
         if self.config['platform'] == 'aws':
-            return dcos_launch.aws.BareClusterLauncher(self.config, env=self.env)
+            return aws.BareClusterLauncher(self.config, env=self.env)
         elif self.config['platform'] == 'gcp':
-            return dcos_launch.gcp.BareClusterLauncher(self.config, env=self.env)
+            return gcp.BareClusterLauncher(self.config, env=self.env)
         else:
-            raise dcos_launch.util.LauncherError(
+            raise util.LauncherError(
                 'PlatformNotSupported',
                 'Platform currently not supported for onprem: {}'.format(self.config['platform']))
 
@@ -62,8 +60,8 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
         if exhibitor_backend == 'zookeeper' and 'exhibitor_zk_hosts' not in onprem_config:
             zk_service_name = 'dcos-bootstrap-zk'
             with self.bootstrap_ssh_client.tunnel(cluster.bootstrap_host.public_ip) as t:
-                if not ssh_client.get_docker_service_status(t, zk_service_name):
-                    ssh_client.start_docker_service(
+                if not platforms_onprem.get_docker_service_status(t, zk_service_name):
+                    platforms_onprem.start_docker_service(
                         t,
                         zk_service_name,
                         ['--publish=2181:2181', '--publish=2888:2888', '--publish=3888:3888', 'jplock/zookeeper'])
@@ -78,9 +76,9 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
                 continue
             new_key_name = key_name.replace('_filename', '_contents')
             if new_key_name in onprem_config:
-                raise dcos_launch.util.LauncherError(
+                raise util.LauncherError(
                     'InvalidDcosConfig', 'Cannot set *_filename and *_contents simultaneously!')
-            onprem_config[new_key_name] = dcos_launch.util.read_file(onprem_config[key_name])
+            onprem_config[new_key_name] = util.read_file(onprem_config[key_name])
             del onprem_config[key_name]
 
         # Check for ip-detect configuration and inject defaults if not present
@@ -164,21 +162,20 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
         return bash_script.format(cases=case_str)
 
     def wait(self):
-        cluster = self.get_bare_cluster_launcher()
-        cluster.wait()
+        self.get_bare_cluster_launcher().wait()
+        cluster = self.get_onprem_cluster()
         bootstrap_host = cluster.bootstrap_host.public_ip
-        self.bootstrap_client.wait_for_ssh_connection(bootstrap_host)
-        with self.bootstrap_client.tunnel(bootstrap_host) as t:
-            installer_path = platforms.onprem.prepare_bootstrap(t, self.config['installer_url'])
-            bootstrap_script_url = platforms.onprem.do_genconf(self.get_completed_onprem_config(), installer_path)
-        platforms.onprem.install_dcos(
+        self.bootstrap_ssh_client.wait_for_ssh_connection(bootstrap_host)
+        with self.bootstrap_ssh_client.tunnel(bootstrap_host) as t:
+            installer_path = platforms_onprem.prepare_bootstrap(t, self.config['installer_url'])
+            complete_config = self.get_completed_onprem_config()
+            platforms_onprem.do_genconf(t, complete_config, installer_path)
+        platforms_onprem.install_dcos(
             cluster,
-            self.config['installer_url'],
             self.get_ssh_client(),
-            self.config['prereqs_script_path'],
-            bootstrap_script_url,
-            self.config['onprem_install_parallelism'],
-            self.config['install_logs_enabled'])
+            util.read_file(self.config['prereqs_script_filename']) if self.config['install_prereqs'] else None,
+            complete_config['bootstrap_url'] + ':80/dcos_install.sh',
+            self.config['onprem_install_parallelism'])
 
     def describe(self):
         """ returns host information stored in the config as
@@ -186,10 +183,10 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
         """
         cluster = self.get_onprem_cluster()
         return {
-            'bootstrap_host': dcos_launch.util.convert_host_list([cluster.bootstrap_host])[0],
-            'masters': dcos_launch.util.convert_host_list(cluster.get_master_ips()),
-            'private_agents': dcos_launch.util.convert_host_list(cluster.get_private_agent_ips()),
-            'public_agents': dcos_launch.util.convert_host_list(cluster.get_public_agent_ips())}
+            'bootstrap_host': util.convert_host_list([cluster.bootstrap_host])[0],
+            'masters': util.convert_host_list(cluster.get_master_ips()),
+            'private_agents': util.convert_host_list(cluster.get_private_agent_ips()),
+            'public_agents': util.convert_host_list(cluster.get_public_agent_ips())}
 
     def delete(self):
         """ just deletes the hardware

@@ -1,6 +1,9 @@
+""" Module for defining and validating user-provided configuration
+"""
 import os
 
 import cerberus
+import pkg_resources
 import yaml
 
 from dcos_launch import util
@@ -272,7 +275,10 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
             'public_agent_list': {'readonly': True},
             'fault_domain_script_filename': {
                 'coerce': 'expand_local_path',
-                'excludes': 'fault_domain_script_contents'}}},
+                'excludes': 'fault_domain_script_contents'
+            }
+        }
+    },
     'fault_domain_helper': {
         'type': 'dict',
         'required': False,
@@ -299,8 +305,23 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
                 }
             },
         'validator': _validate_fault_domain_helper
-        }
+    },
+    'prereqs_script_filename': {
+        'coerce': 'expand_local_path',
+        'required': False,
+        'default': pkg_resources.resource_filename('dcos_launch', 'scripts/install_prereqs.sh')
+    },
+    'install_prereqs': {
+        'type': 'boolean',
+        'required': False,
+        'default': False
+    },
+    'onprem_install_parallelism': {
+        'type': 'integer',
+        'required': False,
+        'default': 10
     }
+}
 
 
 AWS_ONPREM_SCHEMA = {
