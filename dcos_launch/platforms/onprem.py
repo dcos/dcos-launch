@@ -1,4 +1,4 @@
-"""
+""" Tools for facilitating onprem deployments
 """
 import asyncio
 import logging
@@ -7,7 +7,7 @@ import os
 import retrying
 import yaml
 
-from dcos_test_utils import helpers, ssh_client
+from dcos_test_utils import helpers, onprem, ssh_client
 
 from dcos_launch import util
 
@@ -15,26 +15,36 @@ log = logging.getLogger(__name__)
 
 
 def get_runner(
-        cluster,
+        cluster: onprem.OnpremCluster,
         node_type: str,
-        ssh: ssh_client.SshClient):
-    targets = [host.public_ip for host in getattr(cluster, node_type)]
+        ssh: ssh_client.SshClient) -> ssh_client.MultiRunner:
+    """ Returns a multi runner for a given Host generator property of cluster
+    """
     return ssh_client.MultiRunner(
         ssh.user,
         ssh.key,
-        targets)
+        [host.public_ip for host in getattr(cluster, node_type)])
 
 
-def check_results(results):
+def check_results(results: list):
+    """ loops through result dict list and will print the stderr and raise an exception
+    for any nonzero return code
+    """
+    failed = False
     for result in results:
         if result['returncode'] != 0:
             print(result['stderr'])
+            failed = True
     # FIXME: have meaningful error handling
+    if failed:
+        raise Exception('The following results contained an error: {}'.format(str(results)))
 
 
 @asyncio.coroutine
-def run_in_parallel(*coroutines):
+def run_in_parallel(*coroutines) -> list:
     """ takes coroutines that return lists of futures and waits upon those
+    coroutines must be invocations of MultiRunner.start_command_on_hosts
+    returns a list of result dicts
     """
     all_tasks = list()
     for coroutine in coroutines:
@@ -45,21 +55,18 @@ def run_in_parallel(*coroutines):
 
 
 def install_dcos(
-        cluster,
-        download_url: str,
-        bootstrap_client,
-        node_client,
+        cluster: onprem.OnpremCluster,
+        node_client: ssh_client.SshClient,
         prereqs_script_path: str,
+        bootstrap_script_url: str,
         parallelism: int,
-        logging_enabled: bool,
-        genconf_dir: str=None):
+        config: dict):
+    """ TODO: add ability to copy entire genconf/ dir
+    """
     # Check to make sure we can talk to the cluster
-    bootstrap_client.wait_for_ssh_connection(cluster.bootstrap_host.public_ip)
     for host in cluster.cluster_hosts:
         node_client.wait_for_ssh_connection(host.public_ip)
     # do genconf and configure bootstrap if necessary
-    bootstrap_script_url = prepare_bootstrap(
-        bootstrap_client, cluster.bootstrap_host.public_ip, download_url)
     all_runner = get_runner(cluster, 'cluster_hosts', node_client)
     # install prereqs if enabled
     if prereqs_script_path:
@@ -72,28 +79,27 @@ def install_dcos(
 
 
 def prepare_bootstrap(
-        bootstrap_client,
-        bootstrap_host: str,
-        download_url: str,
-        config: dict):
+        ssh_tunnel: ssh_client.Tunnelled,
+        download_url: str) -> str:
     """ Will setup a host as a 'bootstrap' host. This includes:
     * making the genconf/ dir in the bootstrap home dir
     * downloading dcos_generate_config.sh
+    will return the installer path on the bootstrap host
     """
-    with bootstrap_client.tunnel(bootstrap_host) as t:
-        t.command(['mkdir', '-p', 'genconf'])
-        bootstrap_home = t.command(['pwd']).decode().strip()
-        installer_path = os.path.join(bootstrap_home, 'dcos_generate_config.sh')
-        download_dcos_installer(t, installer_path, download_url)
-        return do_genconf(t, config, installer_path)
+    ssh_tunnel.command(['mkdir', '-p', 'genconf'])
+    bootstrap_home = ssh_tunnel.command(['pwd']).decode().strip()
+    installer_path = os.path.join(bootstrap_home, 'dcos_generate_config.sh')
+    download_dcos_installer(ssh_tunnel, installer_path, download_url)
+    return installer_path
 
 
-def do_genconf(ssh_tunnel, config: dict, installer_path: str) -> str:
-    """
-    run --genconf with the installer
-    if an nginx is running, kill it
-    start the nginx to host the files
-    return the bootstrap_url
+def do_genconf(
+        ssh_tunnel: ssh_client.Tunnelled,
+        config: dict,
+        installer_path: str) -> str:
+    """ runs --genconf with the installer
+    if an nginx is running, kill it and restart the nginx to host the files
+    return the bootstrap script URL for this genconf
     """
     tmp_config = helpers.session_tempfile(yaml.dump(config))
     installer_dir = os.path.dirname(installer_path)
@@ -111,11 +117,10 @@ def do_genconf(ssh_tunnel, config: dict, installer_path: str) -> str:
         ssh_tunnel,
         nginx_service_name,
         ['--publish=80:80', '--volume=' + volume_mount, 'nginx'])
-    bootstrap_host_url = ssh_tunnel.host + ':80'
-    return bootstrap_host_url + '/dcos_install.sh'
+    return ssh_tunnel.host + ':80/dcos_install.sh'
 
 
-def curl(download_url, out_path) -> list:
+def curl(download_url: str, out_path: str) -> list:
     """ returns a robust curl command in list form
     """
     return ['curl', '-fLsSv', '--retry', '20', '-Y', '100000', '-y', '60',
@@ -123,7 +128,7 @@ def curl(download_url, out_path) -> list:
 
 
 @retrying.retry(wait_fixed=3000, stop_max_delay=300 * 1000)
-def download_dcos_installer(ssh_tunnel, installer_path, download_url):
+def download_dcos_installer(ssh_tunnel: ssh_client.Tunnelled, installer_path: str, download_url: str):
     """Response status 403 is fatal for curl's retry. Additionally, S3 buckets
     have been returning 403 for valid uploads for 10-15 minutes after CI finished build
     Therefore, give a five minute buffer to help stabilize CI
@@ -136,18 +141,22 @@ def download_dcos_installer(ssh_tunnel, installer_path, download_url):
         raise
 
 
-def get_docker_service_status(ssh_tunnel, docker_name: str) -> str:
+def get_docker_service_status(ssh_tunnel: ssh_client.Tunnelled, docker_name: str) -> str:
     return ssh_tunnel.command(
         ['sudo', 'docker', 'ps', '-q', '--filter', 'name=' + docker_name,
          '--filter', 'status=running']).decode().strip()
 
 
-def start_docker_service(ssh_tunnel, docker_name: str, docker_args: list):
+def start_docker_service(ssh_tunnel: ssh_client.Tunnelled, docker_name: str, docker_args: list):
     ssh_tunnel.command(
         ['sudo', 'docker', 'run', '--name', docker_name, '--detach=true'] + docker_args)
 
 
-def do_preflight(runner, remote_script_path, bootstrap_script_url):
+def do_preflight(runner: ssh_client.MultiRunner, remote_script_path: str, bootstrap_script_url: str):
+    """ Runs preflight instructions against runner
+    remote_script_path: where the install script should be downloaded to on the remote host
+    bootstrap_script_url: the URL where the install script will be pulled from
+    """
     preflight_script_template = """
 mkdir -p {remote_script_dir}
 {download_cmd}
@@ -160,7 +169,14 @@ sudo bash {remote_script_path} --preflight-only master
     check_results(runner.run_command('run_async', [preflight_script]))
 
 
-def do_deploy(cluster, node_client, parallelism, remote_script_path):
+def do_deploy(
+        cluster: onprem.OnpremCluster,
+        node_client: ssh_client.SshClient,
+        parallelism: int,
+        remote_script_path: str):
+    """ Creates a separate runner for each agent command and runs them asynchronously
+    based on the chosen parallelism
+    """
     # make distinct runners
     master_runner = get_runner(cluster, 'masters', node_client)
     private_agent_runner = get_runner(cluster, 'private_agents', node_client)
@@ -184,7 +200,9 @@ def do_deploy(cluster, node_client, parallelism, remote_script_path):
     check_results(results)
 
 
-def do_postflight(runner):
+def do_postflight(runner: ssh_client.MultiRunner):
+    """ Runs a script that will check if DC/OS is operational without needing to authenticate
+    """
     postflight_script = """
 if [ -f /opt/mesosphere/etc/dcos-diagnostics-runner-config.json ]; then
     for check_type in node-poststart cluster; do

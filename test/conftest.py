@@ -165,44 +165,8 @@ def mocked_gcp(monkeypatch):
     monkeypatch.setattr(dcos_launch.gcp.BareClusterLauncher, 'get_bootstrap_host', lambda self: mock_pub_priv_host)
 
 
-class MockInstaller(dcos_test_utils.onprem.DcosInstallerApiSession):
-    """Simple object to make sure the installer API is invoked
-    in the correct order
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.genconf_called = False
-        self.preflight_called = False
-        self.deploy_called = False
-
-    def genconf(self, config):
-        self.genconf_called = True
-
-    def preflight(self):
-        assert self.genconf_called is True
-        self.preflight_called = True
-
-    def deploy(self):
-        assert self.genconf_called is True
-        assert self.preflight_called is True
-        self.deploy_called = True
-
-    def postflight(self):
-        assert self.genconf_called is True
-        assert self.preflight_called is True
-        assert self.deploy_called is True
-
-
 @pytest.fixture
-def mock_bare_cluster_hosts(monkeypatch, mocked_aws_cf, mocked_test_runner, mock_ssh_client):
-    monkeypatch.setattr(dcos_test_utils.onprem.OnpremCluster, 'setup_installer_server', stub(None))
-    monkeypatch.setattr(dcos_test_utils.onprem.OnpremCluster, 'start_bootstrap_zk', stub(None))
-    monkeypatch.setattr(dcos_test_utils.onprem, 'DcosInstallerApiSession', MockInstaller)
-    monkeypatch.setattr(dcos_launch.onprem.OnpremLauncher, 'get_last_state', stub(None))
-
-
-@pytest.fixture
-def mocked_aws_cfstack_bare_cluster(monkeypatch, mock_bare_cluster_hosts):
+def mocked_aws_cfstack_bare_cluster(monkeypatch):
     monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, '__init__', stub(None))
     monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, 'delete', stub(None))
     monkeypatch.setattr(
@@ -255,18 +219,18 @@ def aws_onprem_with_helper_config_path(tmpdir, mocked_aws_cfstack_bare_cluster):
 
 
 @pytest.fixture
-def gcp_onprem_config_path(tmpdir, ssh_key_path, mock_bare_cluster_hosts, mocked_gcp):
+def gcp_onprem_config_path(tmpdir, ssh_key_path, mocked_gcp):
     return get_temp_config_path(tmpdir, 'gcp-onprem.yaml', update={
         'ssh_private_key_filename': ssh_key_path})
 
 
 @pytest.fixture
-def gcp_onprem_with_helper_config_path(tmpdir, mock_bare_cluster_hosts, mocked_gcp):
+def gcp_onprem_with_helper_config_path(tmpdir, mocked_gcp):
     return get_temp_config_path(tmpdir, 'gcp-onprem-with-helper.yaml')
 
 
 @pytest.fixture
-def gcp_onprem_with_fd_helper_config_path(tmpdir, mock_bare_cluster_hosts, mocked_gcp):
+def gcp_onprem_with_fd_helper_config_path(tmpdir, mocked_gcp):
     return get_temp_config_path(tmpdir, 'gcp-onprem-with-fd-helper.yaml')
 
 

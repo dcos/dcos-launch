@@ -15,12 +15,11 @@ log = logging.getLogger(__name__)
 
 class OnpremLauncher(dcos_launch.util.AbstractLauncher):
     def __init__(self, config, env=None):
-        # can only be set during the wait command
-        self.bootstrap_host = None
         self.config = config
         if env is None:
             env = os.environ.copy()
         self.env = env
+        self.bootstrap_client = self.get_ssh_client(user='bootstrap_ssh_user')
 
     def create(self):
         return self.get_bare_cluster_launcher().create()
@@ -38,35 +37,40 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
     def get_onprem_cluster(self):
         cluster_launcher = self.get_bare_cluster_launcher()
         return onprem.OnpremCluster.from_hosts(
-            # the onprem cluster object only uses the ssh client to talk to BS host
-            ssh_client=self.get_ssh_client(user='bootstrap_ssh_user'),
             bootstrap_host=cluster_launcher.get_bootstrap_host(),
             cluster_hosts=cluster_launcher.get_cluster_hosts(),
             num_masters=int(self.config['num_masters']),
             num_private_agents=int(self.config['num_private_agents']),
             num_public_agents=int(self.config['num_public_agents']))
 
-    def get_completed_onprem_config(self, cluster: onprem.OnpremCluster, bootstrap_ssh_client) -> dict:
+    def get_completed_onprem_config(self) -> dict:
+        """ Will fill in the necessary and/or recommended sections of the config file, including:
+        * starting a ZK backend if left undefined
+        * filling in the master_list for a static exhibitor backend
+        * adding ip-detect script
+        * adding ip-detect-public script
+        * adding fault domain real or logical script
+        """
+        cluster = self.get_onprem_cluster()
         onprem_config = self.config['dcos_config']
+        # This is always required in the config and the user will not repeat it
+        onprem_config['bootstrap_url'] = cluster.bootstrap_host.private_ip
         onprem_config['num_masters'] = self.config['num_masters']
         # First, try and retrieve the agent list from the cluster
         # if the user wanted to use exhibitor as the backend, then start it
         exhibitor_backend = onprem_config.get('exhibitor_storage_backend')
-        if exhibitor_backend == 'zookeeper':
+        if exhibitor_backend == 'zookeeper' and 'exhibitor_zk_hosts' not in onprem_config:
             zk_service_name = 'dcos-bootstrap-zk'
-            with bootstrap_ssh_client.tunnel(cluster.bootstrap_host.public_ip) as t:
+            with self.bootstrap_ssh_client.tunnel(cluster.bootstrap_host.public_ip) as t:
                 if not ssh_client.get_docker_service_status(t, zk_service_name):
                     ssh_client.start_docker_service(
                         t,
                         zk_service_name,
                         ['--publish=2181:2181', '--publish=2888:2888', '--publish=3888:3888', 'jplock/zookeeper'])
-                onprem_config['exhibitor_zk_hosts'] = cluster.bootstrap_host.private_ip + ':2181'
-        elif exhibitor_backend == 'static':
+            onprem_config['exhibitor_zk_hosts'] = cluster.bootstrap_host.private_ip + ':2181'
+        elif exhibitor_backend == 'static' and 'master_list' not in onprem_config:
             onprem_config['master_list'] = [h.private_ip for h in cluster.masters]
-        # if key helper is true then ssh key must be injected, or the key
-        # must have been provided as a file and still needs to be injected
-        if self.config['key_helper'] or 'ssh_key' not in onprem_config:
-            onprem_config['ssh_key'] = self.config['ssh_private_key']
+
         # check if the user provided any filenames and convert them into content
         for key_name in ('ip_detect_filename', 'ip_detect_public_filename',
                          'fault_domain_script_filename'):
@@ -78,6 +82,8 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
                     'InvalidDcosConfig', 'Cannot set *_filename and *_contents simultaneously!')
             onprem_config[new_key_name] = dcos_launch.util.read_file(onprem_config[key_name])
             del onprem_config[key_name]
+
+        # Check for ip-detect configuration and inject defaults if not present
         # set the simple default IP detect script if not provided
         if 'ip_detect_contents' not in onprem_config:
             onprem_config['ip_detect_contents'] = pkg_resources.resource_string(
@@ -86,7 +92,9 @@ class OnpremLauncher(dcos_launch.util.AbstractLauncher):
             # despite being almost identical aws_public.sh will crash the installer if not safely dumped
             onprem_config['ip_detect_public_contents'] = yaml.dump(pkg_resources.resource_string(
                 'dcos_launch', 'ip-detect/{}_public.sh'.format(self.config['platform'])).decode())
-        # set the fault domain scipt
+
+        # check for fault_domain script or either use the helper to inject a logical script
+        # or use a sensible default for the platform
         if 'fault_domain_detect_contents' not in onprem_config and 'fault_domain_helper' not in self.config:
             onprem_config['fault_domain_detect_contents'] = yaml.dump(pkg_resources.resource_string(
                 'dcos_launch', 'fault-domain-detect/{}.sh'.format(self.config['platform'])).decode())
@@ -158,12 +166,17 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
     def wait(self):
         cluster = self.get_bare_cluster_launcher()
         cluster.wait()
+        bootstrap_host = cluster.bootstrap_host.public_ip
+        self.bootstrap_client.wait_for_ssh_connection(bootstrap_host)
+        with self.bootstrap_client.tunnel(bootstrap_host) as t:
+            installer_path = platforms.onprem.prepare_bootstrap(t, self.config['installer_url'])
+            bootstrap_script_url = platforms.onprem.do_genconf(self.get_completed_onprem_config(), installer_path)
         platforms.onprem.install_dcos(
             cluster,
             self.config['installer_url'],
-            self.get_ssh_client(user='bootstrap_ssh_user'),
             self.get_ssh_client(),
             self.config['prereqs_script_path'],
+            bootstrap_script_url,
             self.config['onprem_install_parallelism'],
             self.config['install_logs_enabled'])
 
