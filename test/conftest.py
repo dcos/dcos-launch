@@ -274,7 +274,7 @@ def check_success(capsys, tmpdir, config_path):
     # check that option to write test output to file works
     test_log_path = str(tmpdir.join('test_logs.txt'))
     with open(test_log_path, 'w') as log_handle:
-        launcher.test([], {}, output=log_handle)
+        launcher.test(['-s', '-vv'], {}, output=log_handle)
     with open(test_log_path, 'r') as log_handle:
         assert log_handle.read() == 'Hooray, everything worked'
 
