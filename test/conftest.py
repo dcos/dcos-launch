@@ -37,15 +37,14 @@ def mocked_context(*args, **kwargs):
 
 @pytest.fixture
 def mocked_test_runner(monkeypatch):
-    monkeypatch.setattr(dcos_test_utils.ssh_client.SshClient, 'command', stub(b'Hooray, everything worked'))
-    # monkeypatch.setattr(dcos_launch.util, 'try_to_output_unbuffered', stub(0))
+    monkeypatch.setattr(dcos_launch.util, 'try_to_output_unbuffered', stub(0))
 
 
 @pytest.fixture
 def mock_ssh_client(monkeypatch):
     # monkeypatch.setattr(dcos_test_utils.ssh_client, 'Tunnelled', MockTunnelled)
     monkeypatch.setattr(dcos_test_utils.ssh_client, 'open_tunnel', mocked_context)
-    monkeypatch.setattr(dcos_test_utils.ssh_client.SshClient, 'command', stub(b''))
+    monkeypatch.setattr(dcos_test_utils.ssh_client.SshClient, 'command', stub(b'Hooray, everything worked'))
     monkeypatch.setattr(dcos_test_utils.ssh_client.SshClient, 'get_home_dir', stub(b''))
     # need to nullify platforms.onprem
     monkeypatch.setattr(dcos_launch.platforms.onprem, 'prepare_bootstrap', stub('foo'))
