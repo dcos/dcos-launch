@@ -93,7 +93,8 @@ def install_dcos(
     # install prereqs if enabled
     if prereqs_script_path:
         log.info('Installing prerequisites on cluster hosts')
-        check_results(all_runner.run_command('run_async', [util.read_file(prereqs_script_path)]))
+        check_results(
+            all_runner.run_command('run_async', [util.read_file(prereqs_script_path)]), node_client, 'install_prereqs')
     # download install script from boostrap host and run it
     remote_script_path = '/tmp/install_dcos.sh'
     log.info('Starting preflight')

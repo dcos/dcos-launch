@@ -173,7 +173,7 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
         platforms_onprem.install_dcos(
             cluster,
             self.get_ssh_client(),
-            util.read_file(self.config['prereqs_script_filename']) if self.config['install_prereqs'] else None,
+            self.config['prereqs_script_filename'] if self.config['install_prereqs'] else None,
             complete_config['bootstrap_url'] + ':80/dcos_install.sh',
             self.config['onprem_install_parallelism'])
 
