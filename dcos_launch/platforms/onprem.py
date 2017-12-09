@@ -23,21 +23,39 @@ def get_runner(
     return ssh_client.MultiRunner(
         ssh.user,
         ssh.key,
-        [host.public_ip for host in getattr(cluster, node_type)])
+        [host.public_ip for host in getattr(cluster, node_type)],
+        process_timeout=1200)
 
 
-def check_results(results: list):
+def check_results(results: list, node_client, tag: str):
     """ loops through result dict list and will print the stderr and raise an exception
     for any nonzero return code
     """
-    failed = False
+    failures = list()
     for result in results:
         if result['returncode'] != 0:
-            print(result['stderr'])
-            failed = True
-    # FIXME: have meaningful error handling
-    if failed:
-        raise Exception('The following results contained an error: {}'.format(str(results)))
+            log.error('Command failed (exit {}): '.format(result['returncode']) + ' '.join(result['cmd']))
+            log.error('STDOUT: \n' + result['stdout'].decode())
+            log.error('STDERR: \n' + result['stderr'].decode())
+            log_name = generate_log_filename('{}-{}-journald.log'.format(tag, result['host']))
+            with open(log_name, 'wb') as f:
+                f.write(node_client.command(result['host'], ['journalctl', '-xe']))
+            failures.append(log_name)
+    if len(failures) > 0:
+        raise Exception(
+            'The error were encountered in {}. See journald logs for more info: {}'.format(
+                tag, ','.join(failures)))
+
+
+def generate_log_filename(target_name: str):
+    if not os.path.exists(target_name):
+        return target_name
+    i = 1
+    while True:
+        new_name = target_name + '.' + str(i)
+        if not os.path.exists(new_name):
+            return new_name
+        i += 1
 
 
 @asyncio.coroutine
@@ -72,9 +90,12 @@ def install_dcos(
         check_results(all_runner.run_command('run_async', [util.read_file(prereqs_script_path)]))
     # download install script from boostrap host and run it
     remote_script_path = '/tmp/install_dcos.sh'
-    do_preflight(all_runner, remote_script_path, bootstrap_script_url)
-    do_deploy(cluster, node_client, parallelism, remote_script_path)
-    do_postflight(all_runner)
+    check_results(
+        do_preflight(all_runner, remote_script_path, bootstrap_script_url), node_client, 'preflight')
+    check_results(
+        do_deploy(cluster, node_client, parallelism, remote_script_path), node_client, 'deploy')
+    check_results(
+        do_postflight(all_runner), node_client, 'postflight')
 
 
 def prepare_bootstrap(
@@ -95,12 +116,13 @@ def prepare_bootstrap(
 def do_genconf(
         ssh_tunnel: ssh_client.Tunnelled,
         config: dict,
+        # local_genconf_path: str,
         installer_path: str) -> str:
     """ runs --genconf with the installer
     if an nginx is running, kill it and restart the nginx to host the files
     return the bootstrap script URL for this genconf
     """
-    tmp_config = helpers.session_tempfile(yaml.dump(config))
+    tmp_config = helpers.session_tempfile(yaml.safe_dump(config))
     installer_dir = os.path.dirname(installer_path)
     # copy config to genconf/
     ssh_tunnel.copy_file(tmp_config, os.path.join(installer_dir, 'genconf/config.yaml'))
@@ -158,13 +180,12 @@ def do_preflight(runner: ssh_client.MultiRunner, remote_script_path: str, bootst
     preflight_script_template = """
 mkdir -p {remote_script_dir}
 {download_cmd}
-sudo bash {remote_script_path} --preflight-only master
-"""
+sudo bash {remote_script_path} --preflight-only master"""
     preflight_script = preflight_script_template.format(
         remote_script_dir=os.path.dirname(remote_script_path),
         download_cmd=' '.join(curl(bootstrap_script_url, remote_script_path)),
         remote_script_path=remote_script_path)
-    check_results(runner.run_command('run_async', [preflight_script]))
+    return runner.run_command('run_async', [preflight_script])
 
 
 def do_deploy(
@@ -185,9 +206,9 @@ def do_deploy(
     master_deploy = master_runner.start_command_on_hosts(
         'run_async', ['sudo', 'bash', remote_script_path, 'master'], sem=sem)
     private_agent_deploy = private_agent_runner.start_command_on_hosts(
-        'run_async', ['sudo', 'bash', remote_script_path, 'private_agent'], sem=sem)
+        'run_async', ['sudo', 'bash', remote_script_path, 'slave'], sem=sem)
     public_agent_deploy = public_agent_runner.start_command_on_hosts(
-        'run_async', ['sudo', 'bash', remote_script_path, 'public_agent'], sem=sem)
+        'run_async', ['sudo', 'bash', remote_script_path, 'slave_public'], sem=sem)
     loop = asyncio.new_event_loop()
     try:
         asyncio.set_event_loop(loop)
@@ -195,7 +216,7 @@ def do_deploy(
                 run_in_parallel(master_deploy, private_agent_deploy, public_agent_deploy))
     finally:
         loop.close()
-    check_results(results)
+    return results
 
 
 def do_postflight(runner: ssh_client.MultiRunner):
@@ -228,4 +249,4 @@ else
 fi
 exit $RETCODE
 """
-    check_results(runner.run_command('run_async', [postflight_script]))
+    return runner.run_command('run_async', [postflight_script])

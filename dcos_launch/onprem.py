@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 
@@ -52,8 +53,8 @@ class OnpremLauncher(util.AbstractLauncher):
         cluster = self.get_onprem_cluster()
         onprem_config = self.config['dcos_config']
         # This is always required in the config and the user will not repeat it
-        onprem_config['bootstrap_url'] = cluster.bootstrap_host.private_ip
-        onprem_config['num_masters'] = self.config['num_masters']
+        onprem_config['bootstrap_url'] = 'http://' + cluster.bootstrap_host.private_ip
+        onprem_config['master_list'] = json.dumps([h.private_ip for h in cluster.masters])
         # First, try and retrieve the agent list from the cluster
         # if the user wanted to use exhibitor as the backend, then start it
         exhibitor_backend = onprem_config.get('exhibitor_storage_backend')
@@ -84,10 +85,9 @@ class OnpremLauncher(util.AbstractLauncher):
         # Check for ip-detect configuration and inject defaults if not present
         # set the simple default IP detect script if not provided
         if 'ip_detect_contents' not in onprem_config:
-            onprem_config['ip_detect_contents'] = pkg_resources.resource_string(
-                'dcos_launch', 'ip-detect/{}.sh'.format(self.config['platform'])).decode()
+            onprem_config['ip_detect_contents'] = yaml.safe_dump(pkg_resources.resource_string(
+                'dcos_launch', 'ip-detect/{}.sh'.format(self.config['platform'])).decode())
         if 'ip_detect_public_contents' not in onprem_config:
-            # despite being almost identical aws_public.sh will crash the installer if not safely dumped
             onprem_config['ip_detect_public_contents'] = yaml.dump(pkg_resources.resource_string(
                 'dcos_launch', 'ip-detect/{}_public.sh'.format(self.config['platform'])).decode())
 
@@ -170,6 +170,7 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
             installer_path = platforms_onprem.prepare_bootstrap(t, self.config['installer_url'])
             complete_config = self.get_completed_onprem_config()
             platforms_onprem.do_genconf(t, complete_config, installer_path)
+            # platforms_onprem.do_genconf(t, complete_config, self.config['genconf_path'], installer_path)
         platforms_onprem.install_dcos(
             cluster,
             self.get_ssh_client(),
