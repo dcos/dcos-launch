@@ -21,7 +21,7 @@ def get_runner(
         parallelism: int=None) -> ssh_client.MultiRunner:
     """ Returns a multi runner for a given Host generator property of cluster
     """
-    targets = [host.public_ip for host in getattr(cluster, node_type)],
+    targets = [host.public_ip for host in getattr(cluster, node_type)]
     if parallelism is None:
         parallelism = len(targets)
     return ssh_client.MultiRunner(
@@ -96,6 +96,7 @@ def install_dcos(
         check_results(all_runner.run_command('run_async', [util.read_file(prereqs_script_path)]))
     # download install script from boostrap host and run it
     remote_script_path = '/tmp/install_dcos.sh'
+    log.info('Starting preflight')
     check_results(
         do_preflight(all_runner, remote_script_path, bootstrap_script_url), node_client, 'preflight')
     log.info('Preflight check succeeded; moving onto deploy')
@@ -236,10 +237,11 @@ def do_postflight(runner: ssh_client.MultiRunner):
     """ Runs a script that will check if DC/OS is operational without needing to authenticate
     """
     postflight_script = """
+T=900
 if [ -f /opt/mesosphere/etc/dcos-diagnostics-runner-config.json ]; then
     for check_type in node-poststart cluster; do
-        T=900
-        until OUT=$(sudo /opt/mesosphere/bin/dcos-shell /opt/mesosphere/bin/3dt check $check_type) || [[ T -eq 0 ]]; do
+        until OUT=$(sudo /opt/mesosphere/bin/dcos-shell /opt/mesosphere/bin/dcos-diagnostics check $check_type) \
+                || [[ T -eq 0 ]]; do
             sleep 1
             let T=T-1
         done
@@ -248,9 +250,9 @@ if [ -f /opt/mesosphere/etc/dcos-diagnostics-runner-config.json ]; then
         if [[ RETCODE -ne 0 ]]; then
             exit $RETCODE
         fi
+        T=900
     done
 else
-    T=900
     until OUT=$(sudo /opt/mesosphere/bin/./3dt --diag) || [[ T -eq 0 ]]; do
         sleep 1
         let T=T-1
