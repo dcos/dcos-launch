@@ -170,7 +170,6 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
             installer_path = platforms_onprem.prepare_bootstrap(t, self.config['installer_url'])
             complete_config = self.get_completed_onprem_config()
             platforms_onprem.do_genconf(t, complete_config, installer_path)
-            # platforms_onprem.do_genconf(t, complete_config, self.config['genconf_path'], installer_path)
         platforms_onprem.install_dcos(
             cluster,
             self.get_ssh_client(),

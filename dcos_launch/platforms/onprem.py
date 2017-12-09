@@ -17,13 +17,18 @@ log = logging.getLogger(__name__)
 def get_runner(
         cluster: onprem.OnpremCluster,
         node_type: str,
-        ssh: ssh_client.SshClient) -> ssh_client.MultiRunner:
+        ssh: ssh_client.SshClient,
+        parallelism: int=None) -> ssh_client.MultiRunner:
     """ Returns a multi runner for a given Host generator property of cluster
     """
+    targets = [host.public_ip for host in getattr(cluster, node_type)],
+    if parallelism is None:
+        parallelism = len(targets)
     return ssh_client.MultiRunner(
         ssh.user,
         ssh.key,
-        [host.public_ip for host in getattr(cluster, node_type)],
+        targets,
+        parallelism=parallelism,
         process_timeout=1200)
 
 
@@ -84,18 +89,22 @@ def install_dcos(
     for host in cluster.cluster_hosts:
         node_client.wait_for_ssh_connection(host.public_ip)
     # do genconf and configure bootstrap if necessary
-    all_runner = get_runner(cluster, 'cluster_hosts', node_client)
+    all_runner = get_runner(cluster, 'cluster_hosts', node_client, parallelism=parallelism)
     # install prereqs if enabled
     if prereqs_script_path:
+        log.info('Installing prerequisites on cluster hosts')
         check_results(all_runner.run_command('run_async', [util.read_file(prereqs_script_path)]))
     # download install script from boostrap host and run it
     remote_script_path = '/tmp/install_dcos.sh'
     check_results(
         do_preflight(all_runner, remote_script_path, bootstrap_script_url), node_client, 'preflight')
+    log.info('Preflight check succeeded; moving onto deploy')
     check_results(
         do_deploy(cluster, node_client, parallelism, remote_script_path), node_client, 'deploy')
+    log.info('Deploy succeeded; moving onto postflight')
     check_results(
         do_postflight(all_runner), node_client, 'postflight')
+    log.info('Postflight succeeded')
 
 
 def prepare_bootstrap(
@@ -106,6 +115,7 @@ def prepare_bootstrap(
     * downloading dcos_generate_config.sh
     will return the installer path on the bootstrap host
     """
+    log.info('Setting up installer on bootstrap host')
     ssh_tunnel.command(['mkdir', '-p', 'genconf'])
     bootstrap_home = ssh_tunnel.command(['pwd']).decode().strip()
     installer_path = os.path.join(bootstrap_home, 'dcos_generate_config.sh')
@@ -122,16 +132,19 @@ def do_genconf(
     if an nginx is running, kill it and restart the nginx to host the files
     return the bootstrap script URL for this genconf
     """
+    log.debug('Copying config to host bootstrap host')
     tmp_config = helpers.session_tempfile(yaml.safe_dump(config))
     installer_dir = os.path.dirname(installer_path)
     # copy config to genconf/
     ssh_tunnel.copy_file(tmp_config, os.path.join(installer_dir, 'genconf/config.yaml'))
     # try --genconf
+    log.info('Runnnig --genconf command...')
     ssh_tunnel.command(['sudo', 'bash', installer_path, '--genconf'])
     # if OK we just need to restart nginx
     host_share_path = os.path.join(installer_dir, 'genconf/serve')
     volume_mount = host_share_path + ':/usr/share/nginx/html'
     nginx_service_name = 'dcos-bootstrap-nginx'
+    log.info('Starting nginx server to host bootstrap packages')
     if get_docker_service_status(ssh_tunnel, nginx_service_name):
         ssh_tunnel.command(['sudo', 'docker', 'rm', '-f', nginx_service_name])
     start_docker_service(
