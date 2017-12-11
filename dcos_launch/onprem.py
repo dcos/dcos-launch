@@ -52,9 +52,11 @@ class OnpremLauncher(util.AbstractLauncher):
         """
         cluster = self.get_onprem_cluster()
         onprem_config = self.config['dcos_config']
-        # This is always required in the config and the user will not repeat it
+        # Every install will need a cluster-clocal bootstrap URL with this installer
         onprem_config['bootstrap_url'] = 'http://' + cluster.bootstrap_host.private_ip
-        onprem_config['master_list'] = json.dumps([h.private_ip for h in cluster.masters])
+        # Its possible that the masters may live outside the cluster being installed
+        if 'master_list' not in onprem_config:
+            onprem_config['master_list'] = json.dumps([h.private_ip for h in cluster.masters])
         # First, try and retrieve the agent list from the cluster
         # if the user wanted to use exhibitor as the backend, then start it
         exhibitor_backend = onprem_config.get('exhibitor_storage_backend')

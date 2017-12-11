@@ -43,6 +43,7 @@ def check_results(results: list, node_client, tag: str):
             log.error('STDOUT: \n' + result['stdout'].decode())
             log.error('STDERR: \n' + result['stderr'].decode())
             log_name = generate_log_filename('{}-{}-journald.log'.format(tag, result['host']))
+            log.error('Writing journald output to: {}'.format(log_name))
             with open(log_name, 'wb') as f:
                 f.write(node_client.command(result['host'], ['journalctl', '-xe']))
             failures.append(log_name)
@@ -128,11 +129,9 @@ def prepare_bootstrap(
 def do_genconf(
         ssh_tunnel: ssh_client.Tunnelled,
         config: dict,
-        # local_genconf_path: str,
-        installer_path: str) -> str:
+        installer_path: str):
     """ runs --genconf with the installer
     if an nginx is running, kill it and restart the nginx to host the files
-    return the bootstrap script URL for this genconf
     """
     log.debug('Copying config to host bootstrap host')
     tmp_config = helpers.session_tempfile(yaml.safe_dump(config))
