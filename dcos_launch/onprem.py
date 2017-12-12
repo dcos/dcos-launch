@@ -176,7 +176,7 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
             cluster,
             self.get_ssh_client(),
             self.config['prereqs_script_filename'] if self.config['install_prereqs'] else None,
-            complete_config['bootstrap_url'] + ':80/dcos_install.sh',
+            complete_config['bootstrap_url'] + '/dcos_install.sh',
             self.config['onprem_install_parallelism'])
 
     def describe(self):
