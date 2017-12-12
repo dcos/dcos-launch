@@ -204,6 +204,10 @@ class DcosAzureResourceGroup:
         azure_wrapper.deploy_template_to_new_resource_group(template_url, group_name, parameters)
         return cls(group_name, azure_wrapper)
 
+    def get_deployment_state(self):
+        return self.azure_wrapper.rmc.deployments.get(
+            self.group_name, DEPLOYMENT_NAME.format(self.group_name)).properties.provisioning_state
+
     def wait_for_deployment(self, timeout=60 * 60):
         """
         Azure will not register a template instantly after deployment, so
@@ -220,8 +224,7 @@ class DcosAzureResourceGroup:
             retry_on_result=lambda res: res is False,
             retry_on_exception=lambda ex: isinstance(ex, CloudError))
         def check_deployment_operations():
-            deploy_state = self.azure_wrapper.rmc.deployments.get(
-                self.group_name, DEPLOYMENT_NAME.format(self.group_name)).properties.provisioning_state
+            deploy_state = self.get_deployment_state()
             if deploy_state == 'Succeeded':
                 return True
             elif deploy_state == 'Failed':
