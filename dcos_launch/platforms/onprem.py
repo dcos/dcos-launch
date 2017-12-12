@@ -14,17 +14,17 @@ from dcos_launch import util
 log = logging.getLogger(__name__)
 
 
-def get_runner(
+def get_client(
         cluster: onprem.OnpremCluster,
         node_type: str,
         ssh: ssh_client.SshClient,
-        parallelism: int=None) -> ssh_client.MultiRunner:
-    """ Returns a multi runner for a given Host generator property of cluster
+        parallelism: int=None) -> ssh_client.AsyncSshClient:
+    """ Returns an async client for a given Host generator property of cluster
     """
     targets = [host.public_ip for host in getattr(cluster, node_type)]
     if parallelism is None:
         parallelism = len(targets)
-    return ssh_client.MultiRunner(
+    return ssh_client.AsyncSshClient(
         ssh.user,
         ssh.key,
         targets,
@@ -64,20 +64,6 @@ def generate_log_filename(target_name: str):
         i += 1
 
 
-@asyncio.coroutine
-def run_in_parallel(*coroutines) -> list:
-    """ takes coroutines that return lists of futures and waits upon those
-    coroutines must be invocations of MultiRunner.start_command_on_hosts
-    returns a list of result dicts
-    """
-    all_tasks = list()
-    for coroutine in coroutines:
-        sub_tasks = yield from coroutine
-        all_tasks.extend(sub_tasks)
-    yield from asyncio.wait(all_tasks)
-    return [task.result() for task in all_tasks]
-
-
 def install_dcos(
         cluster: onprem.OnpremCluster,
         node_client: ssh_client.SshClient,
@@ -90,23 +76,23 @@ def install_dcos(
     for host in cluster.cluster_hosts:
         node_client.wait_for_ssh_connection(host.public_ip)
     # do genconf and configure bootstrap if necessary
-    all_runner = get_runner(cluster, 'cluster_hosts', node_client, parallelism=parallelism)
+    all_client = get_client(cluster, 'cluster_hosts', node_client, parallelism=parallelism)
     # install prereqs if enabled
     if prereqs_script_path:
         log.info('Installing prerequisites on cluster hosts')
         check_results(
-            all_runner.run_command('run_async', [util.read_file(prereqs_script_path)]), node_client, 'install_prereqs')
+            all_client.run_command('run', [util.read_file(prereqs_script_path)]), node_client, 'install_prereqs')
     # download install script from boostrap host and run it
     remote_script_path = '/tmp/install_dcos.sh'
     log.info('Starting preflight')
     check_results(
-        do_preflight(all_runner, remote_script_path, bootstrap_script_url), node_client, 'preflight')
+        do_preflight(all_client, remote_script_path, bootstrap_script_url), node_client, 'preflight')
     log.info('Preflight check succeeded; moving onto deploy')
     check_results(
         do_deploy(cluster, node_client, parallelism, remote_script_path), node_client, 'deploy')
     log.info('Deploy succeeded; moving onto postflight')
     check_results(
-        do_postflight(all_runner), node_client, 'postflight')
+        do_postflight(all_client), node_client, 'postflight')
     log.info('Postflight succeeded')
 
 
@@ -186,8 +172,8 @@ def start_docker_service(ssh_tunnel: ssh_client.Tunnelled, docker_name: str, doc
         ['sudo', 'docker', 'run', '--name', docker_name, '--detach=true'] + docker_args)
 
 
-def do_preflight(runner: ssh_client.MultiRunner, remote_script_path: str, bootstrap_script_url: str):
-    """ Runs preflight instructions against runner
+def do_preflight(client: ssh_client.AsyncSshClient, remote_script_path: str, bootstrap_script_url: str):
+    """ Runs preflight instructions against client
     remote_script_path: where the install script should be downloaded to on the remote host
     bootstrap_script_url: the URL where the install script will be pulled from
     """
@@ -199,7 +185,7 @@ sudo bash {remote_script_path} --preflight-only master"""
         remote_script_dir=os.path.dirname(remote_script_path),
         download_cmd=' '.join(curl(bootstrap_script_url, remote_script_path)),
         remote_script_path=remote_script_path)
-    return runner.run_command('run_async', [preflight_script])
+    return client.run_command('run', [preflight_script])
 
 
 def do_deploy(
@@ -207,33 +193,40 @@ def do_deploy(
         node_client: ssh_client.SshClient,
         parallelism: int,
         remote_script_path: str):
-    """ Creates a separate runner for each agent command and runs them asynchronously
+    """ Creates a separate client for each agent command and runs them asynchronously
     based on the chosen parallelism
     """
-    # make distinct runners
-    master_runner = get_runner(cluster, 'masters', node_client)
-    private_agent_runner = get_runner(cluster, 'private_agents', node_client)
-    public_agent_runner = get_runner(cluster, 'public_agents', node_client)
+    # make distinct clients
+    master_client = get_client(cluster, 'masters', node_client)
+    private_agent_client = get_client(cluster, 'private_agents', node_client)
+    public_agent_client = get_client(cluster, 'public_agents', node_client)
 
-    # make shared semaphor or all
-    sem = asyncio.Semaphore(parallelism)
-    master_deploy = master_runner.start_command_on_hosts(
-        'run_async', ['sudo', 'bash', remote_script_path, 'master'], sem=sem)
-    private_agent_deploy = private_agent_runner.start_command_on_hosts(
-        'run_async', ['sudo', 'bash', remote_script_path, 'slave'], sem=sem)
-    public_agent_deploy = public_agent_runner.start_command_on_hosts(
-        'run_async', ['sudo', 'bash', remote_script_path, 'slave_public'], sem=sem)
+    async def await_tasks():
+        # make shared semaphor or all
+        sem = asyncio.Semaphore(parallelism)
+        master_deploy = master_client.start_command_on_hosts(
+            sem, 'run', ['sudo', 'bash', remote_script_path, 'master'])
+        private_agent_deploy = private_agent_client.start_command_on_hosts(
+            sem, 'run', ['sudo', 'bash', remote_script_path, 'slave'])
+        public_agent_deploy = public_agent_client.start_command_on_hosts(
+            sem, 'run', ['sudo', 'bash', remote_script_path, 'slave_public'])
+        results = list()
+
+        for task_list in (master_deploy, private_agent_deploy, public_agent_deploy):
+            await asyncio.wait(task_list)
+            results.extend([task.result() for task in task_list])
+        return results
+
     loop = asyncio.new_event_loop()
     try:
         asyncio.set_event_loop(loop)
-        results = loop.run_until_complete(
-                run_in_parallel(master_deploy, private_agent_deploy, public_agent_deploy))
+        results = loop.run_until_complete(await_tasks())
     finally:
         loop.close()
     return results
 
 
-def do_postflight(runner: ssh_client.MultiRunner):
+def do_postflight(client: ssh_client.AsyncSshClient):
     """ Runs a script that will check if DC/OS is operational without needing to authenticate
     """
     postflight_script = """
@@ -264,4 +257,4 @@ else
 fi
 exit $RETCODE
 """
-    return runner.run_command('run_async', [postflight_script])
+    return client.run_command('run', [postflight_script])
