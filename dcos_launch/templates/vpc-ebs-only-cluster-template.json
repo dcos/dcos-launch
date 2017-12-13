@@ -203,7 +203,7 @@
           }
         ],
         "Tags" : [
-          { "Key" : "KubernetesCluster", "Value" : "k8s-dev" }
+          { "Key" : "KubernetesCluster", "Value" : { "Ref" : "AWS::StackName" } }
         ]
       }
     },
@@ -293,7 +293,7 @@
           },
           {
             "Key" : "KubernetesCluster",
-            "Value" : "k8s-dev",
+            "Value" : { "Ref" : "AWS::StackName" },
             "PropagateAtLaunch" : "true"
             }
           ]
