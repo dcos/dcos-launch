@@ -18,7 +18,6 @@ class OnpremLauncher(util.AbstractLauncher):
         if env is None:
             env = os.environ.copy()
         self.env = env
-        self.bootstrap_ssh_client = self.get_ssh_client(user='bootstrap_ssh_user')
 
     def create(self):
         return self.get_bare_cluster_launcher().create()
@@ -42,6 +41,9 @@ class OnpremLauncher(util.AbstractLauncher):
             num_private_agents=int(self.config['num_private_agents']),
             num_public_agents=int(self.config['num_public_agents']))
 
+    def get_bootstrap_ssh_client(self):
+        return self.get_ssh_client(user='bootstrap_ssh_user')
+
     def get_completed_onprem_config(self) -> dict:
         """ Will fill in the necessary and/or recommended sections of the config file, including:
         * starting a ZK backend if left undefined
@@ -62,7 +64,7 @@ class OnpremLauncher(util.AbstractLauncher):
         exhibitor_backend = onprem_config.get('exhibitor_storage_backend')
         if exhibitor_backend == 'zookeeper' and 'exhibitor_zk_hosts' not in onprem_config:
             zk_service_name = 'dcos-bootstrap-zk'
-            with self.bootstrap_ssh_client.tunnel(cluster.bootstrap_host.public_ip) as t:
+            with self.get_bootstrap_ssh_client().tunnel(cluster.bootstrap_host.public_ip) as t:
                 if not platforms_onprem.get_docker_service_status(t, zk_service_name):
                     platforms_onprem.start_docker_service(
                         t,
@@ -167,8 +169,9 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
         self.get_bare_cluster_launcher().wait()
         cluster = self.get_onprem_cluster()
         bootstrap_host = cluster.bootstrap_host.public_ip
-        self.bootstrap_ssh_client.wait_for_ssh_connection(bootstrap_host)
-        with self.bootstrap_ssh_client.tunnel(bootstrap_host) as t:
+        bootstrap_ssh_client = self.get_bootstrap_ssh_client()
+        bootstrap_ssh_client.wait_for_ssh_connection(bootstrap_host)
+        with bootstrap_ssh_client.tunnel(bootstrap_host) as t:
             installer_path = platforms_onprem.prepare_bootstrap(t, self.config['installer_url'])
             complete_config = self.get_completed_onprem_config()
             platforms_onprem.do_genconf(t, complete_config, installer_path)
