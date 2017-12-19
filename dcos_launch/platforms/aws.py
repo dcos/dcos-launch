@@ -240,6 +240,13 @@ class BotoWrapper:
                 ['AutoScalingGroups'] for i in asg['Instances']]
 
     @retry_boto_rate_limits
+    def put_s3(self, bucket, keyname, file, acl='public-read'):
+        return self.resource('s3').Bucket(bucket_id).put_object(
+            Key=keyname,
+            Body=file,
+            ACL=acl)
+
+    @retry_boto_rate_limits
     def empty_and_delete_bucket(self, bucket_id):
         """ Buckets must be empty to be deleted. Additionally, there is no high-level
         method to check if buckets exist, so the try/except statement is required
