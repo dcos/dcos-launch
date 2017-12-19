@@ -80,12 +80,13 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
     def delete(self):
         raise NotImplementedError()
 
-    def test(self, args: list, env_dict: dict, test_host=None, test_port=22) -> int:
+    def test(self, args: list, env_dict: dict, test_host=None, test_port=22, output=None) -> int:
         """ Connects to master host with SSH and then run the internal integration test
 
         Args:
             args: a list of args that will follow the py.test command
             env_dict: the env to use during the test
+            output: optional handle to write test output to. If None, defaults to stdout.
         """
         if args is None:
             args = list()
@@ -123,10 +124,10 @@ cd `find /opt/mesosphere/active/ -name dcos-integration-test* | sort | tail -n 1
             test_host = details['masters'][0]['public_ip']
         if ':' in test_host:
             test_host, test_port = test_host.split(':')
-        return try_to_output_unbuffered(self.config, test_host, pytest_cmd, test_port)
+        return try_to_output_unbuffered(self.config, test_host, pytest_cmd, test_port, stdout=output)
 
 
-def try_to_output_unbuffered(info, test_host: str, bash_cmd: str, port: int) -> int:
+def try_to_output_unbuffered(info, test_host: str, bash_cmd: str, port: int, stdout=None) -> int:
     """ Tries to run a command and directly output to STDOUT
 
     Args:
@@ -140,7 +141,9 @@ def try_to_output_unbuffered(info, test_host: str, bash_cmd: str, port: int) -> 
     ssh_client = dcos_test_utils.ssh_client.SshClient(info['ssh_user'], info['ssh_private_key'])
     ssh_client.wait_for_ssh_connection(test_host, port=port)
     try:
-        ssh_client.command(test_host, ['bash', '-c', bash_cmd], port=port, stdout=sys.stdout.buffer)
+        if stdout is None:
+            stdout = sys.stdout.buffer
+        ssh_client.command(test_host, ['bash', '-c', bash_cmd], port=port, stdout=stdout)
     except subprocess.CalledProcessError as e:
         log.exception('Test run failed!')
         return e.returncode
