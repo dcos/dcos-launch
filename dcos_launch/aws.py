@@ -8,16 +8,8 @@ log = logging.getLogger(__name__)
 
 class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
     def __init__(self, config: dict, env=None):
-        if env is None:
-            aws_access_key_id = dcos_launch.util.set_from_env('AWS_ACCESS_KEY_ID')
-            aws_secret_access_key = dcos_launch.util.set_from_env('AWS_SECRET_ACCESS_KEY')
-        else:
-            aws_access_key_id = env['AWS_ACCESS_KEY_ID']
-            aws_secret_access_key = env['AWS_SECRET_ACCESS_KEY']
         self.boto_wrapper = dcos_launch.platforms.aws.BotoWrapper(
-            config['aws_region'],
-            aws_access_key_id,
-            aws_secret_access_key)
+            config['aws_region'])
         self.config = config
 
     def create(self):

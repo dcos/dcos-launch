@@ -105,10 +105,9 @@ def fetch_stack(stack_name, boto_wrapper):
 
 
 class BotoWrapper:
-    def __init__(self, region, aws_access_key_id, aws_secret_access_key):
+    def __init__(self, region):
         self.region = region
-        self.session = boto3.session.Session(
-            aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+        self.session = boto3.session.Session()
 
     @retry_boto_rate_limits
     def client(self, name):
