@@ -74,23 +74,38 @@ class OnpremLauncher(util.AbstractLauncher):
         elif exhibitor_backend == 'static' and 'master_list' not in onprem_config:
             onprem_config['master_list'] = [h.private_ip for h in cluster.masters]
 
-        # check if the user provided any filenames and convert them into content
-        for key_name in ('ip_detect_filename', 'ip_detect_public_filename',
-                         'fault_domain_script_filename'):
-            if key_name not in onprem_config:
-                continue
-            new_key_name = key_name.replace('_filename', '_contents')
-            if new_key_name in onprem_config:
-                raise util.LauncherError(
-                    'InvalidDcosConfig', 'Cannot set *_filename and *_contents simultaneously!')
-            onprem_config[new_key_name] = util.read_file(onprem_config[key_name])
-            del onprem_config[key_name]
-
         # Check for ip-detect configuration and inject defaults if not present
         # set the simple default IP detect script if not provided
-        if 'ip_detect_contents' not in onprem_config:
-            onprem_config['ip_detect_contents'] = yaml.safe_dump(pkg_resources.resource_string(
-                'dcos_launch', 'ip-detect/{}.sh'.format(self.config['platform'])).decode())
+        genconf_dir = onprem_config['genconf_dir']
+        scripts = ['ip_detect', 'ip_detect_public', 'fault_domain_detect']
+        for script in scripts:
+            script_hypenated = script.replace('_', '-')
+            default_path = os.path.join(genconf_dir, script_hypenated)
+            if ((script + '_contents' not in onprem_config) and
+                    (not os.path.exists(default_path)) and
+                    (script + '_filename' not in onprem_config)):
+                with open(default_path, 'wb') as f:
+                    f.write(yaml.safe_dump(pkg_resources.resource_string(
+                        'dcos_launch', script_hypenated + '/{}.sh'.format(self.config['platform']))))
+            elif script + '_filename' in onprem_config:
+                assert onprem_config[script + '_filename'].startswith('genconf'), \
+                    'Only the genconf folder will be copied so this file must be contained within'
+
+        if 'ip_detect_public_contents' not in onprem_config:
+            onprem_config['ip_detect_public_contents'] = yaml.dump(pkg_resources.resource_string(
+                'dcos_launch', 'ip-detect/{}_public.sh'.format(self.config['platform'])).decode())
+        # do the same for ip-detect-public
+        default_ip_detect_public_path = os.path.join(genconf_dir, 'ip-detect-public')
+        if (('ip_detect_public_contents' not in onprem_config) and
+                (not os.path.exists(default_path)) and
+                ('ip_detect_public_filename' not in onprem_config)):
+            with open(default_ip_detect_public_path, 'wb') as f:
+                f.write(yaml.safe_dump(pkg_resources.resource_string(
+                    'dcos_launch', 'ip-detect/{}_public.sh'.format(self.config['platform']))))
+        elif 'ip_detect_public_filename' in onprem_config:
+            assert onprem_config['ip_detect_filename'].startswith('genconf'), \
+                    'Only the genconf folder will be copied so this file must be contained within'
+
         if 'ip_detect_public_contents' not in onprem_config:
             onprem_config['ip_detect_public_contents'] = yaml.dump(pkg_resources.resource_string(
                 'dcos_launch', 'ip-detect/{}_public.sh'.format(self.config['platform'])).decode())

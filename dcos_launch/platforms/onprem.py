@@ -115,6 +115,7 @@ def prepare_bootstrap(
 def do_genconf(
         ssh_tunnel: ssh_client.Tunnelled,
         config: dict,
+        genconf_dir: str,
         installer_path: str):
     """ runs --genconf with the installer
     if an nginx is running, kill it and restart the nginx to host the files

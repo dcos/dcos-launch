@@ -264,27 +264,13 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'type': 'dict',
         'required': True,
         'allow_unknown': True,
-        'schema': {
-            'ip_detect_filename': {
-                'coerce': 'expand_local_path',
-                'excludes': 'ip_detect_content'},
-            'ip_detect_public_filename': {
-                'coerce': 'expand_local_path',
-                'excludes': 'ip_detect_public_content'},
-            'ip_detect_contents': {
-                'excludes': 'ip_detect_filename'},
-            'ip_detect_public_contents': {
-                'excludes': 'ip_detect_public_filename'},
-            # currently, these values cannot be set by a user, only by the launch process
-            'master_list': {'readonly': True},
-            'agent_list': {'readonly': True},
-            'public_agent_list': {'readonly': True},
-            'fault_domain_script_filename': {
-                'coerce': 'expand_local_path',
-                'excludes': 'fault_domain_script_contents'
-            }
-        }
-    },
+        'default_setter': lambda doc: yaml.load(util.read_file(os.path.join(doc['genconf_dir'], 'config.yaml')))
+        },
+    'genconf_dir': {
+        'type': 'string',
+        'required': False,
+        'default': 'genconf'
+        },
     'fault_domain_helper': {
         'type': 'dict',
         'required': False,
