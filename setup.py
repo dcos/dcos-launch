@@ -44,9 +44,9 @@ setup(
         'dcos_launch': [
             'sample_configs/*.yaml',
             'ip-detect/aws.sh',
-            'ip-detect/aws_public.sh',
+            'ip-detect-public/aws.sh',
             'ip-detect/gcp.sh',
-            'ip-detect/gcp_public.sh',
+            'ip-detect-public/gcp.sh',
             'scripts/install_prereqs.sh',
             'templates/vpc-cluster-template.json',
             'templates/vpc-ebs-only-cluster-template.json',

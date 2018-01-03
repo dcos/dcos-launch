@@ -6,7 +6,7 @@ boto3
 botocore
 cerberus
 docopt
-git+https://github.com/dcos/dcos-test-utils@8d019c99059c960ec9a304aa0843cfdf660356cc
+git+https://github.com/dcos/dcos-test-utils@58d83cd360372aeba7485e470981d0d877b6b9b2
 google-api-python-client
 oauth2client==3.0.0
 pyinstaller==3.3
