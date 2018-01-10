@@ -202,7 +202,7 @@ def do_deploy(
     public_agent_client = get_client(cluster, 'public_agents', node_client)
 
     async def await_tasks():
-        # make shared semaphor or all
+        # make shared semaphore for all
         sem = asyncio.Semaphore(parallelism)
         master_deploy = master_client.start_command_on_hosts(
             sem, 'run', ['sudo', 'bash', remote_script_path, 'master'])
@@ -211,10 +211,10 @@ def do_deploy(
         public_agent_deploy = public_agent_client.start_command_on_hosts(
             sem, 'run', ['sudo', 'bash', remote_script_path, 'slave_public'])
         results = list()
-
         for task_list in (master_deploy, private_agent_deploy, public_agent_deploy):
-            await asyncio.wait(task_list)
-            results.extend([task.result() for task in task_list])
+            if task_list:
+                await asyncio.wait(task_list)
+                results.extend([task.result() for task in task_list])
         return results
 
     loop = asyncio.new_event_loop()
