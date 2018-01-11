@@ -269,6 +269,9 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
                 'excludes': 'ip_detect_filename'},
             'ip_detect_public_contents': {
                 'excludes': 'ip_detect_public_filename'},
+            'license_key_filename': {
+                'coerce': 'expand_local_path',
+                'excludes': 'license_key_contents'},
             # currently, these values cannot be set by a user, only by the launch process
             'master_list': {'readonly': True},
             'agent_list': {'readonly': True},

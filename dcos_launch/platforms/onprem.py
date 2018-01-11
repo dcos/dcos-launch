@@ -119,11 +119,16 @@ def do_genconf(
     """ runs --genconf with the installer
     if an nginx is running, kill it and restart the nginx to host the files
     """
-    log.debug('Copying config to host bootstrap host')
-    tmp_config = helpers.session_tempfile(yaml.safe_dump(config))
     installer_dir = os.path.dirname(installer_path)
     # copy config to genconf/
+    log.debug('Copying config to host bootstrap host')
+    tmp_config = helpers.session_tempfile(yaml.safe_dump(config))
     ssh_tunnel.copy_file(tmp_config, os.path.join(installer_dir, 'genconf/config.yaml'))
+    # copy license to genconf/ (if applicable)
+    if 'license_key_contents' in config:
+        log.debug('Copying license to host bootstrap host')
+        tmp_license = helpers.session_tempfile(config['license_key_contents'])
+        ssh_tunnel.copy_file(tmp_license, os.path.join(installer_dir, 'genconf/license.txt'))
     # try --genconf
     log.info('Runnnig --genconf command...')
     ssh_tunnel.command(['sudo', 'bash', installer_path, '--genconf'])
