@@ -235,10 +235,10 @@ def aws_onprem_with_helper_config_path(tmpdir, mocked_aws_cfstack_bare_cluster):
 
 
 @pytest.fixture
-def aws_onprem_with_genconf_config_path(tmpdir, mocked_aws_cfstack_bare_cluster):
+def mock_genconf_dir(tmpdir):
     """ For testing genconf_dir and providing onprem configuration via a local
-    genconf dir. Similarly, the DC/OS config can be provided by a 'dcos_config' field
-    in the dcos-launch config.yaml or it can be provided in a (native) genconf/config.yaml
+        genconf dir. Similarly, the DC/OS config can be provided by a 'dcos_config' field
+        in the dcos-launch config.yaml or it can be provided in a (native) genconf/config.yaml
     """
     genconf_dir = tmpdir.join('genconf')
     genconf_dir.ensure(dir=True)
@@ -252,8 +252,13 @@ dns_search: mesos
 master_discovery: static
 exhibitor_storage_backend: static
 """)
+    return str(genconf_dir)
+
+
+@pytest.fixture
+def aws_onprem_with_genconf_config_path(tmpdir, mock_genconf_dir, mocked_aws_cfstack_bare_cluster):
     return get_temp_config_path(tmpdir, 'aws-onprem-with-genconf.yaml', update={
-        'genconf_dir', str(genconf_dir)})
+        'genconf_dir': mock_genconf_dir})
 
 
 @pytest.fixture

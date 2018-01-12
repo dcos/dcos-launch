@@ -5,9 +5,8 @@ import logging
 import os
 
 import retrying
-import yaml
 
-from dcos_test_utils import helpers, onprem, ssh_client
+from dcos_test_utils import onprem, ssh_client
 
 from dcos_launch import util
 
@@ -114,17 +113,15 @@ def prepare_bootstrap(
 
 def do_genconf(
         ssh_tunnel: ssh_client.Tunnelled,
-        config: dict,
         genconf_dir: str,
         installer_path: str):
     """ runs --genconf with the installer
     if an nginx is running, kill it and restart the nginx to host the files
     """
     log.debug('Copying config to host bootstrap host')
-    tmp_config = helpers.session_tempfile(yaml.safe_dump(config))
     installer_dir = os.path.dirname(installer_path)
     # copy config to genconf/
-    ssh_tunnel.copy_file(tmp_config, os.path.join(installer_dir, 'genconf/config.yaml'))
+    ssh_tunnel.copy_file(genconf_dir, os.path.join(installer_dir, 'genconf'))
     # try --genconf
     log.info('Runnnig --genconf command...')
     ssh_tunnel.command(['sudo', 'bash', installer_path, '--genconf'])

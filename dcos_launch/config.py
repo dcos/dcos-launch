@@ -264,12 +264,30 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'type': 'dict',
         'required': True,
         'allow_unknown': True,
-        'default_setter': lambda doc: yaml.load(util.read_file(os.path.join(doc['genconf_dir'], 'config.yaml')))
+        'default_setter': lambda doc: yaml.load(util.read_file(os.path.join(doc['genconf_dir'], 'config.yaml'))),
+        'schema': {
+            'ip_detect_filename': {
+                'coerce': 'expand_local_path',
+                'excludes': 'ip_detect_content'},
+            'ip_detect_public_filename': {
+                'coerce': 'expand_local_path',
+                'excludes': 'ip_detect_content'},
+            'fault_detect_script_filename': {
+                'coerce': 'expand_local_path',
+                'excludes': 'ip_detect_content'},
+            'license_key_filename': {
+                'coerce': 'expand_local_path',
+                'excludes': 'ip_detect_content'},
+            # the following are fields that will be injected by dcos-launch
+            'agent_list': {'readonly': True},
+            'public_agent_list': {'readonly': True}
+            }
         },
     'genconf_dir': {
         'type': 'string',
         'required': False,
-        'default': 'genconf'
+        'default': 'genconf',
+        'coerce': 'expand_local_path'
         },
     'fault_domain_helper': {
         'type': 'dict',

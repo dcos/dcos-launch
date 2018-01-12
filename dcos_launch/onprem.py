@@ -51,6 +51,8 @@ class OnpremLauncher(util.AbstractLauncher):
         * adding ip-detect script
         * adding ip-detect-public script
         * adding fault domain real or logical script
+
+        returns path to genconf directory
         """
         cluster = self.get_onprem_cluster()
         onprem_config = self.config['dcos_config']
@@ -76,7 +78,9 @@ class OnpremLauncher(util.AbstractLauncher):
 
         # Check for ip-detect configuration and inject defaults if not present
         # set the simple default IP detect script if not provided
-        genconf_dir = onprem_config['genconf_dir']
+        genconf_dir = self.config['genconf_dir']
+        if not os.path.exists(genconf_dir):
+            os.makedirs(genconf_dir)
         for script in ('ip_detect', 'ip_detect_public', 'fault_domain_detect'):
             script_hyphen = script.replace('_', '-')
             default_path_local = os.path.join(genconf_dir, script_hyphen)
@@ -98,19 +102,25 @@ class OnpremLauncher(util.AbstractLauncher):
                 continue
             elif script == 'ip_detect_public':
                 # this is a special case where DC/OS does not expect this field by default
-                onprem_config[filename_key] = os.path.join('genconf', script_hyphen)
-            with open(default_path_local, 'wb') as f:
-                if (script == 'fault_domain_detect' and
-                        onprem_config['fault_domain_helper'] and
-                        not onprem_config['fault_domain_enabled'] != 'false'):
-                    content = yaml.safe_dump(self._fault_domain_helper()).encode()
-                else:
-                    content = yaml.safe_dump(pkg_resources.resource_string(
-                        'dcos_launch', script_hyphen + '/{}.sh'.format(self.config['platform'])))
+                onprem_config[filename_key] = default_path_local
+            with open(default_path_local, 'w') as f:
+                # use a sensible default
+                content = yaml.safe_dump(pkg_resources.resource_string(
+                    'dcos_launch', script_hyphen + '/{}.sh'.format(self.config['platform'])))
+                if (script == 'fault_domain_detect'):
+                    if 'fault_domain_helper' in self.config:
+                        # fault_domain_helper is enabled; use it
+                        content = yaml.safe_dump(self._fault_domain_helper())
+                    elif onprem_config.get('fault_domain_enabled') == 'false':
+                        # fault domain is explicitly disabled, so inject nothing.
+                        # if disabled implicitly, the injected default won't be used
+                        continue
                 f.write(content)
 
+        with open(os.path.join(genconf_dir, 'config.yaml'), 'w') as f:
+            f.write(yaml.safe_dump(onprem_config))
         log.debug('Generated cluster configuration: {}'.format(onprem_config))
-        return onprem_config
+        return onprem_config, genconf_dir
 
     def _fault_domain_helper(self) -> str:
         """ Will create a script with cluster hostnames baked in so that
@@ -179,8 +189,8 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
         bootstrap_ssh_client.wait_for_ssh_connection(bootstrap_host)
         with bootstrap_ssh_client.tunnel(bootstrap_host) as t:
             installer_path = platforms_onprem.prepare_bootstrap(t, self.config['installer_url'])
-            complete_config = self.get_completed_onprem_config()
-            platforms_onprem.do_genconf(t, complete_config, installer_path)
+            complete_config, genconf_dir = self.get_completed_onprem_config()
+            platforms_onprem.do_genconf(t, genconf_dir, installer_path)
         platforms_onprem.install_dcos(
             cluster,
             self.get_ssh_client(),
