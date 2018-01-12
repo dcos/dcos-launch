@@ -235,6 +235,28 @@ def aws_onprem_with_helper_config_path(tmpdir, mocked_aws_cfstack_bare_cluster):
 
 
 @pytest.fixture
+def aws_onprem_with_genconf_config_path(tmpdir, mocked_aws_cfstack_bare_cluster):
+    """ For testing genconf_dir and providing onprem configuration via a local
+    genconf dir. Similarly, the DC/OS config can be provided by a 'dcos_config' field
+    in the dcos-launch config.yaml or it can be provided in a (native) genconf/config.yaml
+    """
+    genconf_dir = tmpdir.join('genconf')
+    genconf_dir.ensure(dir=True)
+    genconf_dir.join('config.yaml').write("""
+---
+cluster_name: My Awesome DC/OS
+resolvers:
+    - 8.8.4.4
+    - 8.8.8.8
+dns_search: mesos
+master_discovery: static
+exhibitor_storage_backend: static
+""")
+    return get_temp_config_path(tmpdir, 'aws-onprem-with-genconf.yaml', update={
+        'genconf_dir', str(genconf_dir)})
+
+
+@pytest.fixture
 def gcp_onprem_config_path(tmpdir, ssh_key_path, mocked_gcp):
     return get_temp_config_path(tmpdir, 'gcp-onprem.yaml', update={
         'ssh_private_key_filename': ssh_key_path})

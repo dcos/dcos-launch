@@ -100,7 +100,9 @@ class OnpremLauncher(util.AbstractLauncher):
                 # this is a special case where DC/OS does not expect this field by default
                 onprem_config[filename_key] = os.path.join('genconf', script_hyphen)
             with open(default_path_local, 'wb') as f:
-                if script == 'fault_domain_detect' and onprem_config['fault_domain_helper']:
+                if (script == 'fault_domain_detect' and
+                        onprem_config['fault_domain_helper'] and
+                        not onprem_config['fault_domain_enabled'] != 'false'):
                     content = yaml.safe_dump(self._fault_domain_helper()).encode()
                 else:
                     content = yaml.safe_dump(pkg_resources.resource_string(
