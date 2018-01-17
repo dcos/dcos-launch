@@ -68,6 +68,7 @@ class BareClusterLauncher(util.AbstractLauncher, util.AbstractOnpremClusterLaunc
             self.config['ssh_user'],
             self.config['ssh_public_key'],
             self.config['disable_updates'],
+            self.config['use_preemptible_vms'],
             tags=self.config.get('tags'))
         return self.config
 

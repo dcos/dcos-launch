@@ -427,4 +427,8 @@ GCP_ONPREM_SCHEMA = {
     'disable_updates': {
         'type': 'boolean',
         'required': False,
+        'default': False},
+    'use_preemptible_vms': {
+        'type': 'boolean',
+        'required': False,
         'default': False}}
