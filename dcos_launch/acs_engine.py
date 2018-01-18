@@ -61,7 +61,6 @@ def generate_acs_engine_template(
                     "count": num_windows_private_agents,
                     "vmSize": windows_private_vm_size,
                     "osType": "Windows",
-                    "dnsPrefix": "wpri" + unique_id
                 },
                 {
                     "name": "linpub",
