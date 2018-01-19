@@ -378,11 +378,11 @@ AWS_ONPREM_SCHEMA = {
 
 def get_platform_dependent_acs_engine_url():
     if sys.platform in ['linux', 'linux2']:
-        return 'https://github.com/Azure/acs-engine/releases/download/v0.11.0/acs-engine-v0.11.0-linux-amd64.tar.gz'  # noqa
+        return 'https://github.com/Azure/acs-engine/releases/download/v0.12.1/acs-engine-v0.12.1-linux-amd64.tar.gz'  # noqa
     elif sys.platform == 'darwin':
-        return 'https://github.com/Azure/acs-engine/releases/download/v0.11.0/acs-engine-v0.11.0-darwin-amd64.tar.gz'  # noqa
+        return 'https://github.com/Azure/acs-engine/releases/download/v0.12.1/acs-engine-v0.12.1-darwin-amd64.tar.gz'  # noqa
     elif sys.platform == 'win32':
-        return 'https://github.com/Azure/acs-engine/releases/download/v0.11.0/acs-engine-v0.11.0-windows-amd64.tar.gz'  # noqa
+        return 'https://github.com/Azure/acs-engine/releases/download/v0.12.1/acs-engine-v0.12.1-windows-amd64.tar.gz'  # noqa
     else:
         raise Exception('No ACS-Engine distribution for {}'.format(sys.platform))
 
