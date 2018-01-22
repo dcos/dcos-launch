@@ -56,6 +56,8 @@ properties:
       items:
       - key: ssh-keys
         value: {ssh_user}:{ssh_public_key}
+    scheduling:
+      preemptible: {usePreemptibleVMs}
 """
 
 # template for a network resource in a gce deployment
@@ -363,6 +365,7 @@ class BareClusterDeployment(Deployment):
             ssh_user: str,
             ssh_public_key: str,
             disable_updates: bool,
+            use_preemptible_vms: bool,
             tags: dict=None):
 
         deployment = cls(gcp_wrapper, name, zone)
@@ -379,7 +382,8 @@ class BareClusterDeployment(Deployment):
             ssh_public_key=ssh_public_key,
             network=deployment.network_name,
             diskSizeGb=disk_size,
-            diskType=disk_type)
+            diskType=disk_type,
+            usePreemptibleVMs=use_preemptible_vms)
         instance_group_resource = MANAGED_INSTANCE_GROUP_TEMPLATE.format(
             name=deployment.instance_group_name,
             instance_template_name=deployment.template_name,
