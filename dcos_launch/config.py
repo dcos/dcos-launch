@@ -268,16 +268,16 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'schema': {
             'ip_detect_filename': {
                 'coerce': 'expand_local_path',
-                'excludes': 'ip_detect_content'},
+                'excludes': 'ip_detect_contents'},
             'ip_detect_public_filename': {
                 'coerce': 'expand_local_path',
-                'excludes': 'ip_detect_content'},
-            'fault_detect_script_filename': {
+                'excludes': 'ip_detect_public_contents'},
+            'fault_domain_detect_filename': {
                 'coerce': 'expand_local_path',
-                'excludes': 'ip_detect_content'},
+                'excludes': 'fault_domain_detect_contents'},
             'license_key_filename': {
                 'coerce': 'expand_local_path',
-                'excludes': 'ip_detect_content'},
+                'excludes': 'license_key_contents'},
             # the following are fields that will be injected by dcos-launch
             'agent_list': {'readonly': True},
             'public_agent_list': {'readonly': True}
