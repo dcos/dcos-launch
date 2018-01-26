@@ -325,7 +325,9 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
     'prereqs_script_filename': {
         'coerce': 'expand_local_path',
         'required': False,
-        'default': pkg_resources.resource_filename('dcos_launch', 'scripts/install_prereqs.sh')
+        'default_setter':
+            lambda doc: pkg_resources.resource_filename('dcos_launch', 'scripts/install_prereqs.sh') \
+            if doc['install_prereqs'] else None
     },
     'install_prereqs': {
         'type': 'boolean',
@@ -492,7 +494,8 @@ GCP_ONPREM_SCHEMA = {
         # To see all image families: https://cloud.google.com/compute/docs/images
         'type': 'string',
         'required': False,
-        'default': 'coreos'},
+        'default': 'coreos',
+        'excludes': 'source_image'},
     'source_image': {
         'type': 'string',
         'required': False,
