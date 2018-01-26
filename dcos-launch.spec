@@ -8,6 +8,7 @@ a = Analysis(['dcos_launch/cli.py'],
              hiddenimports=['html.parser'],
              datas=[('dcos_launch/fault-domain-detect/*.sh', 'dcos_launch/fault-domain-detect'),
                     ('dcos_launch/ip-detect/*.sh', 'dcos_launch/ip-detect'),
+                    ('dcos_launch/ip-detect-public/*.sh', 'dcos_launch/ip-detect-public'),
                     ('dcos_launch/scripts/*.sh', 'dcos_launch/scripts'),
                     ('dcos_launch/templates/*.json','dcos_launch/templates')
 ])

@@ -38,14 +38,14 @@ setup(
         ],
     },
     dependency_links=[
-        'https://github.com/dcos/dcos-test-utils@449eb8018468c0eafbc85342b68639ac89e8f6be'
+        'https://github.com/dcos/dcos-test-utils@47825add34311ce12bebe6b6ff0993b6bee8295c'
     ],
     package_data={
         'dcos_launch': [
             'sample_configs/*.yaml',
             'ip-detect/aws.sh',
-            'ip-detect-public/aws.sh',
             'ip-detect/gcp.sh',
+            'ip-detect-public/aws.sh',
             'ip-detect-public/gcp.sh',
             'scripts/install_prereqs.sh',
             'templates/vpc-cluster-template.json',
