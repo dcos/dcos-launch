@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import shutil
 import typing
 
 import pkg_resources
@@ -105,19 +106,23 @@ class OnpremLauncher(util.AbstractLauncher):
             elif script == 'ip_detect_public':
                 # this is a special case where DC/OS does not expect this field by default
                 onprem_config[filename_key] = os.path.join('genconf', script_hyphen)
-            with open(default_path_local, 'w') as f:
-                # use a sensible default
-                content = yaml.safe_dump(pkg_resources.resource_string(
-                    'dcos_launch', script_hyphen + '/{}.sh'.format(self.config['platform'])))
-                if (script == 'fault_domain_detect'):
-                    if 'fault_domain_helper' in self.config:
-                        # fault_domain_helper is enabled; use it
-                        content = yaml.safe_dump(self._fault_domain_helper())
-                    elif onprem_config.get('fault_domain_enabled') == 'false':
-                        # fault domain is explicitly disabled, so inject nothing.
-                        # if disabled implicitly, the injected default won't be used
-                        continue
-                f.write(content)
+
+            if (script == 'fault_domain_detect'):
+                if 'fault_domain_helper' in self.config:
+                    # fault_domain_helper is enabled; use it
+                    with open(default_path_local, 'w') as f:
+                        f.write(yaml.safe_dump(self._fault_domain_helper()))
+                    continue
+                elif onprem_config.get('fault_domain_enabled') == 'false':
+                    # fault domain is explicitly disabled, so inject nothing.
+                    # if disabled implicitly, the injected default won't be used
+                    continue
+
+            # use a sensible default
+            shutil.copyfile(
+                pkg_resources.resource_filename(
+                    'dcos_launch', script_hyphen + '/{}.sh'.format(self.config['platform'])),
+                default_path_local)
 
         with open(os.path.join(genconf_dir, 'config.yaml'), 'w') as f:
             f.write(yaml.safe_dump(onprem_config))
