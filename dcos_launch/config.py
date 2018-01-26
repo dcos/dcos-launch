@@ -225,6 +225,11 @@ def _validate_fault_domain_helper(field, value, error):
         error(field, 'Must have one region declared with `local: true` (i.e. the master region)')
 
 
+def _validate_genconf_dir(field, value, error):
+    if not value.endswith('genconf'):
+        error(field, 'genconf_dir must be named geconf')
+
+
 ONPREM_DEPLOY_COMMON_SCHEMA = {
     'platform': {
         'type': 'string',
@@ -287,7 +292,8 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'type': 'string',
         'required': False,
         'default': 'genconf',
-        'coerce': 'expand_local_path'
+        'coerce': 'expand_local_path',
+        'validator': _validate_genconf_dir
         },
     'fault_domain_helper': {
         'type': 'dict',

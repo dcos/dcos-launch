@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import typing
 
 import pkg_resources
 import yaml
@@ -44,7 +45,7 @@ class OnpremLauncher(util.AbstractLauncher):
     def get_bootstrap_ssh_client(self):
         return self.get_ssh_client(user='bootstrap_ssh_user')
 
-    def get_completed_onprem_config(self) -> dict:
+    def get_completed_onprem_config(self) -> typing.Tuple[dict, str]:
         """ Will fill in the necessary and/or recommended sections of the config file, including:
         * starting a ZK backend if left undefined
         * filling in the master_list for a static exhibitor backend
@@ -52,7 +53,8 @@ class OnpremLauncher(util.AbstractLauncher):
         * adding ip-detect-public script
         * adding fault domain real or logical script
 
-        returns path to genconf directory
+        Returns:
+            config dict, path to genconf directory
         """
         cluster = self.get_onprem_cluster()
         onprem_config = self.config['dcos_config']
@@ -102,7 +104,7 @@ class OnpremLauncher(util.AbstractLauncher):
                 continue
             elif script == 'ip_detect_public':
                 # this is a special case where DC/OS does not expect this field by default
-                onprem_config[filename_key] = default_path_local
+                onprem_config[filename_key] = os.path.join('genconf', script_hyphen)
             with open(default_path_local, 'w') as f:
                 # use a sensible default
                 content = yaml.safe_dump(pkg_resources.resource_string(
