@@ -58,6 +58,8 @@ class LaunchValidator(cerberus.Validator):
         self.config_dir = kwargs['config_dir']
 
     def _normalize_coerce_expand_local_path(self, value):
+        if not value:
+            return value
         return expand_path(value, self.config_dir)
 
 
@@ -327,7 +329,7 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'required': False,
         'default_setter':
             lambda doc: pkg_resources.resource_filename('dcos_launch', 'scripts/install_prereqs.sh') \
-            if doc['install_prereqs'] else None
+            if doc['install_prereqs'] else ''
     },
     'install_prereqs': {
         'type': 'boolean',
@@ -494,8 +496,7 @@ GCP_ONPREM_SCHEMA = {
         # To see all image families: https://cloud.google.com/compute/docs/images
         'type': 'string',
         'required': False,
-        'default': 'coreos',
-        'excludes': 'source_image'},
+        'default': 'coreos'},
     'source_image': {
         'type': 'string',
         'required': False,
