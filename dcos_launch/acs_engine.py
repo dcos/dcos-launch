@@ -121,6 +121,8 @@ def run_acs_engine(acs_engine_url: str, acs_engine_template):
     cluster_name = acs_engine_template['properties']['masterProfile']['dnsPrefix']
     with open(os.path.join(tmpdir, '_output/{}/azuredeploy.json'.format(cluster_name)), 'r') as f:
         arm_template = json.load(f)
+    arm_template['variables']['agentWindowsOffer'] = 'WindowsServerSemiAnnual'
+    arm_template['variables']['agentWindowsSku'] = 'Datacenter-Core-1709-with-Containers-smalldisk'
     with open(os.path.join(tmpdir, '_output/{}/azuredeploy.parameters.json'.format(cluster_name)), 'r') as f:
         arm_template_parameters_raw = json.load(f)
     arm_template_parameters = dict()
