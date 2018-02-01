@@ -58,6 +58,8 @@ class LaunchValidator(cerberus.Validator):
         self.config_dir = kwargs['config_dir']
 
     def _normalize_coerce_expand_local_path(self, value):
+        if not value:
+            return value
         return expand_path(value, self.config_dir)
 
 
@@ -225,6 +227,11 @@ def _validate_fault_domain_helper(field, value, error):
         error(field, 'Must have one region declared with `local: true` (i.e. the master region)')
 
 
+def _validate_genconf_dir(field, value, error):
+    if not value.endswith('genconf'):
+        error(field, 'genconf_dir must be named geconf')
+
+
 ONPREM_DEPLOY_COMMON_SCHEMA = {
     'platform': {
         'type': 'string',
@@ -264,27 +271,32 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'type': 'dict',
         'required': True,
         'allow_unknown': True,
+        'default_setter': lambda doc: yaml.load(util.read_file(os.path.join(doc['genconf_dir'], 'config.yaml'))),
         'schema': {
             'ip_detect_filename': {
                 'coerce': 'expand_local_path',
-                'excludes': 'ip_detect_content'},
+                'excludes': 'ip_detect_contents'},
             'ip_detect_public_filename': {
                 'coerce': 'expand_local_path',
-                'excludes': 'ip_detect_public_content'},
-            'ip_detect_contents': {
-                'excludes': 'ip_detect_filename'},
-            'ip_detect_public_contents': {
-                'excludes': 'ip_detect_public_filename'},
-            # currently, these values cannot be set by a user, only by the launch process
-            'master_list': {'readonly': True},
-            'agent_list': {'readonly': True},
-            'public_agent_list': {'readonly': True},
-            'fault_domain_script_filename': {
+                'excludes': 'ip_detect_public_contents'},
+            'fault_domain_detect_filename': {
                 'coerce': 'expand_local_path',
-                'excludes': 'fault_domain_script_contents'
+                'excludes': 'fault_domain_detect_contents'},
+            'license_key_filename': {
+                'coerce': 'expand_local_path',
+                'excludes': 'license_key_contents'},
+            # the following are fields that will be injected by dcos-launch
+            'agent_list': {'readonly': True},
+            'public_agent_list': {'readonly': True}
             }
-        }
-    },
+        },
+    'genconf_dir': {
+        'type': 'string',
+        'required': False,
+        'default': 'genconf',
+        'coerce': 'expand_local_path',
+        'validator': _validate_genconf_dir
+        },
     'fault_domain_helper': {
         'type': 'dict',
         'required': False,
@@ -315,7 +327,9 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
     'prereqs_script_filename': {
         'coerce': 'expand_local_path',
         'required': False,
-        'default': pkg_resources.resource_filename('dcos_launch', 'scripts/install_prereqs.sh')
+        'default_setter':
+            lambda doc: pkg_resources.resource_filename('dcos_launch', 'scripts/install_prereqs.sh') \
+            if doc['install_prereqs'] else ''
     },
     'install_prereqs': {
         'type': 'boolean',

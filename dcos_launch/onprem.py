@@ -1,6 +1,8 @@
 import json
 import logging
 import os
+import shutil
+import typing
 
 import pkg_resources
 import yaml
@@ -44,13 +46,16 @@ class OnpremLauncher(util.AbstractLauncher):
     def get_bootstrap_ssh_client(self):
         return self.get_ssh_client(user='bootstrap_ssh_user')
 
-    def get_completed_onprem_config(self) -> dict:
+    def get_completed_onprem_config(self) -> typing.Tuple[dict, str]:
         """ Will fill in the necessary and/or recommended sections of the config file, including:
         * starting a ZK backend if left undefined
         * filling in the master_list for a static exhibitor backend
         * adding ip-detect script
         * adding ip-detect-public script
         * adding fault domain real or logical script
+
+        Returns:
+            config dict, path to genconf directory
         """
         cluster = self.get_onprem_cluster()
         onprem_config = self.config['dcos_config']
@@ -74,37 +79,55 @@ class OnpremLauncher(util.AbstractLauncher):
         elif exhibitor_backend == 'static' and 'master_list' not in onprem_config:
             onprem_config['master_list'] = [h.private_ip for h in cluster.masters]
 
-        # check if the user provided any filenames and convert them into content
-        for key_name in ('ip_detect_filename', 'ip_detect_public_filename',
-                         'fault_domain_script_filename'):
-            if key_name not in onprem_config:
-                continue
-            new_key_name = key_name.replace('_filename', '_contents')
-            if new_key_name in onprem_config:
-                raise util.LauncherError(
-                    'InvalidDcosConfig', 'Cannot set *_filename and *_contents simultaneously!')
-            onprem_config[new_key_name] = util.read_file(onprem_config[key_name])
-            del onprem_config[key_name]
-
         # Check for ip-detect configuration and inject defaults if not present
         # set the simple default IP detect script if not provided
-        if 'ip_detect_contents' not in onprem_config:
-            onprem_config['ip_detect_contents'] = yaml.safe_dump(pkg_resources.resource_string(
-                'dcos_launch', 'ip-detect/{}.sh'.format(self.config['platform'])).decode())
-        if 'ip_detect_public_contents' not in onprem_config:
-            onprem_config['ip_detect_public_contents'] = yaml.dump(pkg_resources.resource_string(
-                'dcos_launch', 'ip-detect/{}_public.sh'.format(self.config['platform'])).decode())
+        genconf_dir = self.config['genconf_dir']
+        if not os.path.exists(genconf_dir):
+            os.makedirs(genconf_dir)
+        for script in ('ip_detect', 'ip_detect_public', 'fault_domain_detect'):
+            script_hyphen = script.replace('_', '-')
+            default_path_local = os.path.join(genconf_dir, script_hyphen)
+            filename_key = script + '_filename'
+            if filename_key in onprem_config:
+                if not onprem_config[script + '_filename'].startswith('genconf'):
+                    raise util.LauncherError(
+                        'ValidationError',
+                        'Only files in the genconf folder will be copied')
+                local_script_path = onprem_config[filename_key].replace('genconf', genconf_dir)
+                if not os.path.exists(local_script_path):
+                    raise util.LauncherError(
+                        'MissingInput',
+                        '{} script must exist at the given path ({})'.format(
+                            script_hyphen, local_script_path))
+            elif script + '_contents' in onprem_config:
+                continue
+            elif os.path.exists(default_path_local):
+                continue
+            elif script == 'ip_detect_public':
+                # this is a special case where DC/OS does not expect this field by default
+                onprem_config[filename_key] = os.path.join('genconf', script_hyphen)
 
-        # check for fault_domain script or either use the helper to inject a logical script
-        # or use a sensible default for the platform
-        if 'fault_domain_detect_contents' not in onprem_config and 'fault_domain_helper' not in self.config:
-            onprem_config['fault_domain_detect_contents'] = yaml.dump(pkg_resources.resource_string(
-                'dcos_launch', 'fault-domain-detect/{}.sh'.format(self.config['platform'])).decode())
-        elif 'fault_domain_helper' in self.config:
-            onprem_config['fault_domain_detect_contents'] = yaml.dump(self._fault_domain_helper())
+            if (script == 'fault_domain_detect'):
+                if 'fault_domain_helper' in self.config:
+                    # fault_domain_helper is enabled; use it
+                    with open(default_path_local, 'w') as f:
+                        f.write(yaml.safe_dump(self._fault_domain_helper()))
+                    continue
+                elif onprem_config.get('fault_domain_enabled') == 'false':
+                    # fault domain is explicitly disabled, so inject nothing.
+                    # if disabled implicitly, the injected default won't be used
+                    continue
 
+            # use a sensible default
+            shutil.copyfile(
+                pkg_resources.resource_filename(
+                    'dcos_launch', script_hyphen + '/{}.sh'.format(self.config['platform'])),
+                default_path_local)
+
+        with open(os.path.join(genconf_dir, 'config.yaml'), 'w') as f:
+            f.write(yaml.safe_dump(onprem_config))
         log.debug('Generated cluster configuration: {}'.format(onprem_config))
-        return onprem_config
+        return onprem_config, genconf_dir
 
     def _fault_domain_helper(self) -> str:
         """ Will create a script with cluster hostnames baked in so that
@@ -173,8 +196,8 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
         bootstrap_ssh_client.wait_for_ssh_connection(bootstrap_host)
         with bootstrap_ssh_client.tunnel(bootstrap_host) as t:
             installer_path = platforms_onprem.prepare_bootstrap(t, self.config['installer_url'])
-            complete_config = self.get_completed_onprem_config()
-            platforms_onprem.do_genconf(t, complete_config, installer_path)
+            complete_config, genconf_dir = self.get_completed_onprem_config()
+            platforms_onprem.do_genconf(t, genconf_dir, installer_path)
         platforms_onprem.install_dcos(
             cluster,
             self.get_ssh_client(),

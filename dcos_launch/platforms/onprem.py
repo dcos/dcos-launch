@@ -3,11 +3,11 @@
 import asyncio
 import logging
 import os
+import sys
 
 import retrying
-import yaml
 
-from dcos_test_utils import helpers, onprem, ssh_client
+from dcos_test_utils import onprem, ssh_client
 
 from dcos_launch import util
 
@@ -70,7 +70,13 @@ def install_dcos(
         prereqs_script_path: str,
         bootstrap_script_url: str,
         parallelism: int):
-    """ TODO: add ability to copy entire genconf/ dir
+    """
+    Args:
+        cluster: cluster abstraction for handling network addresses
+        node_client: SshClient that can access all non-bootstrap nodes in `cluster`
+        prereqs_script_path: if given, this will be run before preflight on any nodes
+        bootstrap_script_url: where the installation script will be pulled from (see do_genconf)
+        parallelism: how many concurrent SSH tunnels to run
     """
     # Check to make sure we can talk to the cluster
     for host in cluster.cluster_hosts:
@@ -100,9 +106,9 @@ def prepare_bootstrap(
         ssh_tunnel: ssh_client.Tunnelled,
         download_url: str) -> str:
     """ Will setup a host as a 'bootstrap' host. This includes:
-    * making the genconf/ dir in the bootstrap home dir
-    * downloading dcos_generate_config.sh
-    will return the installer path on the bootstrap host
+    * creating a genconf dir so its not owned by the root user, which happens
+        if you run the installer without a genconf directory
+    * downloading the installer from `download_url`
     """
     log.info('Setting up installer on bootstrap host')
     ssh_tunnel.command(['mkdir', '-p', 'genconf'])
@@ -114,19 +120,22 @@ def prepare_bootstrap(
 
 def do_genconf(
         ssh_tunnel: ssh_client.Tunnelled,
-        config: dict,
+        genconf_dir: str,
         installer_path: str):
     """ runs --genconf with the installer
     if an nginx is running, kill it and restart the nginx to host the files
+    Args:
+        ssh_tunnel: tunnel to the host running the installer
+        genconf_dir: path on localhost of genconf directory to transfer
+        installer_path: path of the installer on the remote host
     """
     log.debug('Copying config to host bootstrap host')
-    tmp_config = helpers.session_tempfile(yaml.safe_dump(config))
     installer_dir = os.path.dirname(installer_path)
     # copy config to genconf/
-    ssh_tunnel.copy_file(tmp_config, os.path.join(installer_dir, 'genconf/config.yaml'))
+    ssh_tunnel.copy_file(genconf_dir, installer_dir)
     # try --genconf
     log.info('Runnnig --genconf command...')
-    ssh_tunnel.command(['sudo', 'bash', installer_path, '--genconf'])
+    ssh_tunnel.command(['sudo', 'bash', installer_path, '--genconf'], stdout=sys.stdout.buffer)
     # if OK we just need to restart nginx
     host_share_path = os.path.join(installer_dir, 'genconf/serve')
     volume_mount = host_share_path + ':/usr/share/nginx/html'

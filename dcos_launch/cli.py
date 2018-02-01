@@ -67,7 +67,7 @@ def load_json(filename):
 
 
 def do_main(args):
-    logger.setup(args['--log-level'].upper())
+    logger.setup(args['--log-level'].upper(), noisy_modules=['googleapiclient', 'oauth2client'])
 
     config_path = args['--config-path']
     if args['create']:
