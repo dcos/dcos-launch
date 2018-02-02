@@ -78,7 +78,7 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
     def delete(self):
         raise NotImplementedError()
 
-    def test(self, args: list, env_dict: dict, test_host=None, test_port=22) -> int:
+    def test(self, args: list, env_dict: dict, test_host: str=None, test_port: int=22, details: dict=None) -> int:
         """ Connects to master host with SSH and then run the internal integration test
 
         Args:
@@ -89,7 +89,8 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
             args = list()
         if self.config['ssh_private_key'] == NO_TEST_FLAG or 'ssh_user' not in self.config:
             raise LauncherError('MissingInput', 'DC/OS Launch is missing sufficient SSH info to run tests!')
-        details = self.describe()
+        if details is None:
+            details = self.describe()
         # populate minimal env if not already set. Note: use private IPs as this test is from
         # within the cluster
         # required for 1.8

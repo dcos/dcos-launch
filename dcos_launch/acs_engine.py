@@ -205,6 +205,13 @@ class ACSEngineLauncher(dcos_launch.util.AbstractLauncher):
     def delete(self):
         self.resource_group.delete()
 
+    def test(self, args: list, env_dict: dict, test_host=None, test_port=22) -> int:
+        details = self.describe()
+        env_dict.update({
+            'WINDOWS_HOSTS': ','.join(m['private_ip'] for m in details['windows_private_agents']),
+            'WINDOWS_PUBLIC_HOSTS': ','.join(m['private_ip'] for m in details['windows_public_agents'])})
+        return super().test(args, env_dict, test_host=details['master_fqdn'], test_port=test_port, details=details)
+
     @property
     def resource_group(self):
         try:
