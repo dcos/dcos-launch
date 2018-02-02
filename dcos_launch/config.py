@@ -125,7 +125,10 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
             'aws_region': {
                 'type': 'string',
                 'required': True,
-                'default_setter': lambda doc: util.set_from_env('AWS_REGION')},
+                'default_setter':
+                    lambda doc:
+                        os.environ['AWS_REGION'] if 'AWS_REGION' in os.environ
+                        else util.set_from_env('AWS_DEFAULT_REGION')},
             'disable_rollback': {
                 'type': 'boolean',
                 'required': False,
