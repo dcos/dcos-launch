@@ -331,11 +331,11 @@ class HybridDcosAzureResourceGroup(DcosAzureResourceGroup):
     def get_windows_public_agent_ips(self):
         # this VMSS name is derived from this being the 0-th element in the VMSS list
         return [nic_to_host(nic, self.windows_public_agent_lb_fqdn)
-                for nic in self.get_scale_set_nics('acs900-vmss')]
+                for nic in self.get_scale_set_nics('900-vmss')]
 
     def get_windows_private_agent_ips(self):
         # this VMSS name is derived from this being the 1-th element in the VMSS list
-        return [nic_to_host(nic) for nic in self.get_scale_set_nics('acs901-vmss')]
+        return [nic_to_host(nic) for nic in self.get_scale_set_nics('901-vmss')]
 
     @property
     def linux_public_agent_lb_fqdn(self):
