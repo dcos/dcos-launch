@@ -240,6 +240,11 @@ def aws_onprem_with_helper_config_path(tmpdir, mocked_aws_cfstack_bare_cluster):
 
 
 @pytest.fixture
+def aws_onprem_with_extra_iam_config_path(tmpdir, mocked_aws_cfstack_bare_cluster):
+    return get_temp_config_path(tmpdir, 'aws-onprem-with-extra-iam.yaml')
+
+
+@pytest.fixture
 def mock_genconf_dir(tmpdir):
     """ For testing genconf_dir and providing onprem configuration via a local
         genconf dir. Similarly, the DC/OS config can be provided by a 'dcos_config' field

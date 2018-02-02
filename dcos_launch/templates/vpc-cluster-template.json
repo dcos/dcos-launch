@@ -223,7 +223,8 @@
           "PolicyName": "BareServers",
           "PolicyDocument": {
             "Version" : "2012-10-17",
-            "Statement": [ {
+            "Statement": [
+            {
               "Resource": [
                   { "Ref" : "AWS::StackId" },
                   { "Fn::Join" : ["", [{ "Ref" : "AWS::StackId" }, "/*" ]]}
