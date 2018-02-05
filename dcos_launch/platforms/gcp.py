@@ -58,6 +58,9 @@ properties:
         value: {ssh_user}:{ssh_public_key}
     scheduling:
       preemptible: {usePreemptibleVMs}
+    tags:
+      items:
+        - {deploymentName}
 """
 
 # template for a network resource in a gce deployment
@@ -82,23 +85,43 @@ properties:
   targetSize: {size}
 """
 
-# template for a firewall in the network of a gce deployment
-FIREWALL_TEMPLATE = """
+# template for a firewall that controls external access
+EXTERNAL_FIREWALL_TEMPLATE = """
 type: compute.v1.firewall
-name: {name}
+name: {name}-external
 metadata:
   dependsOn:
   - {network}
 properties:
-  description: allow all ports
+  description: external
   network: global/networks/{network}
   sourceRanges:
   - 0.0.0.0/0
   allowed:
   - IPProtocol: tcp
-  - IPProtocol: udp
+    ports:
+    - 22
+    - 80
+    - 443
+    - 61001
   - IPProtocol: icmp
-  - IPProtocol: sctp
+"""
+
+
+# template for a firewall that controls internal access
+INTERNAL_FIREWALL_TEMPLATE = """
+type: compute.v1.firewall
+name: {name}-internal
+metadata:
+  dependsOn:
+  - {network}
+properties:
+  description: internal
+  network: global/networks/{network}
+  sourceTags:
+  - {deploymentName}
+  allowed:
+  - IPProtocol: all
 """
 
 # Used to disable automatic updates on CoreOS
@@ -383,22 +406,28 @@ class BareClusterDeployment(Deployment):
             network=deployment.network_name,
             diskSizeGb=disk_size,
             diskType=disk_type,
-            usePreemptibleVMs=use_preemptible_vms)
+            usePreemptibleVMs=use_preemptible_vms,
+            deploymentName=deployment.name)
         instance_group_resource = MANAGED_INSTANCE_GROUP_TEMPLATE.format(
             name=deployment.instance_group_name,
             instance_template_name=deployment.template_name,
             size=node_count,
             zone=zone,
             network=deployment.network_name)
-        firewall_resource = FIREWALL_TEMPLATE.format(
+        external_firewall_resource = EXTERNAL_FIREWALL_TEMPLATE.format(
             name=deployment.firewall_name,
             network=deployment.network_name)
+        internal_firewall_resource = INTERNAL_FIREWALL_TEMPLATE.format(
+            name=deployment.firewall_name,
+            network=deployment.network_name,
+            deploymentName=deployment.name)
 
         deployment_config = {
             'resources': [yaml.load(network_resource),
                           yaml.load(instance_template_resource),
                           yaml.load(instance_group_resource),
-                          yaml.load(firewall_resource)]
+                          yaml.load(external_firewall_resource),
+                          yaml.load(internal_firewall_resource)]
         }
 
         if disable_updates and image_project == 'coreos-cloud':
