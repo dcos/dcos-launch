@@ -111,7 +111,7 @@ class OnpremLauncher(util.AbstractLauncher):
                 if 'fault_domain_helper' in self.config:
                     # fault_domain_helper is enabled; use it
                     with open(default_path_local, 'w') as f:
-                        f.write(yaml.safe_dump(self._fault_domain_helper()))
+                        f.write(self._fault_domain_helper())
                     continue
                 elif onprem_config.get('fault_domain_enabled') == 'false':
                     # fault domain is explicitly disabled, so inject nothing.
