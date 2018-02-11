@@ -88,6 +88,18 @@ class OnpremLauncher(util.AbstractLauncher):
             script_hyphen = script.replace('_', '-')
             default_path_local = os.path.join(genconf_dir, script_hyphen)
             filename_key = script + '_filename'
+
+            if (script == 'fault_domain_detect'):
+                if 'fault_domain_helper' in self.config:
+                    # fault_domain_helper is enabled; use it
+                    with open(default_path_local, 'w') as f:
+                        f.write(self._fault_domain_helper())
+                    continue
+                elif onprem_config.get('fault_domain_enabled') == 'false':
+                    # fault domain is explicitly disabled, so inject nothing.
+                    # if disabled implicitly, the injected default won't be used
+                    continue
+
             if filename_key in onprem_config:
                 if not onprem_config[script + '_filename'].startswith('genconf'):
                     raise util.LauncherError(
@@ -106,17 +118,6 @@ class OnpremLauncher(util.AbstractLauncher):
             elif script == 'ip_detect_public':
                 # this is a special case where DC/OS does not expect this field by default
                 onprem_config[filename_key] = os.path.join('genconf', script_hyphen)
-
-            if (script == 'fault_domain_detect'):
-                if 'fault_domain_helper' in self.config:
-                    # fault_domain_helper is enabled; use it
-                    with open(default_path_local, 'w') as f:
-                        f.write(self._fault_domain_helper())
-                    continue
-                elif onprem_config.get('fault_domain_enabled') == 'false':
-                    # fault domain is explicitly disabled, so inject nothing.
-                    # if disabled implicitly, the injected default won't be used
-                    continue
 
             # use a sensible default
             shutil.copyfile(
