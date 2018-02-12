@@ -151,18 +151,16 @@ class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
         if not self.config['key_helper']:
             template_parameters['KeyName'] = self.config['aws_key_name']
         template_body = dcos_launch.platforms.aws.template_by_instance_type(self.config['instance_type'])
+        template_body_json = json.loads(template_body)
         if 'aws_block_device_mappings' in self.config:
-            template_body['Resources']['BareServerLaunchConfig']['BlockDeviceMappings'].extend(
+            template_body_json['Resources']['BareServerLaunchConfig']['Properties']['BlockDeviceMappings'].extend(
                 self.config['aws_block_device_mappings'])
-        template_body = dcos_launch.platforms.aws.template_by_instance_type(self.config['instance_type'])
         if 'iam_role_permissions' in self.config:
-            template_body_json = json.loads(template_body)
             template_body_json[
                 'Resources']['BareRole']['Properties']['Policies'][0]['PolicyDocument']['Statement'].extend(
                 self.config['iam_role_permissions'])
-            template_body = json.dumps(template_body_json)
         self.config.update({
-            'template_body': template_body,
+            'template_body': json.dumps(template_body_json),
             'template_parameters': template_parameters})
         return super().create()
 
