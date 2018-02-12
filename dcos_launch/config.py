@@ -427,6 +427,12 @@ AWS_ONPREM_SCHEMA = {
         'required': True,
         'type': 'string',
         'default_setter': lambda doc: aws.OS_SSH_INFO[doc['os_name']].user},
+    'aws_block_device_mappings': {
+        'required': False,
+        'type': 'list',
+        'valueschema': {
+            'type': 'dict',
+            'allow_unknown': True}},
     'iam_role_permissions': {
         'required': False,
         'type': 'list',
@@ -441,10 +447,7 @@ AWS_ONPREM_SCHEMA = {
                     'type': 'list'},
                 'Effect': {
                     'required': True,
-                    'allowed': ['Allow', 'Deny']}
-            }
-        }
-    }
+                    'allowed': ['Allow', 'Deny']}}}},
 }
 
 
