@@ -189,6 +189,20 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
 """
         return bash_script.format(cases=case_str)
 
+    def _logical_volume_helper(self):
+        script = ''
+        for i in range(1, self.config['mount_volume_helper']+1):
+            script += """
+sudo mkdir /dcos/volume{idx}
+sudo dd if=/dev/zero of=/root/volume{idx}.img bs=1M count={size}
+sudo losetup /dev/loop{idx} /root/volume{idx}.img
+sudo mkfs -t ext4 /dev/loop{idx}
+sudo losetup -d /dev/loop{idx}
+echo "/root/volume{idx}.img /dcos/volume{idx} auto loop 0 2" | sudo tee -a /etc/fstab
+sudo mount /dcos/volume{idx}
+""".format(idx=i, size=200)
+        return script
+
     def wait(self):
         self.get_bare_cluster_launcher().wait()
         cluster = self.get_onprem_cluster()
@@ -199,10 +213,17 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
             installer_path = platforms_onprem.prepare_bootstrap(t, self.config['installer_url'])
             complete_config, genconf_dir = self.get_completed_onprem_config()
             platforms_onprem.do_genconf(t, genconf_dir, installer_path)
+
+        prereqs_script = ''
+        if self.config['install_prereqs']:
+            prereqs_script = util.read_file(self.config['prereqs_script_filename'])
+        if 'mount_volume_helper' in self.config:
+            prereqs_script += self._logical_volume_helper()
+
         platforms_onprem.install_dcos(
             cluster,
             self.get_ssh_client(),
-            self.config['prereqs_script_filename'] if self.config['install_prereqs'] else None,
+            prereqs_script,
             complete_config['bootstrap_url'] + '/dcos_install.sh',
             self.config['onprem_install_parallelism'])
 
