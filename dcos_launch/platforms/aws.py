@@ -129,7 +129,6 @@ class BotoWrapper:
     def get_service_resources(self, service, resource_name):
         """Return resources and boto wrapper in every region for the given boto3 service and resource type."""
         for region in aws_region_names:
-            self.region = region['id']
             for resource in getattr(self.resource(service, region['id']), resource_name).all():
                 yield resource
 
@@ -138,6 +137,11 @@ class BotoWrapper:
         """Get all AWS CloudFormation stacks in all regions."""
         for stack in self.get_service_resources('cloudformation', 'stacks'):
             yield CfStack(stack.stack_name, self)
+
+    @retry_boto_rate_limits
+    def get_all_buckets(self):
+        """Get all S3 buckets in all regions."""
+        yield from self.get_service_resources('s3', 'buckets')
 
     @retry_boto_rate_limits
     def get_all_keypairs(self):
