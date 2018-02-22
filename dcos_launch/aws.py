@@ -136,10 +136,12 @@ class BareClusterLauncher(DcosCloudformationLauncher, dcos_launch.util.AbstractO
             'ClusterSize': (self.config['num_masters'] + self.config['num_public_agents'] +
                             self.config['num_private_agents']),
             'InstanceType': self.config['instance_type'],
+            'InstanceDeviceName': self.config['instance_device_name'],
             'AmiCode': self.config['instance_ami'],
             # Bootstrap instance is currently instantiated as a single-server AutoScaleGroup which is terrible and is
             # intended to be updated to be configured properly as an EC2 instance later
             'BootstrapInstanceType': self.config['bootstrap_instance_type'],
+            'BootstrapInstanceDeviceName': self.config['bootstrap_instance_device_name'],
             'BootstrapAmiCode': self.config['bootstrap_instance_ami']
         }
         if not self.config['key_helper']:

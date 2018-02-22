@@ -371,6 +371,10 @@ AWS_ONPREM_SCHEMA = {
     'instance_type': {
         'type': 'string',
         'required': True},
+    'instance_device_name': {
+        'type': 'string',
+        'required': True,
+        'default': '/dev/sda1'},
     'bootstrap_instance_ami': {
         'type': 'string',
         'required': True,
@@ -379,6 +383,10 @@ AWS_ONPREM_SCHEMA = {
         'type': 'string',
         'required': True,
         'default': 'm4.xlarge'},
+    'bootstrap_instance_device_name': {
+        'type': 'string',
+        'required': True,
+        'default': '/dev/sda1'},
     'admin_location': {
         'type': 'string',
         'required': True,
