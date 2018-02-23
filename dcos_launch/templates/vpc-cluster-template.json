@@ -15,6 +15,12 @@
       "Default": "m4.xlarge",
       "ConstraintDescription": "Must be a valid EC2 PV instance type."
     },
+    "InstanceDeviceName": {
+      "Description": "Disk device name (/dev/sda1, /dev/xdva, etc).",
+      "Type": "String",
+      "Default": "/dev/sda1",
+      "ConstraintDescription": "Must be a valid device name."
+    },
     "AmiCode": {
         "Description": "Image id of desired OS",
         "Type": "String"
@@ -28,6 +34,12 @@
       "Type": "String",
       "Default": "m4.xlarge",
       "ConstraintDescription": "Must be a valid EC2 PV instance type"
+    },
+    "BootstrapInstanceDeviceName": {
+      "Description": "Disk device name used on the bootstrap node.",
+      "Type": "String",
+      "Default": "/dev/sda1",
+      "ConstraintDescription": "Must be a valid device name."
     },
     "ClusterSize": {
       "Default": "3",
@@ -304,16 +316,14 @@
         },
         "BlockDeviceMappings": [
           {
-            "DeviceName": "/dev/sda1",
+            "DeviceName": {
+              "Ref": "InstanceDeviceName"
+            },
             "Ebs": {
               "VolumeSize": "30",
               "DeleteOnTermination": "true",
               "VolumeType": "gp2"
             }
-          },
-          {
-            "DeviceName": "/dev/sdb",
-            "VirtualName": "ephemeral0"
           }
         ]
       }
@@ -365,17 +375,14 @@
         },
         "BlockDeviceMappings": [
           {
-            "DeviceName": "/dev/sda1",
+            "DeviceName": {
+              "Ref": "BootstrapInstanceDeviceName"
+            },
             "Ebs": {
               "VolumeSize": "30",
               "DeleteOnTermination": "true",
               "VolumeType": "gp2"
             }
-          },
-          {
-
-            "DeviceName": "/dev/sdb",
-            "VirtualName": "ephemeral0"
           }
         ]
       }
