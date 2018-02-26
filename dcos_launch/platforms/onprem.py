@@ -9,8 +9,6 @@ import retrying
 
 from dcos_test_utils import onprem, ssh_client
 
-from dcos_launch import util
-
 log = logging.getLogger(__name__)
 
 
@@ -67,14 +65,14 @@ def generate_log_filename(target_name: str):
 def install_dcos(
         cluster: onprem.OnpremCluster,
         node_client: ssh_client.SshClient,
-        prereqs_script_path: str,
+        prereqs_script: str,
         bootstrap_script_url: str,
         parallelism: int):
     """
     Args:
         cluster: cluster abstraction for handling network addresses
         node_client: SshClient that can access all non-bootstrap nodes in `cluster`
-        prereqs_script_path: if given, this will be run before preflight on any nodes
+        prereqs_script: if given, this will be run before preflight on any nodes
         bootstrap_script_url: where the installation script will be pulled from (see do_genconf)
         parallelism: how many concurrent SSH tunnels to run
     """
@@ -84,10 +82,10 @@ def install_dcos(
     # do genconf and configure bootstrap if necessary
     all_client = get_client(cluster, 'cluster_hosts', node_client, parallelism=parallelism)
     # install prereqs if enabled
-    if prereqs_script_path:
+    if prereqs_script:
         log.info('Installing prerequisites on cluster hosts')
         check_results(
-            all_client.run_command('run', [util.read_file(prereqs_script_path)]), node_client, 'install_prereqs')
+            all_client.run_command('run', [prereqs_script]), node_client, 'install_prereqs')
     # download install script from boostrap host and run it
     remote_script_path = '/tmp/install_dcos.sh'
     log.info('Starting preflight')

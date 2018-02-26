@@ -343,6 +343,11 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'type': 'integer',
         'required': False,
         'default': 10
+    },
+    'mount_volume_helper': {
+        'type': 'integer',
+        'required': False,
+        'default': 2
     }
 }
 
