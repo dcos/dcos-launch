@@ -1,4 +1,5 @@
 import logging
+import os
 
 import dcos_launch.util
 import dcos_launch.platforms.aws
@@ -8,6 +9,8 @@ log = logging.getLogger(__name__)
 
 class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
     def __init__(self, config: dict, env=None):
+        if env:
+            os.environ.update(env)
         self.boto_wrapper = dcos_launch.platforms.aws.BotoWrapper(
             config['aws_region'])
         self.config = config
