@@ -374,7 +374,7 @@ AWS_ONPREM_SCHEMA = {
     'instance_device_name': {
         'type': 'string',
         'required': True,
-        'default_setter': lambda doc: '/dev/xvda/' if doc['os_name'] == 'coreos' else '/dev/sda1'},
+        'default_setter': lambda doc: '/dev/xvda' if doc['os_name'] == 'coreos' else '/dev/sda1'},
     'bootstrap_instance_ami': {
         'type': 'string',
         'required': True,
@@ -386,7 +386,7 @@ AWS_ONPREM_SCHEMA = {
     'bootstrap_instance_device_name': {
         'type': 'string',
         'required': True,
-        'default_setter': lambda doc: '/dev/xvda/' if doc['bootstrap_os_name'] == 'coreos' else '/dev/sda1'},
+        'default_setter': lambda doc: '/dev/xvda' if doc['bootstrap_os_name'] == 'coreos' else '/dev/sda1'},
     'admin_location': {
         'type': 'string',
         'required': True,
