@@ -100,7 +100,7 @@ def do_main(args):
         var_list = list()
         if args['--env'] is not None:
             if '=' in args['--env']:
-                # User is attempting to do an assigment with the option
+                # User is attempting to do an assignment with the option
                 raise dcos_launch.util.LauncherError(
                     'OptionError', "The '--env' option can only pass through environment variables "
                     "from the current environment. Set variables according to the shell being used.")

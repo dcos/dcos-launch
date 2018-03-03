@@ -1,0 +1,7 @@
+---
+launch_config_version: 1
+platform: gcp
+provider: terraform
+dcos-enterprise: False
+terraform:
+  owner: someone

@@ -75,6 +75,9 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
     def wait(self):
         raise NotImplementedError()
 
+    def describe(self):
+        raise NotImplementedError()
+
     def delete(self):
         raise NotImplementedError()
 
@@ -181,6 +184,23 @@ def generate_rsa_keypair(key_size=2048):
         format=serialization.PublicFormat.OpenSSH)
 
     return privkey_pem, pubkey_pem
+
+
+def run_subprocess_and_stream_output(cmd: str) -> str:
+    """
+    runs a shell command, streams the output (both STDOUT and STDERR) and returns it
+    :param cmd: shell command
+    :return: the output of the command
+    """
+    output = ''
+    process = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    for line in iter(process.stdout.readline, b''):
+        sys.stdout.write(line.decode("utf-8"))
+        output += line.decode("utf-8") + '\n'
+    process.wait()
+    if process.returncode != 0:
+        raise subprocess.CalledProcessError(process.returncode, cmd)
+    return output
 
 
 class AbstractOnpremClusterLauncher(metaclass=abc.ABCMeta):

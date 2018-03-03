@@ -4,6 +4,7 @@ import dcos_launch.aws
 import dcos_launch.gcp
 import dcos_launch.onprem
 import dcos_launch.util
+import dcos_launch.terraform
 
 
 VERSION = '0.1.0'
@@ -14,6 +15,8 @@ def get_launcher(config, env=None):
     """
     platform = config['platform']
     provider = config['provider']
+    if provider == 'terraform':
+        return dcos_launch.terraform.TerraformLauncher(config, env=env)
     if platform == 'aws':
         if provider == 'aws':
             return dcos_launch.aws.DcosCloudformationLauncher(config, env=env)

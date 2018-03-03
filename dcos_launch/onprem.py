@@ -89,7 +89,7 @@ class OnpremLauncher(util.AbstractLauncher):
             default_path_local = os.path.join(genconf_dir, script_hyphen)
             filename_key = script + '_filename'
 
-            if (script == 'fault_domain_detect'):
+            if script == 'fault_domain_detect':
                 if 'fault_domain_helper' in self.config:
                     # fault_domain_helper is enabled; use it
                     with open(default_path_local, 'w') as f:

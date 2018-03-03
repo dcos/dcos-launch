@@ -20,13 +20,11 @@ class BareClusterLauncher(util.AbstractLauncher, util.AbstractOnpremClusterLaunc
             env = os.environ.copy()
         if 'GCE_CREDENTIALS' in env:
             json_credentials = env['GCE_CREDENTIALS']
-        elif 'GCE_CREDENTIALS_PATH' in env:
-            json_credentials = util.read_file(env['GCE_CREDENTIALS_PATH'])
         elif 'GOOGLE_APPLICATION_CREDENTIALS' in env:
             json_credentials = util.read_file(env['GOOGLE_APPLICATION_CREDENTIALS'])
         else:
             raise util.LauncherError(
-                'MissingParameter', 'Either GCE_CREDENTIALS or GCE_CREDENTIALS_PATH must be set in env')
+                'MissingParameter', 'Either GCE_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS must be set in env')
         credentials_dict = json.loads(json_credentials)
 
         self.gcp_wrapper = gcp.GcpWrapper(credentials_dict)
@@ -100,5 +98,5 @@ class BareClusterLauncher(util.AbstractLauncher, util.AbstractOnpremClusterLaunc
         """
         self.deployment.delete()
 
-    def test(self, args, env_dict, test_host=None, test_port=22):
+    def test(self, args, env_dict, test_host=None, test_port=22, details: dict=None):
         raise NotImplementedError('Bare clusters cannot be tested!')

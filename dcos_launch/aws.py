@@ -157,5 +157,5 @@ class BareClusterLauncher(DcosCloudformationLauncher, dcos_launch.util.AbstractO
     def get_bootstrap_host(self):
         return self.stack.get_bootstrap_ip()
 
-    def test(self, args, env, test_host=None, test_port=22):
+    def test(self, args, env, test_host=None, test_port=22, details: dict=None):
         raise NotImplementedError('Bare clusters cannot be tested!')

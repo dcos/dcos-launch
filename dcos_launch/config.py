@@ -107,6 +107,8 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
     provider = validator.normalized(user_config)['provider']
     if provider == 'onprem':
         validator.schema.update(ONPREM_DEPLOY_COMMON_SCHEMA)
+    elif provider == 'terraform':
+        validator.schema.update(TERRAFORM_DEPLOY_COMMON_SCHEMA)
     elif provider in ('aws', 'azure'):
         validator.schema.update(TEMPLATE_DEPLOY_COMMON_SCHEMA)
     elif provider == 'acs-engine':
@@ -121,36 +123,45 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
     # use the intermediate provider-validated config to add the platform schema
     platform = validator.normalized(user_config)['platform']
     if platform == 'aws':
-        validator.schema.update({
-            'aws_region': {
-                'type': 'string',
-                'required': True,
-                'default_setter':
-                    lambda doc:
-                        os.environ['AWS_REGION'] if 'AWS_REGION' in os.environ
-                        else util.set_from_env('AWS_DEFAULT_REGION')},
-            'disable_rollback': {
-                'type': 'boolean',
-                'required': False,
-                'default': False}})
-        if provider == 'onprem':
-            validator.schema.update(AWS_ONPREM_SCHEMA)
+        if provider == 'terraform':
+            validator.schema.update(AWS_TERRAFORM_SCHEMA)
+        else:
+            validator.schema.update({
+                'aws_region': {
+                    'type': 'string',
+                    'required': True,
+                    'default_setter':
+                        lambda doc:
+                            os.environ['AWS_REGION'] if 'AWS_REGION' in os.environ
+                            else util.set_from_env('AWS_DEFAULT_REGION')},
+                'disable_rollback': {
+                    'type': 'boolean',
+                    'required': False,
+                    'default': False}})
+            if provider == 'onprem':
+                validator.schema.update(AWS_ONPREM_SCHEMA)
     elif platform in ('gcp', 'gce'):
-        validator.schema.update({
-            'gce_zone': {
-                'type': 'string',
-                'required': True,
-                'default_setter': lambda doc: util.set_from_env('GCE_ZONE')}})
-        # only use gcp here on out
-        user_config['platform'] = 'gcp'
-        if provider == 'onprem':
-            validator.schema.update(GCP_ONPREM_SCHEMA)
+        if provider == 'terraform':
+            validator.schema.update(GCP_TERRAFORM_SCHEMA)
+        else:
+            validator.schema.update({
+                'gce_zone': {
+                    'type': 'string',
+                    'required': True,
+                    'default_setter': lambda doc: util.set_from_env('GCE_ZONE')}})
+            # only use gcp here on out
+            user_config['platform'] = 'gcp'
+            if provider == 'onprem':
+                validator.schema.update(GCP_ONPREM_SCHEMA)
     elif platform == 'azure':
-        validator.schema.update({
-            'azure_location': {
-                'type': 'string',
-                'required': True,
-                'default_setter': lambda doc: util.set_from_env('AZURE_LOCATION')}})
+        if provider == 'terraform':
+            validator.schema.update(AZURE_TERRAFORM_SCHEMA)
+        else:
+            validator.schema.update({
+                'azure_location': {
+                    'type': 'string',
+                    'required': True,
+                    'default_setter': lambda doc: util.set_from_env('AZURE_LOCATION')}})
     else:
         raise NotImplementedError()
 
@@ -162,9 +173,6 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
 
 
 COMMON_SCHEMA = {
-    'deployment_name': {
-        'type': 'string',
-        'required': True},
     'provider': {
         'type': 'string',
         'required': True,
@@ -196,16 +204,17 @@ COMMON_SCHEMA = {
     'key_helper': {
         'type': 'boolean',
         'default': False},
-    'zen_helper': {
-        'type': 'boolean',
-        'default': False},
     'tags': {
         'type': 'dict',
-        'required': False}}
+        'required': False}
+}
 
 
 TEMPLATE_DEPLOY_COMMON_SCHEMA = {
     # platform MUST be equal to provider when using templates
+    'deployment_name': {
+        'type': 'string',
+        'required': True},
     'platform': {
         'type': 'string',
         'readonly': True,
@@ -216,7 +225,11 @@ TEMPLATE_DEPLOY_COMMON_SCHEMA = {
         'validator': validate_url},
     'template_parameters': {
         'type': 'dict',
-        'required': True}}
+        'required': True},
+    'zen_helper': {
+        'type': 'boolean',
+        'default': False}
+}
 
 
 def _validate_fault_domain_helper(field, value, error):
@@ -236,6 +249,9 @@ def _validate_genconf_dir(field, value, error):
 
 
 ONPREM_DEPLOY_COMMON_SCHEMA = {
+    'deployment_name': {
+        'type': 'string',
+        'required': True},
     'platform': {
         'type': 'string',
         'required': True,
@@ -413,6 +429,9 @@ def get_platform_dependent_acs_engine_url():
 
 
 ACS_ENGINE_SCHEMA = {
+    'deployment_name': {
+        'type': 'string',
+        'required': True},
     'acs_engine_tarball_url': {
         'type': 'string',
         'required': True,
@@ -542,3 +561,34 @@ GCP_ONPREM_SCHEMA = {
         'type': 'boolean',
         'required': False,
         'default': False}}
+
+
+"""
+    Should these schemas exist at all? Input validation should be done at the terraform-dcos level to not duplicate the
+    input validation effort. However, some validation, like checking all input parameters are known, cannot be done in
+    terraform-dcos (HCL) Is it worth putting all these variables here just for that type of validation?
+"""
+TERRAFORM_DEPLOY_COMMON_SCHEMA = {
+    'owner': {
+        'type': 'string',
+        'required': False},
+    'dcos-enterprise': {
+        'type': 'boolean',
+        'default': False}
+}
+
+
+GCP_TERRAFORM_SCHEMA = {
+    # https://github.com/dcos/terraform-dcos/blob/master/gcp/variables.tf
+    # https://github.com/dcos/terraform-dcos/blob/master/gcp/modules/dcos-tested-gcp-oses/gcp_variables.tf
+}
+
+
+AWS_TERRAFORM_SCHEMA = {
+
+}
+
+
+AZURE_TERRAFORM_SCHEMA = {
+
+}
