@@ -68,9 +68,8 @@ def load_json(filename):
 def do_main(args):
     logger.setup(args['--log-level'].upper(), noisy_modules=['googleapiclient', 'oauth2client'])
 
-    config_path = args['--config-path']
     if args['create']:
-        config = dcos_launch.config.get_validated_config_from_path(config_path)
+        config = dcos_launch.config.get_validated_config_from_path(args['--config-path'])
         info_path = args['--info-path']
         if os.path.exists(info_path):
             raise dcos_launch.util.LauncherError(
@@ -99,7 +98,7 @@ def do_main(args):
         var_list = list()
         if args['--env'] is not None:
             if '=' in args['--env']:
-                # User is attempting to do an assigment with the option
+                # User is attempting to do an assignment with the option
                 raise dcos_launch.util.LauncherError(
                     'OptionError', "The '--env' option can only pass through environment variables "
                     "from the current environment. Set variables according to the shell being used.")

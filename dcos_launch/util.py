@@ -75,6 +75,9 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
     def wait(self):
         raise NotImplementedError()
 
+    def describe(self):
+        raise NotImplementedError()
+
     def delete(self):
         raise NotImplementedError()
 

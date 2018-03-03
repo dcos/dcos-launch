@@ -2,6 +2,7 @@
 """
 import os
 import sys
+import uuid
 
 import pkg_resources
 
@@ -107,6 +108,8 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
     provider = validator.normalized(user_config)['provider']
     if provider == 'onprem':
         validator.schema.update(ONPREM_DEPLOY_COMMON_SCHEMA)
+    elif provider == 'terraform':
+        validator.schema.update(TERRAFORM_SCHEMA)
     elif provider in ('aws', 'azure'):
         validator.schema.update(TEMPLATE_DEPLOY_COMMON_SCHEMA)
     elif provider == 'acs-engine':
@@ -119,40 +122,46 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
         _raise_errors(validator)
 
     # use the intermediate provider-validated config to add the platform schema
-    platform = validator.normalized(user_config)['platform']
-    if platform == 'aws':
-        validator.schema.update({
-            'aws_region': {
-                'type': 'string',
-                'required': True,
-                'default_setter':
-                    lambda doc:
-                        os.environ['AWS_REGION'] if 'AWS_REGION' in os.environ
-                        else util.set_from_env('AWS_DEFAULT_REGION')},
-            'disable_rollback': {
-                'type': 'boolean',
-                'required': False,
-                'default': False}})
-        if provider == 'onprem':
-            validator.schema.update(AWS_ONPREM_SCHEMA)
-    elif platform in ('gcp', 'gce'):
-        validator.schema.update({
-            'gce_zone': {
-                'type': 'string',
-                'required': True,
-                'default_setter': lambda doc: util.set_from_env('GCE_ZONE')}})
-        # only use gcp here on out
-        user_config['platform'] = 'gcp'
-        if provider == 'onprem':
-            validator.schema.update(GCP_ONPREM_SCHEMA)
-    elif platform == 'azure':
-        validator.schema.update({
-            'azure_location': {
-                'type': 'string',
-                'required': True,
-                'default_setter': lambda doc: util.set_from_env('AZURE_LOCATION')}})
+    if provider != 'terraform':
+        platform = validator.normalized(user_config)['platform']
+        if platform == 'aws':
+            validator.schema.update({
+                'aws_region': {
+                    'type': 'string',
+                    'required': True,
+                    'default_setter':
+                        lambda doc:
+                            os.environ['AWS_REGION'] if 'AWS_REGION' in os.environ
+                            else util.set_from_env('AWS_DEFAULT_REGION')},
+                'disable_rollback': {
+                    'type': 'boolean',
+                    'required': False,
+                    'default': False},
+                'zen_helper': {
+                    'type': 'boolean',
+                    'default': False}})
+            if provider == 'onprem':
+                validator.schema.update(AWS_ONPREM_SCHEMA)
+        elif platform in ('gcp', 'gce'):
+            validator.schema.update({
+                'gce_zone': {
+                    'type': 'string',
+                    'required': True,
+                    'default_setter': lambda doc: util.set_from_env('GCE_ZONE')}})
+            # only use gcp here on out
+            user_config['platform'] = 'gcp'
+            if provider == 'onprem':
+                validator.schema.update(GCP_ONPREM_SCHEMA)
+        elif platform == 'azure':
+            validator.schema.update({
+                'azure_location': {
+                    'type': 'string',
+                    'required': True,
+                    'default_setter': lambda doc: util.set_from_env('AZURE_LOCATION')}})
+        else:
+            raise NotImplementedError()
     else:
-        raise NotImplementedError()
+        user_config['platform'] = 'gcp' if user_config['platform'] in ['gce', 'gcp'] else user_config['platform']
 
     # do final validation
     validator.allow_unknown = False
@@ -162,9 +171,6 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
 
 
 COMMON_SCHEMA = {
-    'deployment_name': {
-        'type': 'string',
-        'required': True},
     'provider': {
         'type': 'string',
         'required': True,
@@ -172,7 +178,8 @@ COMMON_SCHEMA = {
             'aws',
             'azure',
             'acs-engine',
-            'onprem']},
+            'onprem',
+            'terraform']},
     'launch_config_version': {
         'type': 'integer',
         'required': True,
@@ -196,16 +203,17 @@ COMMON_SCHEMA = {
     'key_helper': {
         'type': 'boolean',
         'default': False},
-    'zen_helper': {
-        'type': 'boolean',
-        'default': False},
     'tags': {
         'type': 'dict',
-        'required': False}}
+        'required': False}
+}
 
 
 TEMPLATE_DEPLOY_COMMON_SCHEMA = {
     # platform MUST be equal to provider when using templates
+    'deployment_name': {
+        'type': 'string',
+        'required': True},
     'platform': {
         'type': 'string',
         'readonly': True,
@@ -216,7 +224,8 @@ TEMPLATE_DEPLOY_COMMON_SCHEMA = {
         'validator': validate_url},
     'template_parameters': {
         'type': 'dict',
-        'required': True}}
+        'required': True}
+}
 
 
 def _validate_fault_domain_helper(field, value, error):
@@ -236,6 +245,9 @@ def _validate_genconf_dir(field, value, error):
 
 
 ONPREM_DEPLOY_COMMON_SCHEMA = {
+    'deployment_name': {
+        'type': 'string',
+        'required': True},
     'platform': {
         'type': 'string',
         'required': True,
@@ -413,6 +425,9 @@ def get_platform_dependent_acs_engine_url():
 
 
 ACS_ENGINE_SCHEMA = {
+    'deployment_name': {
+        'type': 'string',
+        'required': True},
     'acs_engine_tarball_url': {
         'type': 'string',
         'required': True,
@@ -542,3 +557,27 @@ GCP_ONPREM_SCHEMA = {
         'type': 'boolean',
         'required': False,
         'default': False}}
+
+
+TERRAFORM_SCHEMA = {
+    'dcos-enterprise': {
+        'type': 'boolean',
+        'default': False},
+    'platform': {
+        'type': 'string',
+        'required': True,
+        # allow gce but remap it to GCP during validation
+        'allowed': ['aws', 'gcp', 'gce', 'azure']},
+    'terraform_config': {
+        'type': 'dict',
+        'required': True},
+    'init_dir': {
+        'type': 'string',
+        'default_setter': lambda doc: 'terraform-init-' + str(uuid.uuid4())},
+    'terraform_dcos_version': {
+        'type': 'string',
+        'default': 'master'},
+    'terraform_dcos_enterprise_version': {
+        'type': 'string',
+        'default': 'master'}
+}
