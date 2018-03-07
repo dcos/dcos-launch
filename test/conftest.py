@@ -3,8 +3,6 @@ import json
 from collections import namedtuple
 from contextlib import contextmanager
 
-import pytest
-
 import dcos_launch
 import dcos_launch.cli
 import dcos_launch.config
@@ -12,6 +10,7 @@ import dcos_launch.onprem
 import dcos_launch.platforms
 import dcos_test_utils
 import dcos_test_utils.ssh_client
+import pytest
 from dcos_launch.util import get_temp_config_path, stub
 from dcos_test_utils.helpers import Host
 
@@ -173,12 +172,13 @@ def mocked_gcp(monkeypatch, mock_ssh_client):
                         lambda _, __: MOCK_GCE_INSTANCE_INFO)
     monkeypatch.setattr(dcos_launch.platforms.gcp.GcpWrapper, 'list_group_instances',
                         lambda _, __: [{'instance': 'mock'}])
-    monkeypatch.setattr(dcos_launch.gcp.BareClusterLauncher, 'key_helper', lambda self: self.config.update(
+    monkeypatch.setattr(dcos_launch.gcp.OnPremLauncher, 'key_helper', lambda self: self.config.update(
         {'ssh_private_key': dcos_launch.util.MOCK_SSH_KEY_DATA, 'ssh_public_key': dcos_launch.util.MOCK_SSH_KEY_DATA}))
-    monkeypatch.setattr(dcos_launch.gcp.BareClusterLauncher, 'get_cluster_hosts', lambda self: [mock_pub_priv_host] *
-                        (self.config['num_masters'] + self.config['num_public_agents'] +
-                         self.config['num_private_agents']))
-    monkeypatch.setattr(dcos_launch.gcp.BareClusterLauncher, 'get_bootstrap_host', lambda self: mock_pub_priv_host)
+    monkeypatch.setattr(dcos_launch.gcp.OnPremLauncher, 'get_cluster_hosts',
+                        lambda self: [mock_pub_priv_host] * (self.config['num_masters'] +
+                                                             self.config['num_public_agents'] +
+                                                             self.config['num_private_agents']))
+    monkeypatch.setattr(dcos_launch.gcp.OnPremLauncher, 'get_bootstrap_host', lambda self: mock_pub_priv_host)
 
 
 @pytest.fixture

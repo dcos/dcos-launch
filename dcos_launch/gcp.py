@@ -4,16 +4,15 @@ import json
 import logging
 import os
 
-from dcos_launch import util
+from dcos_launch import onprem, util
 from dcos_launch.platforms import gcp
 from dcos_test_utils.helpers import Host
-
 from googleapiclient.errors import HttpError
 
 log = logging.getLogger(__name__)
 
 
-class BareClusterLauncher(util.AbstractLauncher, util.AbstractOnpremClusterLauncher):
+class OnPremLauncher(onprem.AbstractOnpremLauncher):
     # Launches a homogeneous cluster of plain GMIs intended for onprem DC/OS
     def __init__(self, config: dict, env=None):
         if env is None:
@@ -93,12 +92,10 @@ class BareClusterLauncher(util.AbstractLauncher, util.AbstractOnpremClusterLaunc
         once the instance template is deployed, an instance group manager and all its instances are deployed.
         """
         self.deployment.wait_for_completion()
+        super().wait()
 
     def delete(self):
         """ Deletes all the resources associated with the deployment (instance template, network, firewall, instance
         group manager and all its instances.
         """
         self.deployment.delete()
-
-    def test(self, args, env_dict, test_host=None, test_port=22):
-        raise NotImplementedError('Bare clusters cannot be tested!')

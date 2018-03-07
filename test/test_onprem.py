@@ -1,10 +1,10 @@
 import collections
 import json
 import subprocess
-import dcos_test_utils
-from dcos_test_utils import helpers
 
 import dcos_launch
+import dcos_test_utils
+from dcos_test_utils import helpers
 
 
 def test_aws_onprem(check_cli_success, aws_onprem_config_path):
