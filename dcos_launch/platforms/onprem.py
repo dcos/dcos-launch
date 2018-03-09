@@ -6,10 +6,8 @@ import os
 import sys
 
 import retrying
-
-from dcos_test_utils import onprem, ssh_client
-
 from dcos_launch import util
+from dcos_test_utils import onprem, ssh_client
 
 log = logging.getLogger(__name__)
 

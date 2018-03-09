@@ -6,11 +6,11 @@ import sys
 
 import cryptography.hazmat.backends
 import pkg_resources
-import yaml
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 import dcos_test_utils
+import yaml
 
 log = logging.getLogger(__name__)
 
@@ -181,14 +181,3 @@ def generate_rsa_keypair(key_size=2048):
         format=serialization.PublicFormat.OpenSSH)
 
     return privkey_pem, pubkey_pem
-
-
-class AbstractOnpremClusterLauncher(metaclass=abc.ABCMeta):
-    """ Defines the methods that an object must have to
-    support the onprem launcher
-    """
-    def get_bootstrap_host(self):
-        raise NotImplementedError()
-
-    def get_cluster_hosts(self):
-        raise NotImplementedError()

@@ -10,6 +10,7 @@ import logging
 import re
 
 import requests
+
 import retrying
 from azure.common.credentials import ServicePrincipalCredentials
 from azure.common.exceptions import CloudError
@@ -19,7 +20,6 @@ from azure.mgmt.resource.resources.v2016_02_01.models import (DeploymentMode,
                                                               DeploymentProperties,
                                                               ResourceGroup)
 from azure.monitor import MonitorClient
-
 from dcos_test_utils.helpers import Host
 
 log = logging.getLogger(__name__)

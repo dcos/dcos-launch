@@ -15,15 +15,16 @@ PrivateAgentStack: thin wrapper for public agent stack in a zen template
 PublicAgentStack: thin wrapper for public agent stack in a zen template
 BareClusterCfStack: Represents a homogeneous cluster of hosts with a specific AMI
 """
-import logging
 import copy
-import time
-import pkg_resources
-import retrying
 import functools
-import boto3
-from botocore.exceptions import ClientError, WaiterError
+import logging
+import time
 
+import pkg_resources
+
+import boto3
+import retrying
+from botocore.exceptions import ClientError, WaiterError
 from dcos_test_utils.helpers import Host, SshInfo
 
 log = logging.getLogger(__name__)
@@ -361,7 +362,6 @@ class CleanupS3BucketMixin:
         except Exception:
             # Exhibitor S3 Bucket might not be a resource
             log.exception('Failed to get S3 bucket physical ID')
-        super().delete()
 
 
 class DcosCfStack(CleanupS3BucketMixin, CfStack):

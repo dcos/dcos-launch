@@ -35,12 +35,11 @@ import json
 import os
 import sys
 
-from docopt import docopt
-
 import dcos_launch
 import dcos_launch.config
 import dcos_launch.util
 from dcos_test_utils import logger
+from docopt import docopt
 
 json_prettyprint_args = {
     "sort_keys": True,

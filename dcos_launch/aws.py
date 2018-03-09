@@ -1,14 +1,15 @@
 import logging
 
 import dcos_launch.util
-import dcos_launch.platforms.aws
+from dcos_launch import onprem
+from dcos_launch.platforms import aws
 
 log = logging.getLogger(__name__)
 
 
 class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
     def __init__(self, config: dict, env=None):
-        self.boto_wrapper = dcos_launch.platforms.aws.BotoWrapper(
+        self.boto_wrapper = aws.BotoWrapper(
             config['aws_region'])
         self.config = config
 
@@ -120,12 +121,12 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
     @property
     def stack(self):
         try:
-            return dcos_launch.platforms.aws.fetch_stack(self.config['stack_id'], self.boto_wrapper)
+            return aws.fetch_stack(self.config['stack_id'], self.boto_wrapper)
         except Exception as ex:
             raise dcos_launch.util.LauncherError('StackNotFound', None) from ex
 
 
-class BareClusterLauncher(DcosCloudformationLauncher, dcos_launch.util.AbstractOnpremClusterLauncher):
+class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
     """ Launches a homogeneous cluster of plain AMIs intended for onprem DC/OS
     """
     def create(self):
@@ -147,15 +148,19 @@ class BareClusterLauncher(DcosCloudformationLauncher, dcos_launch.util.AbstractO
         if not self.config['key_helper']:
             template_parameters['KeyName'] = self.config['aws_key_name']
         self.config.update({
-            'template_body': dcos_launch.platforms.aws.template_by_instance_type(self.config['instance_type']),
+            'template_body': aws.template_by_instance_type(self.config['instance_type']),
             'template_parameters': template_parameters})
-        return super().create()
+        return DcosCloudformationLauncher.create(self)
+
+    def wait(self):
+        DcosCloudformationLauncher.wait(self)
+        onprem.AbstractOnpremLauncher.wait(self)
+
+    def describe(self):
+        return onprem.AbstractOnpremLauncher.describe(self)
 
     def get_cluster_hosts(self):
         return self.stack.get_cluster_host_ips()
 
     def get_bootstrap_host(self):
         return self.stack.get_bootstrap_ip()
-
-    def test(self, args, env, test_host=None, test_port=22):
-        raise NotImplementedError('Bare clusters cannot be tested!')

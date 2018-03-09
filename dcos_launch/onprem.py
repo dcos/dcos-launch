@@ -1,3 +1,4 @@
+import abc
 import json
 import logging
 import os
@@ -5,40 +6,26 @@ import shutil
 import typing
 
 import pkg_resources
-import yaml
 
-from dcos_launch import aws, gcp, util
+import yaml
+from dcos_launch import util
 from dcos_launch.platforms import onprem as platforms_onprem
 from dcos_test_utils import onprem
 
 log = logging.getLogger(__name__)
 
 
-class OnpremLauncher(util.AbstractLauncher):
-    def __init__(self, config, env=None):
-        self.config = config
-        if env is None:
-            env = os.environ.copy()
-        self.env = env
+class AbstractOnpremLauncher(util.AbstractLauncher, metaclass=abc.ABCMeta):
+    def get_bootstrap_host(self):
+        raise NotImplementedError()
 
-    def create(self):
-        return self.get_bare_cluster_launcher().create()
-
-    def get_bare_cluster_launcher(self):
-        if self.config['platform'] == 'aws':
-            return aws.BareClusterLauncher(self.config, env=self.env)
-        elif self.config['platform'] == 'gcp':
-            return gcp.BareClusterLauncher(self.config, env=self.env)
-        else:
-            raise util.LauncherError(
-                'PlatformNotSupported',
-                'Platform currently not supported for onprem: {}'.format(self.config['platform']))
+    def get_cluster_hosts(self):
+        raise NotImplementedError()
 
     def get_onprem_cluster(self):
-        cluster_launcher = self.get_bare_cluster_launcher()
         return onprem.OnpremCluster.from_hosts(
-            bootstrap_host=cluster_launcher.get_bootstrap_host(),
-            cluster_hosts=cluster_launcher.get_cluster_hosts(),
+            bootstrap_host=self.get_bootstrap_host(),
+            cluster_hosts=self.get_cluster_hosts(),
             num_masters=int(self.config['num_masters']),
             num_private_agents=int(self.config['num_private_agents']),
             num_public_agents=int(self.config['num_public_agents']))
@@ -190,7 +177,6 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
         return bash_script.format(cases=case_str)
 
     def wait(self):
-        self.get_bare_cluster_launcher().wait()
         cluster = self.get_onprem_cluster()
         bootstrap_host = cluster.bootstrap_host.public_ip
         bootstrap_ssh_client = self.get_bootstrap_ssh_client()
@@ -216,8 +202,3 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
             'masters': util.convert_host_list(cluster.get_master_ips()),
             'private_agents': util.convert_host_list(cluster.get_private_agent_ips()),
             'public_agents': util.convert_host_list(cluster.get_public_agent_ips())}
-
-    def delete(self):
-        """ just deletes the hardware
-        """
-        self.get_bare_cluster_launcher().delete()
