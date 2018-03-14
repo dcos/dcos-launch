@@ -3,12 +3,14 @@ import os
 import re
 import shutil
 import subprocess
+import uuid
+from functools import wraps
 
 import dcos_launch.config
 import yaml
 from dcos_launch import gcp, util
+from dcos_launch.platforms import aws
 from dcos_test_utils import helpers
-# from dcos_launch.platforms import aws
 
 IP_REGEX = '(\d{1,3}.){3}\d{1,3}'
 IP_LIST_REGEX = '\[[^\]]+\]'
@@ -38,8 +40,21 @@ def _convert_to_describe_format(ips: list) -> list:
     return [{'private_ip': None, 'public_ip': ip} for ip in ips]
 
 
+def teardown(f):
+    @wraps(f)
+    def handle_exception(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            shutil.rmtree(args[0].init_dir, ignore_errors=True)
+            raise e
+    return handle_exception
+
+
 class TerraformLauncher(util.AbstractLauncher):
     def __init__(self, config: dict, env=None):
+        if env:
+            os.environ.update(env)
         self.config = config
         self.init_dir = dcos_launch.config.expand_path('', self.config['init_dir'])
         self.cluster_profile_path = os.path.join(self.init_dir, 'desired_cluster_profile.tfvars')
@@ -104,7 +119,7 @@ class TerraformLauncher(util.AbstractLauncher):
         Public Agent ELB Address = 35.230.52.188"""
         result = subprocess.run(['terraform', 'show'], cwd=self.init_dir, check=True, stdout=subprocess.PIPE)
         # unescape line endings
-        info = result.stdout.decode('unicode_escape')
+        info = result.stdout.decode('utf-8')
         # crop the output to speed up regex
         info = info[info.find('Outputs:'):]
 
@@ -133,8 +148,13 @@ class TerraformLauncher(util.AbstractLauncher):
 
 
 class GcpLauncher(TerraformLauncher):
+    @teardown
     def __init__(self, config: dict, env=None):
         super().__init__(config, env)
+        # if gcp region is nowhere to be found, the default value in terraform-dcos will be used
+        if 'gcp_region' not in self.config['terraform_config'] and 'GCE_ZONE' in os.environ:
+            self.config['terraform_config']['gcp_region'] = util.set_from_env('GCE_ZONE')
+
         creds_string, creds_path = gcp.get_credentials(env)
         if not creds_path:
             creds_path = helpers.session_tempfile(creds_string)
@@ -143,7 +163,7 @@ class GcpLauncher(TerraformLauncher):
             config['terraform_config']['gcp_project'] = json.loads(creds_string)['project_id']
 
     def key_helper(self):
-        if 'gcp_ssh_pub_key_file' not in self.config['terraform_config']:
+        if self.config['key_helper'] or 'gcp_ssh_pub_key_file' not in self.config['terraform_config']:
             private_key, public_key = util.generate_rsa_keypair()
             priv_key_file = helpers.session_tempfile(private_key)
             os.chmod(priv_key_file, 0o600)
@@ -153,20 +173,44 @@ class GcpLauncher(TerraformLauncher):
 
 
 class AzureLauncher(TerraformLauncher):
+    @teardown
     def __init__(self, config: dict, env=None):
         super().__init__(config, env)
+        dcos_launch.util.set_from_env('AZURE_SUBSCRIPTION_ID')
+        dcos_launch.util.set_from_env('AZURE_CLIENT_ID')
+        dcos_launch.util.set_from_env('AZURE_CLIENT_SECRET')
+        dcos_launch.util.set_from_env('AZURE_TENANT_ID')
+        # if azure region is nowhere to be found, the default value in terraform-dcos will be used
+        if 'azure_region' not in self.config['terraform_config'] and 'AZURE_LOCATION' in os.environ:
+            self.config['terraform_config']['azure_region'] = util.set_from_env('AZURE_LOCATION')
 
     def key_helper(self):
-        # TODO
-        pass
+        if self.config['key_helper'] or 'ssh_pub_key' not in self.config['terraform_config']:
+            private_key, public_key = util.generate_rsa_keypair()
+            priv_key_file = helpers.session_tempfile(private_key)
+            os.chmod(priv_key_file, 0o600)
+            subprocess.run(['ssh-add', priv_key_file], check=True, stderr=subprocess.STDOUT)
+            self.config['terraform_config']['ssh_pub_key'] = public_key.decode('utf-8')
 
 
 class AwsLauncher(TerraformLauncher):
+    @teardown
     def __init__(self, config: dict, env=None):
         super().__init__(config, env)
+        creds_file = '~/.aws/credentials'
+        if not os.path.exists(creds_file):
+            if not os.path.exists('~/.aws'):
+                os.makedirs('~/.aws')
+            with open(creds_file, 'w') as file:
+                file.writelines(['aws_access_key_id = ' + util.set_from_env('AWS_ACCESS_KEY_ID'),
+                                 'aws_secret_access_key = ' + util.set_from_env('AWS_SECRET_ACCESS_KEY')])
 
     def key_helper(self):
-        # TODO
-        # self.boto_wrapper = aws.BotoWrapper()
-        # private_key = self.boto_wrapper.create_key_pair(key_name)
-        pass
+        if self.config['key_helper'] or 'ssh_key_name' not in self.config['terraform_config']:
+            bw = aws.BotoWrapper(self.config['aws_region'])
+            key_name = 'terraform-dcos-launch-' + str(uuid.uuid4())
+            private_key = bw.create_key_pair(key_name)
+            priv_key_file = helpers.session_tempfile(private_key)
+            os.chmod(priv_key_file, 0o600)
+            subprocess.run(['ssh-add', priv_key_file], check=True, stderr=subprocess.STDOUT)
+            self.config['terraform_config']['ssh_key_name'] = key_name
