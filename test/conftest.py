@@ -282,16 +282,6 @@ def gcp_onprem_with_fd_helper_config_path(tmpdir, mocked_gcp):
     return get_temp_config_path(tmpdir, 'gcp-onprem-with-fd-helper.yaml')
 
 
-@pytest.fixture
-def gcp_terraform_config_path(tmpdir):
-    return get_temp_config_path(tmpdir, 'gcp-terraform.yaml')
-
-
-@pytest.fixture
-def gcp_terraform_with_helper_config_path(tmpdir):
-    return get_temp_config_path(tmpdir, 'gcp-terraform-with-helper.yaml')
-
-
 def check_cli(cmd):
     assert dcos_launch.cli.main(cmd) == 0, 'Command failed! {}'.format(' '.join(cmd))
 
