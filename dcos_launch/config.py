@@ -418,15 +418,15 @@ AWS_ONPREM_SCHEMA = {
         'default_setter': lambda doc: aws.OS_SSH_INFO[doc['os_name']].user}}
 
 
-def get_platform_dependent_acs_engine_url():
+def get_platform_dependent_url(url_to_format: str, error_msg: str) -> str:
     if sys.platform in ['linux', 'linux2']:
-        return 'https://github.com/Azure/acs-engine/releases/download/v0.12.1/acs-engine-v0.12.1-linux-amd64.tar.gz'  # noqa
+        return url_to_format.format('linux')
     elif sys.platform == 'darwin':
-        return 'https://github.com/Azure/acs-engine/releases/download/v0.12.1/acs-engine-v0.12.1-darwin-amd64.tar.gz'  # noqa
+        return url_to_format.format('darwin')
     elif sys.platform == 'win32':
-        return 'https://github.com/Azure/acs-engine/releases/download/v0.12.1/acs-engine-v0.12.1-windows-amd64.tar.gz'  # noqa
+        return url_to_format.format('windows')
     else:
-        raise Exception('No ACS-Engine distribution for {}'.format(sys.platform))
+        raise Exception(error_msg)
 
 
 ACS_ENGINE_SCHEMA = {
@@ -436,7 +436,9 @@ ACS_ENGINE_SCHEMA = {
     'acs_engine_tarball_url': {
         'type': 'string',
         'required': True,
-        'default': get_platform_dependent_acs_engine_url()},
+        'default': get_platform_dependent_url(
+            'https://github.com/Azure/acs-engine/releases/download/v0.12.1/acs-engine-v0.12.1-{}-amd64.tar.gz',
+            'No ACS-Engine distribution for {}'.format(sys.platform))},
     'acs_template_filename': {
         'type': 'string',
         'required': False},
@@ -568,6 +570,11 @@ TERRAFORM_COMMON_SCHEMA = {
     'dcos-enterprise': {
         'type': 'boolean',
         'default': False},
+    'terraform_tarball_url': {
+        'type': 'string',
+        'default': get_platform_dependent_url(
+            'https://releases.hashicorp.com/terraform/0.11.3/terraform_0.11.3_{}_amd64.zip',
+            'No Terraform distribution for {}'.format(sys.platform))},
     'platform': {
         'type': 'string',
         'required': True,
