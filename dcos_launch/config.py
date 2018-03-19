@@ -566,6 +566,15 @@ GCP_ONPREM_SCHEMA = {
         'default': False}}
 
 
+def set_key_helper(platform: str, terraform_config: dict):
+    if platform == 'gcp':
+        return 'gcp_ssh_pub_key_file' not in terraform_config
+    elif platform == 'azure':
+        return 'ssh_pub_key' not in terraform_config
+    elif platform == 'aws':
+        return 'ssh_key_name' not in terraform_config
+
+
 TERRAFORM_COMMON_SCHEMA = {
     'dcos-enterprise': {
         'type': 'boolean',
@@ -591,4 +600,7 @@ TERRAFORM_COMMON_SCHEMA = {
         'default': 'master'},
     'terraform_dcos_enterprise_version': {
         'type': 'string',
-        'default': 'master'}}
+        'default': 'master'},
+    'key_helper': {
+        'type': 'boolean',
+        'default_setter': lambda doc: set_key_helper(doc['platform'], doc['terraform_config'])}}
