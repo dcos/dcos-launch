@@ -123,6 +123,12 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
 
     # use the intermediate provider-validated config to add the platform schema
     platform = validator.normalized(user_config)['platform']
+    if provider == 'terraform' and 'ssh_user' in user_config['terraform_config']:
+        if platform in ('azure', 'aws'):
+            raise Exception('Cannot currently set ssh_user parameter for azure and gcp')
+        elif platform in ('gce', 'gcp'):
+            user_config['terraform_config']['gcp_ssh_user'] = user_config['ssh_user']
+
     if platform == 'aws':
         region = None
         if provider == 'terraform':
@@ -597,7 +603,7 @@ TERRAFORM_COMMON_SCHEMA = {
         'default_setter': lambda doc: 'terraform-init-' + str(uuid.uuid4())},
     'terraform_dcos_version': {
         'type': 'string',
-        'default': 'master'},
+        'default': 'outputs'},
     'terraform_dcos_enterprise_version': {
         'type': 'string',
         'default': 'master'},
