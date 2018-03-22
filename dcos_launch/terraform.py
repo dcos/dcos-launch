@@ -1,4 +1,5 @@
 import json
+import sys
 import logging
 import os
 import re
@@ -6,7 +7,7 @@ import shutil
 import subprocess
 import uuid
 import zipfile
-
+import time
 import requests
 
 import dcos_launch.config
@@ -82,7 +83,7 @@ class TerraformLauncher(util.AbstractLauncher):
             try:
                 if self.config['key_helper']:
                     self.key_helper()
-                module = 'github.com/cprovencher/terraform-dcos/{}?ref={}/{}'.format(
+                module = 'github.com/cprovencher/{}?ref={}/{}'.format(
                     'terraform-dcos-enterprise' if self.config['dcos-enterprise'] else 'terraform-dcos',
                     self.config['terraform_dcos_enterprise_version'] if self.config['dcos-enterprise'] else
                     self.config['terraform_dcos_version'], self.config['platform'])
@@ -100,10 +101,26 @@ class TerraformLauncher(util.AbstractLauncher):
                 try:
                     subprocess.run([self.terraform_cmd(), 'init', '-from-module', module], cwd=self.init_dir,
                                    check=True, stderr=subprocess.STDOUT, env=os.environ)
+                    cmd = [self.terraform_cmd(), 'apply', '-auto-approve', '-var-file', self.cluster_profile_path]
                     ssh_cmd, shell = self._ssh_agent_setup()
-                    subprocess.run(ssh_cmd + [self.terraform_cmd(), 'apply', '-auto-approve', '-var-file',
-                                   self.cluster_profile_path], cwd=self.init_dir, check=True,
-                                   stderr=subprocess.STDOUT, shell=shell, env=os.environ)
+                    cmd = ssh_cmd + cmd
+                    if shell:
+                        tmp_file = helpers.session_tempfile('')
+                        cmd += ['>', tmp_file, '2>&1']
+                        print('han')
+                        with open(tmp_file, 'r') as reader:
+                            print('han2')
+                            process = subprocess.Popen(cmd, cwd=self.init_dir, shell=shell, env=os.environ)
+                            while process.poll() is None:
+                                sys.stdout.write(reader.read())
+                                time.sleep(0.25)
+                                print('han3')
+                            # Read the remaining
+                            sys.stdout.write(reader.read())
+                            print('han4')
+                    else:
+                        subprocess.run(cmd, cwd=self.init_dir, check=True, stderr=subprocess.PIPE, shell=shell,
+                                       env=os.environ)
                 except Exception as e:
                     self._delete_cluster()
                     raise e
