@@ -6,12 +6,15 @@ import shutil
 import subprocess
 import uuid
 import zipfile
+
 import requests
-from dcos_test_utils import helpers
+from cryptography.hazmat.primitives import serialization
+
 import dcos_launch.config
 import yaml
 from dcos_launch import gcp, util
 from dcos_launch.platforms import aws
+from dcos_test_utils import helpers
 
 log = logging.getLogger(__name__)
 IP_REGEX = '(\d{1,3}.){3}\d{1,3}'
@@ -78,6 +81,11 @@ class TerraformLauncher(util.AbstractLauncher):
 
         if self.config['key_helper']:
             self.key_helper()
+        else:
+            log.warning('WARNING: {}Since you did not set "key_helper: true" in your config, make sure your ssh-agent '
+                        'is running i.e. "eval `ssh-agent -s`" and that you have added your private key to it i.e. '
+                        '"ssh-add /path/to/key.pem". ssh-agent usage is specific to terraform, not dcos-launch.'
+                        .format('\033[93m'))  # represents the yellow color
 
         module = 'github.com/dcos/{}?ref={}/{}'.format(
             'terraform-dcos-enterprise' if self.config['dcos-enterprise'] else 'terraform-dcos',
@@ -96,23 +104,9 @@ class TerraformLauncher(util.AbstractLauncher):
                     file.write('"{}"\n'.format(v))
         subprocess.run([self.terraform_cmd(), 'init', '-from-module', module], cwd=self.init_dir,
                        check=True, stderr=subprocess.STDOUT)
-        cmd = [self.terraform_cmd(), 'apply', '-auto-approve', '-var-file', self.cluster_profile_path]
-        ssh_cmd, shell = self._get_full_ssh_agent_cmd(['ssh-add', self.config['ssh_private_key_filename'], '&&'])
-        cmd = ssh_cmd + cmd
-        cmd = ' '.join(cmd) if shell else cmd
-        subprocess.run(cmd, cwd=self.init_dir, check=True, stderr=subprocess.STDOUT, shell=shell,
-                       env=os.environ)
+        subprocess.run([self.terraform_cmd(), 'apply', '-auto-approve', '-var-file', self.cluster_profile_path],
+                       cwd=self.init_dir, check=True, stderr=subprocess.STDOUT, env=os.environ)
         return self.config
-
-    def _get_full_ssh_agent_cmd(self, cmd: list):
-        if not self.config['key_helper']:
-            return [], False
-        shell = False
-        if 'SSH_AUTH_SOCK' not in os.environ:
-            cmd = ['eval', '`ssh-agent -s`', '&&'] + cmd
-            shell = True
-            log.info('No ssh-agent running. Starting one...')
-        return cmd, shell
 
     def _install_terraform(self):
         download_path = os.path.join(self.dcos_launch_root_dir, 'terraform.zip')
@@ -139,10 +133,6 @@ class TerraformLauncher(util.AbstractLauncher):
         # delete the cluster
         subprocess.run([self.terraform_cmd(), 'destroy', '-force', '-var-file', self.cluster_profile_path],
                        cwd=self.init_dir, check=True, stderr=subprocess.STDOUT, env=os.environ)
-        # remove the key from the ssh-agent
-        cmd, shell = self._get_full_ssh_agent_cmd(['ssh-add', '-d', self.config['ssh_private_key_filename']])
-        cmd = ' '.join(cmd) if shell else cmd
-        subprocess.run(cmd, check=False, stderr=subprocess.STDOUT, shell=shell)
         # remove the init dir
         shutil.rmtree(self.init_dir, ignore_errors=True)
 
@@ -189,12 +179,14 @@ class TerraformLauncher(util.AbstractLauncher):
         return description
 
     def key_helper(self):
-        private_key, public_key = util.generate_rsa_keypair()
+        private_key, public_key = util.generate_rsa_keypair(
+            priv_key_format=serialization.PrivateFormat.TraditionalOpenSSL)
         self.config['ssh_private_key'] = private_key.decode('utf-8')
         with open(self.default_priv_key_path, 'wb') as f:
             f.write(private_key)
         os.chmod(self.default_priv_key_path, 0o600)
         self.config['ssh_private_key_filename'] = self.default_priv_key_path
+        self.config['terraform_config']['ssh_private_key_filename'] = self.default_priv_key_path
         return public_key
 
     def test(self, args: list, env_dict: dict, test_host: str=None, test_port: int=22, details: dict=None) -> int:

@@ -155,7 +155,7 @@ def convert_host_list(host_list):
     return [{'private_ip': h.private_ip, 'public_ip': h.public_ip} for h in host_list]
 
 
-def generate_rsa_keypair(key_size=2048):
+def generate_rsa_keypair(key_size=2048, priv_key_format=serialization.PrivateFormat.PKCS8):
     """Generate an RSA keypair.
     Create new RSA keypair with an exponent of 65537. Serialize the public
     key OpenSSH format that is used by providers for specifying access keys
@@ -175,7 +175,7 @@ def generate_rsa_keypair(key_size=2048):
 
     privkey_pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
+        format=priv_key_format,
         encryption_algorithm=serialization.NoEncryption())
 
     public_key = private_key.public_key()
