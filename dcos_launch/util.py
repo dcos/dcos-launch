@@ -102,7 +102,6 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
         dst_path = os.environ.get('DIAGNOSTICS_DIRECTORY', os.getcwd())
         ssh_client.copy_file(src_path, dst_path, to_remote=False)
 
-
     def test(self, args: list, env_dict: dict, test_host: str=None, test_port: int=22, details: dict=None) -> int:
         """ Connects to master host with SSH and then run the internal integration test
 
