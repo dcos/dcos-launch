@@ -78,6 +78,30 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
     def delete(self):
         raise NotImplementedError()
 
+    def collect_diagnostics(pytest_args: list, config: dict):
+        """If the --diagnostics flag is specified in the pytest args, then get the .zip diagnostics bundle from the
+        cluster. If --diagnostics is passed with no arguments, the bundle is written to the home directory.
+        """
+        ssh_user = config['ssh_user']
+        ssh_key = config['ssh_key']
+        pytest_dir = None
+        collect = False
+        for arg in pytest_args:
+            if 'diagnostics' in arg:
+                collect = True
+                if '=' in arg:
+                    pytest_dir = '='.split(arg)[1]
+        if not collect:
+            # diagnostics was not run on this test session
+            return
+        ssh_client = dcos_test_utils.ssh_client.SshClient(ssh_user, ssh_key)
+        ssh_client.wait_for_connection()
+        if pytest_dir is None:
+            pytest_dir = ssh_client.get_home_dir()
+        src_path = os.path.join(pytest_dir, '*.zip')
+        dst_path = os.environ.get('DIAGNOSTICS_DIRECTORY', os.getcwd())
+        ssh_client.copy_file(src_path, dst_path, to_remote=False)
+
     def test(self, args: list, env_dict: dict, test_host: str=None, test_port: int=22, details: dict=None) -> int:
         """ Connects to master host with SSH and then run the internal integration test
 
@@ -122,7 +146,13 @@ cd `find /opt/mesosphere/active/ -name dcos-integration-test* | sort | tail -n 1
             test_host = details['masters'][0]['public_ip']
         if ':' in test_host:
             test_host, test_port = test_host.split(':')
-        return try_to_output_unbuffered(self.config, test_host, pytest_cmd, test_port)
+        pytest_exit = try_to_output_unbuffered(self.config, test_host, pytest_cmd, test_port)
+        # scp the diagnostics zip file from the test session back from the cluster
+        try:
+            self.collect_diagnostics(args, self.config, test_host)
+        except Exception as e:
+            log.warn('Failed to collect diagnostics bundle from cluster')
+        return pytest_exit
 
 
 def try_to_output_unbuffered(info, test_host: str, bash_cmd: str, port: int) -> int:
