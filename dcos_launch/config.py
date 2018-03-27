@@ -585,10 +585,15 @@ TERRAFORM_COMMON_SCHEMA = {
     'dcos-enterprise': {
         'type': 'boolean',
         'default': False},
+    'terraform_version': {
+        'type': 'string',
+        'default': '0.11.3'
+    },
     'terraform_tarball_url': {
         'type': 'string',
-        'default': get_platform_dependent_url(
-            'https://releases.hashicorp.com/terraform/0.11.3/terraform_0.11.3_{}_amd64.zip',
+        'default_setter': lambda doc: get_platform_dependent_url(
+            'https://releases.hashicorp.com/terraform/{0}/terraform_{0}_{1}_amd64.zip'.format(doc['terraform_version'],
+                                                                                              sys.platform),
             'No Terraform distribution for {}'.format(sys.platform))},
     'platform': {
         'type': 'string',
