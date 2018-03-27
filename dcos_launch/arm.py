@@ -22,7 +22,7 @@ class AzureResourceGroupLauncher(dcos_launch.util.AbstractLauncher):
         self.config = config
         log.debug('Using Azure Resource Group Launcher')
 
-    def create(self):
+    def create(self, info_path='cluster_info.json'):
         self.key_helper()
         self.azure_wrapper.deploy_template_to_new_resource_group(
             self.config['template_url'],

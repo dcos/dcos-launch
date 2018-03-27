@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 import sys
+import json
 
 import cryptography.hazmat.backends
 import pkg_resources
@@ -21,6 +22,30 @@ MOCK_SUBNET_ID = 'subnet-foo-bar'
 MOCK_GATEWAY_ID = 'gateway-foo-bar'
 MOCK_STACK_ID = 'this-is-a-important-test-stack::deadbeefdeadbeef'
 NO_TEST_FLAG = 'NO PRIVATE SSH KEY PROVIDED - CANNOT TEST'
+
+
+json_prettyprint_args = {
+    "sort_keys": True,
+    "indent": 2,
+    "separators": (',', ':')
+}
+
+
+def write_json(filename, data):
+    with open(filename, "w+") as f:
+        return json.dump(data, f, **json_prettyprint_args)
+
+
+def json_prettyprint(data):
+    return json.dumps(data, **json_prettyprint_args)
+
+
+def load_json(filename):
+    try:
+        with open(filename) as f:
+            return json.load(f)
+    except ValueError as ex:
+        raise ValueError("Invalid JSON in {0}: {1}".format(filename, ex)) from ex
 
 
 def set_from_env(key):
@@ -69,7 +94,7 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
     def __init__(self, config: dict, env=None):
         raise NotImplementedError()
 
-    def create(self):
+    def create(self, info_path='cluster_info.json'):
         raise NotImplementedError()
 
     def wait(self):

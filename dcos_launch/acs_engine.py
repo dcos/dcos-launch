@@ -152,7 +152,7 @@ class ACSEngineLauncher(dcos_launch.util.AbstractLauncher):
         self.config = config
         log.debug('Using Azure Resource Group Launcher')
 
-    def create(self):
+    def create(self, info_path='cluster_info.json'):
         if self.config['key_helper']:
             private_key, public_key = dcos_launch.util.generate_rsa_keypair()
             self.config.update({

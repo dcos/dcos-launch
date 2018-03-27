@@ -65,47 +65,54 @@ class TerraformLauncher(util.AbstractLauncher):
             binary = 'terraform'
         return binary
 
-    def create(self):
-        if os.path.exists(self.init_dir):
-            raise util.LauncherError('ClusterAlreadyExists', "Either the cluster you are trying to create is already "
-                                                             "running or the init_dir you specified in your config is "
-                                                             "already used by another active cluster.")
-        os.makedirs(self.init_dir)
-        # Check if Terraform is installed by running 'terraform version'. If that fails, install Terraform.
+    def create(self, info_path='cluster_info.json'):
         try:
-            subprocess.run([self.terraform_cmd(), 'version'], check=True, stdout=subprocess.PIPE,
-                           stderr=subprocess.STDOUT)
-        except FileNotFoundError:
-            log.info('No Terraform installation detected. Terraform is now being installed.')
-            self._install_terraform()
+            if os.path.exists(self.init_dir):
+                raise util.LauncherError('ClusterAlreadyExists', "Either the cluster you are trying to create is "
+                                                                 "already running or the init_dir you specified in your"
+                                                                 " config is already used by another active cluster.")
+            os.makedirs(self.init_dir)
+            # Check if Terraform is installed by running 'terraform version'. If that fails, install Terraform.
+            try:
+                subprocess.run([self.terraform_cmd(), 'version'], check=True, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT)
+            except FileNotFoundError:
+                log.info('No Terraform installation detected. Terraform is now being installed.')
+                self._install_terraform()
 
-        if self.config['key_helper']:
-            self.key_helper()
-        else:
-            log.warning('WARNING: {}Since you did not set "key_helper: true" in your config, make sure your ssh-agent '
-                        'is running i.e. "eval `ssh-agent -s`" and that you have added your private key to it i.e. '
-                        '"ssh-add /path/to/key.pem". ssh-agent usage is specific to terraform, not dcos-launch.'
-                        .format('\033[93m'))  # represents the yellow color
+            if self.config['key_helper']:
+                self.key_helper()
+            else:
+                log.warning('WARNING: {}Since you did not set "key_helper: true" in your config, make sure your '
+                            'ssh-agent is running i.e. "eval `ssh-agent -s`" and that you have added your private key '
+                            'to it i.e. "ssh-add /path/to/key.pem". ssh-agent usage is specific to terraform, not '
+                            'dcos-launch.'.
+                            format('\033[93m'))  # represents the yellow color
 
-        module = 'github.com/dcos/{}?ref={}/{}'.format(
-            'terraform-dcos-enterprise' if self.config['dcos-enterprise'] else 'terraform-dcos',
-            self.config['terraform_dcos_enterprise_version'] if self.config['dcos-enterprise'] else
-            self.config['terraform_dcos_version'], self.config['platform'])
+            module = 'github.com/dcos/{}?ref={}/{}'.format(
+                'terraform-dcos-enterprise' if self.config['dcos-enterprise'] else 'terraform-dcos',
+                self.config['terraform_dcos_enterprise_version'] if self.config['dcos-enterprise'] else
+                self.config['terraform_dcos_version'], self.config['platform'])
 
-        # Converting our YAML config to the required format. You can find an example of that format in the
-        # Advance YAML Configuration" section here:
-        # https://github.com/mesosphere/terraform-dcos-enterprise/tree/master/aws
-        with open(self.cluster_profile_path, 'w') as file:
-            for k, v in self.config['terraform_config'].items():
-                file.write(k + ' = ')
-                if type(k) is dict:
-                    file.write('<<EOF\n{}\nEOF\n'.format(yaml.dump(v)))
-                else:
-                    file.write('"{}"\n'.format(v))
-        subprocess.run([self.terraform_cmd(), 'init', '-from-module', module], cwd=self.init_dir,
-                       check=True, stderr=subprocess.STDOUT)
-        subprocess.run([self.terraform_cmd(), 'apply', '-auto-approve', '-var-file', self.cluster_profile_path],
-                       cwd=self.init_dir, check=True, stderr=subprocess.STDOUT, env=os.environ)
+            # Converting our YAML config to the required format. You can find an example of that format in the
+            # Advance YAML Configuration" section here:
+            # https://github.com/mesosphere/terraform-dcos-enterprise/tree/master/aws
+            with open(self.cluster_profile_path, 'w') as file:
+                for k, v in self.config['terraform_config'].items():
+                    file.write(k + ' = ')
+                    if type(k) is dict:
+                        file.write('<<EOF\n{}\nEOF\n'.format(yaml.dump(v)))
+                    else:
+                        file.write('"{}"\n'.format(v))
+            subprocess.run([self.terraform_cmd(), 'init', '-from-module', module], cwd=self.init_dir,
+                           check=True, stderr=subprocess.STDOUT)
+            subprocess.run([self.terraform_cmd(), 'apply', '-auto-approve', '-var-file', self.cluster_profile_path],
+                           cwd=self.init_dir, check=True, stderr=subprocess.STDOUT, env=os.environ)
+        except Exception as e:
+            util.write_json(info_path, self.config)
+            if self.config['auto_rollback']:
+                self.delete()
+            raise e
         return self.config
 
     def _install_terraform(self):
@@ -132,7 +139,7 @@ class TerraformLauncher(util.AbstractLauncher):
     def delete(self):
         # delete the cluster
         subprocess.run([self.terraform_cmd(), 'destroy', '-force', '-var-file', self.cluster_profile_path],
-                       cwd=self.init_dir, check=True, stderr=subprocess.STDOUT, env=os.environ)
+                       cwd=self.init_dir, check=False, stderr=subprocess.STDOUT, env=os.environ)
         # remove the init dir
         shutil.rmtree(self.init_dir, ignore_errors=True)
 
@@ -222,7 +229,7 @@ cd `find /opt/mesosphere/active/ -name dcos-integration-test* | sort | tail -n 1
 
 
 class GcpLauncher(TerraformLauncher):
-    def create(self):
+    def create(self, info_path='cluster_info.json'):
         # if gcp region is nowhere to be found, the default value in terraform-dcos will be used
         if 'gcp_zone' not in self.config['terraform_config'] and 'GCE_ZONE' in os.environ:
             self.config['terraform_config']['gcp_zone'] = util.set_from_env('GCE_ZONE')
@@ -234,7 +241,7 @@ class GcpLauncher(TerraformLauncher):
         if 'gcp_project' not in self.config['terraform_config']:
             with open(self.config['terraform_config']['gcp_credentials_key_file']) as f:
                 self.config['terraform_config']['gcp_project'] = json.load(f)['project_id']
-        return super().create()
+        return super().create(info_path)
 
     def key_helper(self):
         if 'gcp_ssh_pub_key_file' not in self.config['terraform_config'] or \
@@ -247,7 +254,7 @@ class GcpLauncher(TerraformLauncher):
 
 
 class AzureLauncher(TerraformLauncher):
-    def create(self):
+    def create(self, info_path='cluster_info.json'):
         dcos_launch.util.set_from_env('ARM_SUBSCRIPTION_ID')
         dcos_launch.util.set_from_env('ARM_CLIENT_ID')
         dcos_launch.util.set_from_env('ARM_CLIENT_SECRET')
@@ -255,7 +262,7 @@ class AzureLauncher(TerraformLauncher):
         # if azure region is nowhere to be found, the default value in terraform-dcos will be used
         if 'azure_region' not in self.config['terraform_config'] and 'AZURE_LOCATION' in os.environ:
             self.config['terraform_config']['azure_region'] = util.set_from_env('AZURE_LOCATION')
-        return super().create()
+        return super().create(info_path)
 
     def key_helper(self):
         if 'ssh_pub_key' not in self.config['terraform_config'] or \

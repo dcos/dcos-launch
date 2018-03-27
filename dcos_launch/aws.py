@@ -13,7 +13,7 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
             config['aws_region'])
         self.config = config
 
-    def create(self):
+    def create(self, info_path='cluster_info.json'):
         """ Checks if the key helper or zen helper are enabled,
         provides resources according to those helpers, tracking which resources
         were created, and then attempts to deploy the template.
@@ -129,7 +129,7 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
 class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
     """ Launches a homogeneous cluster of plain AMIs intended for onprem DC/OS
     """
-    def create(self):
+    def create(self, info_path='cluster_info.json'):
         """ Amend the config to add a template_body and the appropriate parameters
         """
         template_parameters = {

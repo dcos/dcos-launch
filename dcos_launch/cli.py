@@ -31,38 +31,13 @@ Options:
             One of: critical, error, warning, info, debug, and trace
             [default: info].
 """
-import json
 import os
 import sys
-
 import dcos_launch
+from dcos_launch import util
 import dcos_launch.config
-import dcos_launch.util
 from dcos_test_utils import logger
 from docopt import docopt
-
-json_prettyprint_args = {
-    "sort_keys": True,
-    "indent": 2,
-    "separators": (',', ':')
-}
-
-
-def write_json(filename, data):
-    with open(filename, "w+") as f:
-        return json.dump(data, f, **json_prettyprint_args)
-
-
-def json_prettyprint(data):
-    return json.dumps(data, **json_prettyprint_args)
-
-
-def load_json(filename):
-    try:
-        with open(filename) as f:
-            return json.load(f)
-    except ValueError as ex:
-        raise ValueError("Invalid JSON in {0}: {1}".format(filename, ex)) from ex
 
 
 def do_main(args):
@@ -75,11 +50,12 @@ def do_main(args):
             raise dcos_launch.util.LauncherError(
                 'InputConflict',  '{} already exists! Delete this or specify a '
                 'different cluster info path with the -i option'.format(info_path))
-        write_json(info_path, dcos_launch.get_launcher(config).create())
+        full_config = dcos_launch.get_launcher(config).create(info_path)
+        util.write_json(info_path, full_config)
         return 0
 
     try:
-        info = load_json(args['--info-path'])
+        info = util.load_json(args['--info-path'])
     except FileNotFoundError as ex:
         raise dcos_launch.util.LauncherError('MissingInfoJSON', None) from ex
 
@@ -91,7 +67,7 @@ def do_main(args):
         return 0
 
     if args['describe']:
-        print(json_prettyprint(launcher.describe()))
+        print(util.json_prettyprint(launcher.describe()))
         return 0
 
     if args['pytest']:
