@@ -185,16 +185,15 @@ class TerraformLauncher(util.AbstractLauncher):
 
         return description
 
-    def key_helper(self):
-        private_key, public_key = util.generate_rsa_keypair(
-            priv_key_format=serialization.PrivateFormat.TraditionalOpenSSL)
+    def _key_helper_common(self, private_key: bytes):
         self.config['ssh_private_key'] = private_key.decode('utf-8')
         with open(self.default_priv_key_path, 'wb') as f:
             f.write(private_key)
         os.chmod(self.default_priv_key_path, 0o600)
+        # for launching integration tests
         self.config['ssh_private_key_filename'] = self.default_priv_key_path
+        # for dcos installation
         self.config['terraform_config']['ssh_private_key_filename'] = self.default_priv_key_path
-        return public_key
 
     def test(self, args: list, env_dict: dict, test_host: str=None, test_port: int=22, details: dict=None) -> int:
         # TODO only reason this exists is because private IPs are not yet returned from describe(), which are required
@@ -246,10 +245,12 @@ class GcpLauncher(TerraformLauncher):
     def key_helper(self):
         if 'gcp_ssh_pub_key_file' not in self.config['terraform_config'] or \
                 'ssh_private_key_filename' not in self.config:
-            pub_key = super().key_helper()
+            private_key, public_key = util.generate_rsa_keypair(
+                priv_key_format=serialization.PrivateFormat.TraditionalOpenSSL)
+            self._key_helper_common(private_key)
             pub_key_file = os.path.join(self.init_dir, 'key.pub')
             with open(pub_key_file, 'wb') as f:
-                f.write(pub_key)
+                f.write(public_key)
             self.config['terraform_config']['gcp_ssh_pub_key_file'] = pub_key_file
 
 
@@ -267,8 +268,10 @@ class AzureLauncher(TerraformLauncher):
     def key_helper(self):
         if 'ssh_pub_key' not in self.config['terraform_config'] or \
                 'ssh_private_key_filename' not in self.config:
-            pub_key = super().key_helper()
-            self.config['terraform_config']['ssh_pub_key'] = pub_key.decode('utf-8')
+            private_key, public_key = util.generate_rsa_keypair(
+                priv_key_format=serialization.PrivateFormat.TraditionalOpenSSL)
+            self._key_helper_common(private_key)
+            self.config['terraform_config']['ssh_pub_key'] = public_key.decode('utf-8')
 
 
 class AwsLauncher(TerraformLauncher):
@@ -277,9 +280,6 @@ class AwsLauncher(TerraformLauncher):
                 'ssh_private_key_filename' not in self.config:
             bw = aws.BotoWrapper(self.config['aws_region'])
             key_name = 'terraform-dcos-launch-' + str(uuid.uuid4())
-            private_key = bw.create_key_pair(key_name)
-            with open(self.default_priv_key_path, 'wb') as f:
-                f.write(private_key.encode())
-            os.chmod(self.default_priv_key_path, 0o600)
-            self.config['ssh_private_key_filename'] = self.default_priv_key_path
             self.config['terraform_config']['ssh_key_name'] = key_name
+            private_key = bw.create_key_pair(key_name)
+            self._key_helper_common(private_key.encode())
