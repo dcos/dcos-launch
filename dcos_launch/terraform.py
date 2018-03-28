@@ -139,7 +139,7 @@ class TerraformLauncher(util.AbstractLauncher):
     def delete(self):
         # delete the cluster
         subprocess.run([self.terraform_cmd(), 'destroy', '-force', '-var-file', self.cluster_profile_path],
-                       cwd=self.init_dir, check=False, stderr=subprocess.STDOUT, env=os.environ)
+                       cwd=self.init_dir, check=True, stderr=subprocess.STDOUT, env=os.environ)
         # remove the init dir
         shutil.rmtree(self.init_dir, ignore_errors=True)
 
