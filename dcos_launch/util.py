@@ -94,7 +94,7 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
     def __init__(self, config: dict, env=None):
         raise NotImplementedError()
 
-    def create(self, info_path='cluster_info.json'):
+    def create(self):
         raise NotImplementedError()
 
     def wait(self):

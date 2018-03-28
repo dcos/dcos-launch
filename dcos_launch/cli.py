@@ -50,8 +50,10 @@ def do_main(args):
             raise dcos_launch.util.LauncherError(
                 'InputConflict',  '{} already exists! Delete this or specify a '
                 'different cluster info path with the -i option'.format(info_path))
-        full_config = dcos_launch.get_launcher(config).create(info_path)
-        util.write_json(info_path, full_config)
+        cluster_info = dcos_launch.get_launcher(config).create()
+        util.write_json(info_path, cluster_info)
+        if 'create_exception' in cluster_info:
+            raise cluster_info['create_exception']
         return 0
 
     try:

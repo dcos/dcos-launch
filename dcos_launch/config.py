@@ -600,9 +600,6 @@ TERRAFORM_COMMON_SCHEMA = {
         'required': True,
         # allow gce but remap it to GCP during validation
         'allowed': ['aws', 'gcp', 'gce', 'azure']},
-    'auto_rollback': {
-      'type': 'boolean',
-      'default': False},
     'terraform_config': {
         'type': 'dict',
         'required': True},
