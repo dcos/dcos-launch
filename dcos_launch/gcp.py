@@ -54,7 +54,7 @@ class OnPremLauncher(onprem.AbstractOnpremLauncher):
                                          "The deployment you are trying to access doesn't exist") from e
             raise e
 
-    def create(self, info_path='cluster_info.json') -> dict:
+    def create(self) -> dict:
         self.key_helper()
         node_count = 1 + (self.config['num_masters'] + self.config['num_public_agents']
                           + self.config['num_private_agents'])
