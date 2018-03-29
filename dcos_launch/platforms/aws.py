@@ -273,7 +273,7 @@ class CfStack:
     def name(self):
         return self.stack.stack_name
 
-    def wait_for_complete(self, transition_states: list, end_states: list):
+    def check_operation_complete(self, transition_states: list, end_states: list):
         """
         Note: Do not use unwrapped boto waiter class, it has very poor error handling
 
@@ -291,23 +291,20 @@ class CfStack:
         :param transition_states: as long as the current state is in one of these, the wait continues
         :param end_states: when the current state becomes one of these, the wait stops as the operation completed
         """
+        stack_status = self.get_status()
+        if stack_status in end_states:
+            return True
+        if stack_status not in transition_states:
+            for event in self.get_stack_events():
+                log.error('Stack Events: {}'.format(event))
+            raise Exception('StackStatus changed unexpectedly to: {}'.format(stack_status))
+        log.info('Continuing to wait...')
+        return False
+
+    @retrying.retry(wait_fixed=60 * 1000, retry_on_result=lambda res: res is False, retry_on_exception=lambda ex: False)
+    def wait_for_complete(self, transition_states: list, end_states: list):
         log.info('Waiting for stack operation to complete')
-
-        @retrying.retry(wait_fixed=60 * 1000,
-                        retry_on_result=lambda res: res is False,
-                        retry_on_exception=lambda ex: False)
-        def wait_loop():
-            stack_status = self.get_status()
-            if stack_status in end_states:
-                return True
-            if stack_status not in transition_states:
-                for event in self.get_stack_events():
-                    log.error('Stack Events: {}'.format(event))
-                raise Exception('StackStatus changed unexpectedly to: {}'.format(stack_status))
-            log.info('Continuing to wait...')
-            return False
-
-        wait_loop()
+        return self.check_operation_complete(transition_states, end_states)
 
     @retry_boto_rate_limits
     def get_stack_events(self):
