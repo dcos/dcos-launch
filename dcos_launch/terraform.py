@@ -55,6 +55,7 @@ class TerraformLauncher(util.AbstractLauncher):
         self.dcos_launch_root_dir = os.path.abspath(os.path.join(self.init_dir, '..'))
         self.terraform_binary = os.path.join(self.dcos_launch_root_dir, 'terraform')
         self.default_priv_key_path = os.path.join(self.init_dir, 'key.pem')
+        self.create_exception = None
 
     def terraform_cmd(self):
         """ Returns the right Terraform invocation command depending on whether it was installed by the user or by
@@ -83,15 +84,15 @@ class TerraformLauncher(util.AbstractLauncher):
             if self.config['key_helper']:
                 self.key_helper()
             else:
-                log.warning('WARNING: {}Since you did not set "key_helper: true" in your config, make sure your '
+                log.warning('WARNING: Since you did not set "key_helper: true" in your config, make sure your '
                             'ssh-agent is running i.e. "eval `ssh-agent -s`" and that you have added your private key '
                             'to it i.e. "ssh-add /path/to/key.pem". ssh-agent usage is specific to terraform, not '
                             'dcos-launch.')
 
-            module = 'github.com/dcos/{}?ref={}/{}'.format(
-                'terraform-dcos-enterprise' if self.config['dcos-enterprise'] else 'terraform-dcos',
-                self.config['terraform_dcos_enterprise_version'] if self.config['dcos-enterprise'] else
-                self.config['terraform_dcos_version'], self.config['platform'])
+            repo = 'terraform-dcos-enterprise' if self.config['dcos-enterprise'] else 'terraform-dcos'
+            version = self.config['terraform_dcos_enterprise_version'] if self.config['dcos-enterprise'] else \
+                self.config['terraform_dcos_version']
+            module = 'github.com/dcos/{}?ref={}/{}'.format(repo, version, self.config['platform'])
 
             # Converting our YAML config to the required format. You can find an example of that format in the
             # Advance YAML Configuration" section here:
@@ -108,7 +109,7 @@ class TerraformLauncher(util.AbstractLauncher):
             subprocess.run([self.terraform_cmd(), 'apply', '-auto-approve', '-var-file', self.cluster_profile_path],
                            cwd=self.init_dir, check=True, stderr=subprocess.STDOUT, env=os.environ)
         except Exception as e:
-            self.config['create_exception'] = e
+            self.create_exception = e
         return self.config
 
     def _install_terraform(self):

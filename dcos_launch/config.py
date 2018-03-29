@@ -124,10 +124,10 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
     # use the intermediate provider-validated config to add the platform schema
     platform = validator.normalized(user_config)['platform']
     if provider == 'terraform' and 'ssh_user' in user_config['terraform_config']:
-        if platform in ('azure', 'aws'):
-            raise Exception('Cannot currently set ssh_user parameter for azure and gcp')
-        elif platform in ('gce', 'gcp'):
+        if platform in ('gcp', 'gce'):
             user_config['terraform_config']['gcp_ssh_user'] = user_config['ssh_user']
+        else:
+            raise Exception('Cannot currently set ssh_user parameter for ' + platform)
 
     if platform == 'aws':
         region = None
@@ -216,7 +216,7 @@ COMMON_SCHEMA = {
         'default': False},
     'tags': {
         'type': 'dict',
-        'required': False}
+        'required': False},
 }
 
 
@@ -235,7 +235,7 @@ TEMPLATE_DEPLOY_COMMON_SCHEMA = {
         'validator': validate_url},
     'template_parameters': {
         'type': 'dict',
-        'required': True}
+        'required': True},
 }
 
 
@@ -366,7 +366,7 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'type': 'integer',
         'required': False,
         'default': 10
-    }
+    },
 }
 
 
@@ -421,10 +421,16 @@ AWS_ONPREM_SCHEMA = {
     'ssh_user': {
         'required': True,
         'type': 'string',
-        'default_setter': lambda doc: aws.OS_SSH_INFO[doc['os_name']].user}}
+        'default_setter': lambda doc: aws.OS_SSH_INFO[doc['os_name']].user},
+}
 
 
 def get_platform_dependent_url(url_to_format: str, error_msg: str) -> str:
+    """ Format download url to be os-specific
+    :param url_to_format: download url containing braces "{}" to be replaced by os-specific word
+    :param error_msg: error message to raise if system platform is not recognized
+    :return: os-matching url
+    """
     if sys.platform in ['linux', 'linux2']:
         return url_to_format.format('linux')
     elif sys.platform == 'darwin':
@@ -504,7 +510,7 @@ ACS_ENGINE_SCHEMA = {
         'type': 'string',
         'required': True,
         'readonly': True,
-        'default_setter': lambda doc: doc['linux_admin_user']}
+        'default_setter': lambda doc: doc['linux_admin_user']},
 }
 
 
@@ -569,16 +575,18 @@ GCP_ONPREM_SCHEMA = {
     'use_preemptible_vms': {
         'type': 'boolean',
         'required': False,
-        'default': False}}
+        'default': False},
+}
 
 
 def set_key_helper(platform: str, terraform_config: dict):
-    if platform == 'gcp':
+    if platform in ('gcp', 'gce'):
         return 'gcp_ssh_pub_key_file' not in terraform_config
     elif platform == 'azure':
         return 'ssh_pub_key' not in terraform_config
     elif platform == 'aws':
         return 'ssh_key_name' not in terraform_config
+    raise Exception('Platform {} unrecognized'.format(platform))
 
 
 TERRAFORM_COMMON_SCHEMA = {
@@ -614,4 +622,5 @@ TERRAFORM_COMMON_SCHEMA = {
         'default': 'master'},
     'key_helper': {
         'type': 'boolean',
-        'default_setter': lambda doc: set_key_helper(doc['platform'], doc['terraform_config'])}}
+        'default_setter': lambda doc: set_key_helper(doc['platform'], doc['terraform_config'])},
+}
