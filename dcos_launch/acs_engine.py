@@ -39,7 +39,8 @@ def generate_acs_engine_template(
         "apiVersion": "vlabs",
         "properties": {
             "orchestratorProfile": {
-                "orchestratorType": "DCOS"
+                "orchestratorType": "DCOS",
+                "orchestratorVersion": "1.11.0"
             },
             "masterProfile": {
                 "count": num_masters,
@@ -177,9 +178,18 @@ class ACSEngineLauncher(dcos_launch.util.AbstractLauncher):
         if windows_image_source_url:
             acs_engine_template["properties"]["windowsProfile"]["WindowsImageSourceUrl"] = windows_image_source_url
         linux_bs_url = self.config.get('dcos_linux_bootstrap_url')
+        linux_repository_url = self.config.get('dcos_linux_repository_url')
+        linux_cluster_package_list_id = self.config.get('dcos_linux_cluster_package_list_id')
+        provider_package_id = self.config.get('provider_package_id')
         arm_template, self.config['template_parameters'] = run_acs_engine(self.config['acs_engine_tarball_url'], acs_engine_template)  # noqa
         if linux_bs_url:
             self.config['template_parameters']['dcosBootstrapURL'] = linux_bs_url
+        if linux_repository_url:
+            self.config['template_parameters']['dcosRepositoryURL'] = linux_repository_url
+        if linux_cluster_package_list_id:
+            self.config['template_parameters']['dcosClusterPackageListID'] = linux_cluster_package_list_id
+        if provider_package_id:
+            self.config['template_parameters']['dcosProviderPackageID'] = provider_package_id
         self.azure_wrapper.deploy_template_to_new_resource_group(
             self.config.get('template_url'),
             self.config['deployment_name'],
