@@ -202,6 +202,9 @@
             "ToPort": "65535",
             "SourceSecurityGroupId": { "Ref" : "ExternalSecurityGroup"}
           }
+        ],
+        "Tags" : [
+          { "Key" : "KubernetesCluster", "Value" : { "Ref" : "AWS::StackName" } }
         ]
       }
     },
@@ -248,7 +251,10 @@
                 "ec2:CopySnapshot",
                 "ec2:DeleteSnapshot",
                 "ec2:DescribeSnapshots",
-                "ec2:DescribeSnapshotAttribute"
+                "ec2:DescribeSnapshotAttribute",
+                "elasticloadbalancing:*",
+                "ec2:Describe*",
+                "ec2:*"
               ],
               "Effect": "Allow"
             }
@@ -284,6 +290,11 @@
           {
             "Key" : "Network",
             "Value" : "Public",
+            "PropagateAtLaunch" : "true"
+          },
+          {
+            "Key" : "KubernetesCluster",
+            "Value" : { "Ref" : "AWS::StackName" },
             "PropagateAtLaunch" : "true"
             }
           ]
