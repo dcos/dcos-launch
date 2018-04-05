@@ -230,7 +230,7 @@ class GcpLauncher(TerraformLauncher):
     def create(self):
         # if gcp region is nowhere to be found, the default value in terraform-dcos will be used
         if 'gcp_zone' not in self.config['terraform_config'] and 'GCE_ZONE' in os.environ:
-            self.config['terraform_config']['gcp_zone'] = util.set_from_env('GCE_ZONE')
+            self.config['terraform_config']['gcp_zone'] = util.set_from_env('GCE_ZONE')[-1]
         if 'gcp_credentials_key_file' not in self.config['terraform_config']:
             creds_string, creds_path = gcp.get_credentials(os.environ)
             if not creds_path:
