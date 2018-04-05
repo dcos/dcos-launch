@@ -14,7 +14,6 @@ import dcos_launch.config
 import yaml
 from dcos_launch import gcp, util
 from dcos_launch.platforms import aws
-from dcos_test_utils import helpers
 
 log = logging.getLogger(__name__)
 IP_REGEX = '(\d{1,3}.){3}\d{1,3}'
@@ -234,7 +233,9 @@ class GcpLauncher(TerraformLauncher):
         if 'gcp_credentials_key_file' not in self.config['terraform_config']:
             creds_string, creds_path = gcp.get_credentials(os.environ)
             if not creds_path:
-                creds_path = helpers.session_tempfile(creds_string)
+                creds_path = os.path.join(os.getcwd(), '.gcp_creds.json')
+                with open(creds_path, 'w') as f:
+                    f.write(creds_string)
             self.config['terraform_config']['gcp_credentials_key_file'] = creds_path
         if 'gcp_project' not in self.config['terraform_config']:
             with open(self.config['terraform_config']['gcp_credentials_key_file']) as f:
