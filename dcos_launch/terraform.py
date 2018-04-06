@@ -65,6 +65,21 @@ class TerraformLauncher(util.AbstractLauncher):
             binary = 'terraform'
         return binary
 
+    def _init_dir_gpu_setup(self):
+        # TODO this function will no longer be needed (but won't break anything) once deployments stop failing if the
+        # num_of_gpu_agents parameter is set to 0. On track to be fixed in terraform 0.11.6
+        """ terraform-dcos has its gpu config disabled by default (has ".disabled" appended to the file name) as seen
+        here: https://github.com/dcos/terraform-dcos/blob/master/aws/dcos-gpu-agents.tf.disabled
+        If a user specifies gpu parameters in his dcos-launch config, this function will rename the file without the
+        ".disabled" and update the terraform directory with "terraform get"
+        """
+        gpu_config_path = os.path.join(self.init_dir, 'dcos-gpu-agents.tf.disabled')
+        new_gpu_config_path = os.path.join(self.init_dir, 'dcos-gpu-agents.tf')
+        gpu_count = self.config['terraform_config'].get('num_of_gpu_agents', 0)
+        if os.path.exists(gpu_config_path) and gpu_count > 0:
+            os.rename(gpu_config_path, new_gpu_config_path)
+            subprocess.run([self.terraform_cmd(), 'get'], cwd=self.init_dir, check=True, stderr=subprocess.STDOUT)
+
     def create(self):
         try:
             if os.path.exists(self.init_dir):
@@ -105,6 +120,7 @@ class TerraformLauncher(util.AbstractLauncher):
                         file.write('"{}"\n'.format(v))
             subprocess.run([self.terraform_cmd(), 'init', '-from-module', module], cwd=self.init_dir,
                            check=True, stderr=subprocess.STDOUT)
+            self._init_dir_gpu_setup()
             subprocess.run([self.terraform_cmd(), 'apply', '-auto-approve', '-var-file', self.cluster_profile_path],
                            cwd=self.init_dir, check=True, stderr=subprocess.STDOUT, env=os.environ)
         except Exception as e:

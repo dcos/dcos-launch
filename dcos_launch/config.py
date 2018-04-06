@@ -610,13 +610,13 @@ TERRAFORM_COMMON_SCHEMA = {
         'allowed': ['aws', 'gcp', 'gce', 'azure']},
     'terraform_config': {
         'type': 'dict',
-        'required': True},
+        'default': dict()},
     'init_dir': {
         'type': 'string',
         'default_setter': lambda doc: 'terraform-init-' + str(uuid.uuid4())},
     'terraform_dcos_version': {
         'type': 'string',
-        'default': 'master'},
+        'default': '95981fd0b1c3064d9e8d44b21575c20df09d94a5'},
     'terraform_dcos_enterprise_version': {
         'type': 'string',
         'default': 'master'},
