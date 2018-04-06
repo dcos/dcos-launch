@@ -79,6 +79,26 @@ class TerraformLauncher(util.AbstractLauncher):
             os.rename(gpu_config_path, new_gpu_config_path)
             subprocess.run([self.terraform_cmd(), 'get'], cwd=self.init_dir, check=True, stderr=subprocess.STDOUT)
 
+    def _terraform_init(self):
+        # TODO once terraform-dcos-enterprise is merged into terraform-dcos, remove terraform-dcos-enterprise url
+        # formatting here
+        if self.config['dcos_enterprise']:
+            module = 'git@github.com:mesosphere/terraform-dcos-enterprise?ref={}//{}'.format(
+                self.config['terraform_dcos_enterprise_version'], self.config['platform'])
+            sub_cmd = "'ssh-add {}; {} {} {}'".format(os.environ['github_private_key_file'], self.terraform_cmd(),
+                                                      'init -from-module', module)
+
+            cmd = 'mkdir -p ~/.ssh && touch ~/.ssh/known_hosts && ssh-keygen -R github.com && ssh-agent bash -c ' + \
+                  sub_cmd
+            # cmd = ['ssh-agent', 'bash', '-c', sub_cmd]
+        else:
+            module = 'github.com/dcos/terraform-dcos?ref={}/{}'.format(self.config['terraform_dcos_version'],
+                                                                       self.config['platform'])
+            cmd = [self.terraform_cmd(), 'init', '-from-module', module]
+
+        subprocess.run(cmd, cwd=self.init_dir, check=True, shell=True, stderr=subprocess.STDOUT)
+        self._init_dir_gpu_setup()
+
     def create(self):
         try:
             if os.path.exists(self.init_dir):
@@ -102,11 +122,6 @@ class TerraformLauncher(util.AbstractLauncher):
                             'to it i.e. "ssh-add /path/to/key.pem". ssh-agent usage is specific to terraform, not '
                             'dcos-launch.')
 
-            repo = 'terraform-dcos-enterprise' if self.config['dcos-enterprise'] else 'terraform-dcos'
-            version = self.config['terraform_dcos_enterprise_version'] if self.config['dcos-enterprise'] else \
-                self.config['terraform_dcos_version']
-            module = 'github.com/dcos/{}?ref={}/{}'.format(repo, version, self.config['platform'])
-
             # Converting our YAML config to the required format. You can find an example of that format in the
             # Advance YAML Configuration" section here:
             # https://github.com/mesosphere/terraform-dcos-enterprise/tree/master/aws
@@ -117,9 +132,8 @@ class TerraformLauncher(util.AbstractLauncher):
                         file.write('<<EOF\n{}\nEOF\n'.format(yaml.dump(v)))
                     else:
                         file.write('"{}"\n'.format(v))
-            subprocess.run([self.terraform_cmd(), 'init', '-from-module', module], cwd=self.init_dir,
-                           check=True, stderr=subprocess.STDOUT)
-            self._init_dir_gpu_setup()
+
+            self._terraform_init()
             subprocess.run([self.terraform_cmd(), 'apply', '-auto-approve', '-var-file', self.cluster_profile_path],
                            cwd=self.init_dir, check=True, stderr=subprocess.STDOUT, env=os.environ)
         except Exception as e:
