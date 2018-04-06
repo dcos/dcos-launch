@@ -194,6 +194,11 @@ def mocked_aws_cfstack_bare_cluster(monkeypatch, mock_ssh_client, mocked_aws_cf)
 
 
 @pytest.fixture
+def mocked_terraform(monkeypatch):
+    monkeypatch.setenv('GCE_CREDENTIALS', '{"project_id":"foobar"}')
+
+
+@pytest.fixture
 def aws_cf_config_path(tmpdir, ssh_key_path, mocked_aws_cf):
     return get_temp_config_path(tmpdir, 'aws-cf.yaml', update={'ssh_private_key_filename': ssh_key_path})
 
