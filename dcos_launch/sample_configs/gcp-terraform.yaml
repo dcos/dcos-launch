@@ -2,11 +2,12 @@
 launch_config_version: 1
 platform: gcp
 provider: terraform
-dcos-enterprise: True
+dcos_enterprise: True
 key_helper: true
 terraform_config:
   # for more field, see https://github.com/dcos/terraform-dcos/tree/master/gcp
-  owner: "teamcity"
+  owner: teamcity
+  os: coreos_stable
   num_of_masters: 1
   dcos_version: 1.11.0
   dcos_license_key_contents: <INSERT_LICENSE_HERE>

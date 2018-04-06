@@ -2,7 +2,7 @@
 launch_config_version: 1
 platform: aws
 provider: terraform
-dcos-enterprise: False
+dcos_enterprise: False
 key_helper: true
 terraform_config:
   # for more fields, see https://github.com/dcos/terraform-dcos/tree/master/aws
