@@ -153,8 +153,9 @@ class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
             template_body_json = json.loads(template_body)
             template_body_json['Resources']['BareRole']['Policies'][0]['PolicyDocument']['Statement'].extend(
                 self.config['iam_role_permissions'])
+            template_body = json.dumps(template_body_json)
         self.config.update({
-            'template_body': aws.template_by_instance_type(self.config['instance_type']),
+            'template_body': template_body,
             'template_parameters': template_parameters})
         return DcosCloudformationLauncher.create(self)
 
