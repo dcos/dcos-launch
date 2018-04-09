@@ -66,12 +66,11 @@ class TerraformLauncher(util.AbstractLauncher):
         return binary
 
     def _init_dir_gpu_setup(self):
-        # TODO this function will no longer be needed (but won't break anything) once deployments stop failing if the
-        # num_of_gpu_agents parameter is set to 0. On track to be fixed in terraform 0.11.6
         """ terraform-dcos has its gpu config disabled by default (has ".disabled" appended to the file name) as seen
         here: https://github.com/dcos/terraform-dcos/blob/master/aws/dcos-gpu-agents.tf.disabled
         If a user specifies gpu parameters in his dcos-launch config, this function will rename the file without the
-        ".disabled" and update the terraform directory with "terraform get"
+        ".disabled" and update the terraform directory with "terraform get". terraform-dcos does this because setting
+        num_of_gpu_agents = 0 and using terraform v0.11.5 or older will cause deployments to fail.
         """
         gpu_config_path = os.path.join(self.init_dir, 'dcos-gpu-agents.tf.disabled')
         new_gpu_config_path = os.path.join(self.init_dir, 'dcos-gpu-agents.tf')

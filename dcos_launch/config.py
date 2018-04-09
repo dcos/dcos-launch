@@ -1,15 +1,19 @@
 """ Module for defining and validating user-provided configuration
 """
+import logging
 import os
 import sys
 import uuid
 
 import pkg_resources
+import requests
 
 import cerberus
 import yaml
 from dcos_launch import util
 from dcos_launch.platforms import aws, gcp
+
+log = logging.getLogger(__name__)
 
 
 def expand_path(path: str, relative_dir: str) -> str:
@@ -589,13 +593,24 @@ def set_key_helper(platform: str, terraform_config: dict):
     raise Exception('Platform {} unrecognized'.format(platform))
 
 
+def get_latest_terraform_version(doc: dict):
+    default = '0.11.6'
+    try:
+        response = requests.get('https://api.github.com/repos/hashicorp/terraform/releases/latest')
+        return response.json()['tag_name'][1:]
+    except Exception as e:
+        log.error('Failed to get latest terraform version. Defaulting to {}. Error details: {}'.format(default,
+                                                                                                       repr(e)))
+        return default
+
+
 TERRAFORM_COMMON_SCHEMA = {
     'dcos-enterprise': {
         'type': 'boolean',
         'default': False},
     'terraform_version': {
         'type': 'string',
-        'default': '0.11.3'
+        'default_setter': get_latest_terraform_version
     },
     'terraform_tarball_url': {
         'type': 'string',
@@ -616,7 +631,7 @@ TERRAFORM_COMMON_SCHEMA = {
         'default_setter': lambda doc: 'terraform-init-' + str(uuid.uuid4())},
     'terraform_dcos_version': {
         'type': 'string',
-        'default': '95981fd0b1c3064d9e8d44b21575c20df09d94a5'},
+        'default': 'master'},
     'terraform_dcos_enterprise_version': {
         'type': 'string',
         'default': 'master'},
