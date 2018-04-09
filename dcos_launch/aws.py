@@ -148,7 +148,7 @@ class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
         }
         if not self.config['key_helper']:
             template_parameters['KeyName'] = self.config['aws_key_name']
-        template_body = dcos_launch.platforms.aws.template_by_instance_type(self.config['instance_type']),
+        template_body = dcos_launch.platforms.aws.template_by_instance_type(self.config['instance_type'])
         if 'iam_role_permissions' in self.config:
             template_body_json = json.loads(template_body)
             template_body_json['Resources']['BareRole']['Policies'][0]['PolicyDocument']['Statement'].extend(
