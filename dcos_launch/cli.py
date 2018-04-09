@@ -33,9 +33,10 @@ Options:
 """
 import os
 import sys
+
 import dcos_launch
-from dcos_launch import util
 import dcos_launch.config
+from dcos_launch import util
 from dcos_test_utils import logger
 from docopt import docopt
 
