@@ -151,13 +151,14 @@ class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
         template_body = dcos_launch.platforms.aws.template_by_instance_type(self.config['instance_type'])
         if 'iam_role_permissions' in self.config:
             template_body_json = json.loads(template_body)
-            template_body_json['Resources']['BareRole']['Policies'][0]['PolicyDocument']['Statement'].extend(
+            template_body_json[
+                'Resources']['BareRole']['Properties']['Policies'][0]['PolicyDocument']['Statement'].extend(
                 self.config['iam_role_permissions'])
             template_body = json.dumps(template_body_json)
         # this will propogate tags to the autoscaling group instances that will make up the cluster
         if 'tags' in self.config:
-            add_tags = [{'Key': k, 'Value': v, 'PropagateAtLaunch': 'true'} for k, v in self.config['tags'].items()]
             template_body_json = json.loads(template_body)
+            add_tags = [{'Key': k, 'Value': v, 'PropagateAtLaunch': 'true'} for k, v in self.config['tags'].items()]
             template_body_json['Resources']['BareServerAutoScale']['Properties']['Tags'].extend(add_tags)
             template_body = json.dumps(template_body_json)
         self.config.update({

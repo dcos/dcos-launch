@@ -422,7 +422,7 @@ AWS_ONPREM_SCHEMA = {
         'required': True,
         'type': 'string',
         'default_setter': lambda doc: aws.OS_SSH_INFO[doc['os_name']].user},
-    'iam_role_persmissions': {
+    'iam_role_permissions': {
         'required': False,
         'type': 'list',
         'valueschema': {

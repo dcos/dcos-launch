@@ -22,6 +22,14 @@ def test_aws_onprem_with_helper(check_cli_success, aws_onprem_with_helper_config
     assert 'KeyName' in info['template_parameters']
 
 
+def test_aws_onprem_with_extra_iam(check_cli_success, aws_onprem_with_extra_iam_config_path):
+    info, desc = check_cli_success(aws_onprem_with_extra_iam_config_path)
+    assert 'stack_id' in info
+    assert info['ssh_private_key'] == dcos_launch.util.MOCK_SSH_KEY_DATA
+    assert 'template_body' not in desc  # distracting irrelevant information
+    assert 'KeyName' in info['template_parameters']
+
+
 def test_gcp_onprem(check_cli_success, gcp_onprem_config_path):
     info, desc = check_cli_success(gcp_onprem_config_path)
     assert info['ssh_private_key'] == dcos_launch.util.MOCK_SSH_KEY_DATA
