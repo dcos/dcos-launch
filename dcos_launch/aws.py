@@ -165,7 +165,9 @@ class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
             template_body_json['Resources']['BareServerAutoScale']['Properties']['Tags'].extend(add_tags)
             # this will cover the network security group tagging
             add_tags = [{'Key': k, 'Value': v} for k, v in self.config['tags'].items()]
-            template_body_json['Resources']['InternalSecurityGroup']['Properties']['Tags'].extend(add_tags)
+            nsg_tags = template_body_json['Resources']['InternalSecurityGroup']['Properties'].get('Tags', list())
+            nsg_tags.extend(add_tags)
+            template_body_json['Resources']['InternalSecurityGroup']['Properties']['Tags'] = nsg_tags
             template_body = json.dumps(template_body_json)
         self.config.update({
             'template_body': template_body,
