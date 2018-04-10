@@ -24,7 +24,10 @@ key_helper: true
 iam_role_permissions:
   - Resource: '*'
     Action:
-      - 'ec2:DescribeSnapshotAttribute'
-      - 'elasticloadbalancing:*'
-      - 'ec2:*'
-    Effect: 'Allow'
+      - ec2:DescribeSnapshotAttribute
+      - elasticloadbalancing:*
+      - ec2:*
+    Effect: Allow
+tags:
+  KubernetesCluster: foobar-cluster
+  expiration: 24h
