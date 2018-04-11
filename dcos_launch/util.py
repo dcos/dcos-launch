@@ -10,6 +10,7 @@ import pkg_resources
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+import dcos_launch
 import dcos_test_utils
 import yaml
 
@@ -70,7 +71,7 @@ def stub(output):
 
 def get_temp_config_path(tmpdir, name, update: dict = None):
     config = yaml.load(
-        pkg_resources.resource_string('dcos_launch', 'sample_configs/{}'.format(name)).decode('utf-8'))
+        pkg_resources.resource_string(dcos_launch.__name__, 'sample_configs/{}'.format(name)).decode('utf-8'))
     if update is not None:
         config.update(update)
     new_config_path = tmpdir.join('my_config.yaml')
