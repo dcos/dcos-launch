@@ -6,7 +6,12 @@ dcos-enterprise: True
 key_helper: true
 terraform_config:
   # for more field, see https://github.com/dcos/terraform-dcos/tree/master/gcp
+<<<<<<< 1bf4d70d72d73aa33a850e772975f063207359da
   owner: "teamcity"
+=======
+  owner: teamcity
+  os: coreos_stable
+>>>>>>> Fix terraform-dcos-enterprise init
   num_of_masters: 1
   dcos_version: 1.11.0
   dcos_license_key_contents: <INSERT_LICENSE_HERE>
