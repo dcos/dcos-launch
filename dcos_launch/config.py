@@ -616,6 +616,8 @@ def get_latest_terraform_version(doc: dict):
     default = '0.11.6'
     try:
         response = requests.get('https://api.github.com/repos/hashicorp/terraform/releases/latest')
+        if 'tag_name' not in response.json():
+            raise Exception('Unable to find terraform version in github API response: {}'.format(response.json()))
         return response.json()['tag_name'][1:]
     except Exception as e:
         log.error('Failed to get latest terraform version. Defaulting to {}. Error details: {}'.format(default,
@@ -624,9 +626,6 @@ def get_latest_terraform_version(doc: dict):
 
 
 TERRAFORM_COMMON_SCHEMA = {
-    'dcos-enterprise': {
-        'type': 'boolean',
-        'default': False},
     'terraform_version': {
         'type': 'string',
         'default_setter': get_latest_terraform_version
