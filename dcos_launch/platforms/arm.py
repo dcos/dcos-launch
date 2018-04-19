@@ -30,6 +30,10 @@ log = logging.getLogger(__name__)
 DEPLOYMENT_NAME = '{}-Deployment'
 
 
+class DeploymentError(Exception):
+    pass
+
+
 def validate_hostname_prefix(prefix):
     """Hostname prefixes in azure templates are used to link a variety of resources
     Not all of these resources will have their constraints checked at when ARM
@@ -223,28 +227,41 @@ class DcosAzureResourceGroup:
         """
         log.info('Waiting for deployment to finish')
 
+        def azure_failure_report():
+            deploy_ops = self.azure_wrapper.rmc.deployment_operations.list(
+                    self.group_name, DEPLOYMENT_NAME.format(self.group_name))
+            failures = [(op.properties.status_code, op.properties.status_message) for op
+                        in deploy_ops if op.properties.provisioning_state == 'Failed']
+            for failure in failures:
+                log.error('Deployment operation failed! {}: {}'.format(*failure))
+
         @retrying.retry(
             wait_fixed=60 * 1000, stop_max_delay=timeout * 1000,
             retry_on_result=lambda res: res is False,
             retry_on_exception=lambda ex: isinstance(ex, CloudError))
         def check_deployment_operations():
             deploy_state = self.get_deployment_state()
+
             if deploy_state == 'Succeeded':
                 return True
+
             elif deploy_state == 'Failed':
-                log.info('Deployment failed. Checking deployment operations...')
-                deploy_ops = self.azure_wrapper.rmc.deployment_operations.list(
-                    self.group_name, DEPLOYMENT_NAME.format(self.group_name))
-                failures = [(op.properties.status_code, op.properties.status_message) for op
-                            in deploy_ops if op.properties.provisioning_state == 'Failed']
-                for failure in failures:
-                    log.error('Deployment operation failed! {}: {}'.format(*failure))
-                raise Exception('Deployment Failed!')
+                log.info('Deployment failed. Checking deployment operations.')
+                azure_failure_report()
+                raise DeploymentError('Azure Deployment Failed!')
+
             else:
-                log.info('Waiting for deployment. Current state: {}'.format(deploy_state))
+                log.info('Waiting for deployment. Current state: {}. It should either be Succeeded/Failed.'.format(
+                        deploy_state))
+
                 return False
 
-        check_deployment_operations()
+        try:
+            check_deployment_operations()
+        except retrying.RetryError:
+            log.info('Deployment failed. Checking deployment operations.')
+            azure_failure_report()
+            raise DeploymentError("Azure Deployment Failed!")
 
     def list_resources(self, filter_string):
         yield from self.azure_wrapper.rmc.resource_groups.list_resources(
