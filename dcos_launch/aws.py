@@ -162,10 +162,6 @@ class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
             'template_parameters': template_parameters})
         return DcosCloudformationLauncher.create(self)
 
-    def wait(self):
-        DcosCloudformationLauncher.wait(self)
-        onprem.AbstractOnpremLauncher.wait(self)
-
     def describe(self):
         return onprem.AbstractOnpremLauncher.describe(self)
 
