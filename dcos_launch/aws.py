@@ -153,6 +153,10 @@ class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
         template_body = dcos_launch.platforms.aws.template_by_instance_type(self.config['instance_type'])
         template_body_json = json.loads(template_body)
         if 'aws_block_device_mappings' in self.config:
+            log.warning(
+                'Custom AWS block device specified; please consult '
+                'https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/device_naming.html '
+                'to address deployment issues that may arise from this')
             template_body_json['Resources']['BareServerLaunchConfig']['Properties']['BlockDeviceMappings'].extend(
                 self.config['aws_block_device_mappings'])
         if 'iam_role_permissions' in self.config:
