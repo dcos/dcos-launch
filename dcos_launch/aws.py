@@ -89,7 +89,7 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
             # must wait for stack to be deleted before removing
             # network resources on which it depends
             self.stack.wait_for_complete(
-                transition_states=['CREATE_COMPLETE', 'DELETE_IN_PROGRESS'],
+                transition_states=['CREATE_COMPLETE', 'UPDATE_COMPLETE', 'DELETE_IN_PROGRESS'],
                 end_states=['DELETE_COMPLETE'])
             self.delete_temp_resources(self.config['temp_resources'])
 
