@@ -129,7 +129,7 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
             raise dcos_launch.util.LauncherError('StackNotFound', None) from ex
 
 
-class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
+class OnPremLauncher(onprem.AbstractOnpremLauncher, DcosCloudformationLauncher):
     """ Launches a homogeneous cluster of plain AMIs intended for onprem DC/OS
     """
     def create(self):
@@ -161,9 +161,6 @@ class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
             'template_body': template_body,
             'template_parameters': template_parameters})
         return DcosCloudformationLauncher.create(self)
-
-    def describe(self):
-        return onprem.AbstractOnpremLauncher.describe(self)
 
     def get_cluster_hosts(self):
         return self.stack.get_cluster_host_ips()
