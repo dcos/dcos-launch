@@ -22,16 +22,14 @@ from azure.mgmt.resource.resources.v2016_02_01.models import (DeploymentMode,
 from azure.monitor import MonitorClient
 from dcos_test_utils.helpers import Host
 
+from dcos_launch.util import DeploymentError
+
 log = logging.getLogger(__name__)
 
 # This interface is designed to only use a single deployment.
 # Being as the azure interface is based around resource groups, deriving
 # deployment name from group names makes it easier to attach to creating deploys
 DEPLOYMENT_NAME = '{}-Deployment'
-
-
-class DeploymentError(Exception):
-    pass
 
 
 def validate_hostname_prefix(prefix):
