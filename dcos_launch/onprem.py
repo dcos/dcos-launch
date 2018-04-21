@@ -23,9 +23,6 @@ class AbstractOnpremLauncher(util.AbstractLauncher, metaclass=abc.ABCMeta):
     def get_cluster_hosts(self):
         raise NotImplementedError()
 
-    def wait(self):
-        raise NotImplementedError()
-
     def get_onprem_cluster(self):
         return onprem.OnpremCluster.from_hosts(
             bootstrap_host=self.get_bootstrap_host(),
