@@ -12,6 +12,7 @@ def test_aws_onprem(check_cli_success, aws_onprem_config_path):
     assert 'stack_id' in info
     assert info['ssh_private_key'] == dcos_launch.util.MOCK_SSH_KEY_DATA
     assert 'template_body' not in desc  # distracting irrelevant information
+    assert 'bootstrap_host' in desc
 
 
 def test_aws_onprem_with_helper(check_cli_success, aws_onprem_with_helper_config_path):
@@ -20,6 +21,7 @@ def test_aws_onprem_with_helper(check_cli_success, aws_onprem_with_helper_config
     assert info['ssh_private_key'] == dcos_launch.util.MOCK_SSH_KEY_DATA
     assert 'template_body' not in desc  # distracting irrelevant information
     assert 'KeyName' in info['template_parameters']
+    assert 'bootstrap_host' in desc
 
 
 def test_aws_onprem_with_extra_iam(check_cli_success, aws_onprem_with_extra_iam_config_path):
@@ -28,6 +30,7 @@ def test_aws_onprem_with_extra_iam(check_cli_success, aws_onprem_with_extra_iam_
     assert info['ssh_private_key'] == dcos_launch.util.MOCK_SSH_KEY_DATA
     assert 'template_body' not in desc  # distracting irrelevant information
     assert 'KeyName' in info['template_parameters']
+    assert 'bootstrap_host' in desc
 
 
 def test_gcp_onprem(check_cli_success, gcp_onprem_config_path):
@@ -35,6 +38,7 @@ def test_gcp_onprem(check_cli_success, gcp_onprem_config_path):
     assert info['ssh_private_key'] == dcos_launch.util.MOCK_SSH_KEY_DATA
     assert info['ssh_public_key'] == dcos_launch.util.MOCK_SSH_KEY_DATA
     assert 'template_body' not in desc  # distracting irrelevant information
+    assert 'bootstrap_host' in desc
 
 
 def test_gcp_onprem_with_helper(check_cli_success, gcp_onprem_with_helper_config_path):
@@ -42,6 +46,7 @@ def test_gcp_onprem_with_helper(check_cli_success, gcp_onprem_with_helper_config
     assert info['ssh_private_key'] == dcos_launch.util.MOCK_SSH_KEY_DATA
     assert info['ssh_public_key'] == dcos_launch.util.MOCK_SSH_KEY_DATA
     assert 'template_body' not in desc  # distracting irrelevant information
+    assert 'bootstrap_host' in desc
 
 
 def test_fault_domain_helper(check_cli_success, gcp_onprem_with_fd_helper_config_path, monkeypatch, tmpdir):
