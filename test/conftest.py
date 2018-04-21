@@ -240,6 +240,11 @@ def aws_onprem_with_helper_config_path(tmpdir, mocked_aws_cfstack_bare_cluster):
 
 
 @pytest.fixture
+def aws_onprem_with_extra_volumes_config_path(tmpdir, mocked_aws_cfstack_bare_cluster):
+    return get_temp_config_path(tmpdir, 'aws-onprem-with-extra-volumes.yaml')
+
+
+@pytest.fixture
 def aws_onprem_with_extra_iam_config_path(tmpdir, mocked_aws_cfstack_bare_cluster):
     return get_temp_config_path(tmpdir, 'aws-onprem-with-extra-iam.yaml')
 

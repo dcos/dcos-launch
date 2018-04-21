@@ -89,6 +89,9 @@ class TestAwsOnprem:
     def test_with_extra_iam(self, aws_onprem_with_extra_iam_config_path):
         get_validated_config_from_path(aws_onprem_with_extra_iam_config_path)
 
+    def test_with_with_extra_volumes(self, aws_onprem_with_extra_volumes_config_path):
+        get_validated_config_from_path(aws_onprem_with_extra_volumes_config_path)
+
     def test_error_is_skipped_in_nested_config(self, tmpdir):
         get_validated_config_from_path(
             get_temp_config_path(
