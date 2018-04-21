@@ -79,6 +79,10 @@ def get_temp_config_path(tmpdir, name, update: dict = None):
     return str(new_config_path)
 
 
+class DeploymentError(Exception):
+    pass
+
+
 class LauncherError(Exception):
     def __init__(self, error, msg):
         self.error = error
