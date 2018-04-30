@@ -25,6 +25,7 @@ setup(
         'cerberus',
         'docopt',
         'google-api-python-client',
+        'keyring',
         'oauth2client==3.0.0',
         'pyinstaller==3.3',
         'py',
