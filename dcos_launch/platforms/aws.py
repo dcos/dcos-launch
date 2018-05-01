@@ -20,12 +20,12 @@ import functools
 import logging
 import time
 
+import boto3
 import pkg_resources
 import retrying
-
-import boto3
-import dcos_launch
 from botocore.exceptions import ClientError, WaiterError
+
+import dcos_launch
 from dcos_test_utils.helpers import Host, SshInfo
 
 log = logging.getLogger(__name__)
