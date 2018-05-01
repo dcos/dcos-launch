@@ -20,14 +20,13 @@ import functools
 import logging
 import time
 
-import pkg_resources
-
 import boto3
+import pkg_resources
 import retrying
 from botocore.exceptions import ClientError, WaiterError
-from dcos_test_utils.helpers import Host, SshInfo
 
 import dcos_launch
+from dcos_test_utils.helpers import Host, SshInfo
 
 log = logging.getLogger(__name__)
 
@@ -275,7 +274,7 @@ class CfStack:
     def name(self):
         return self.stack.stack_name
 
-    def wait_for_complete(self, transition_states: list, end_states: list):
+    def wait_for_complete(self, transition_states: list, end_states: list) -> str:
         """
         Note: Do not use unwrapped boto waiter class, it has very poor error handling
 
@@ -296,20 +295,22 @@ class CfStack:
         log.info('Waiting for stack operation to complete')
 
         @retrying.retry(wait_fixed=60 * 1000,
-                        retry_on_result=lambda res: res is False,
+                        retry_on_result=lambda res: not isinstance(res, str),
                         retry_on_exception=lambda ex: False)
         def wait_loop():
             stack_status = self.get_status()
+            log.info('stack status: ' + stack_status)
             if stack_status in end_states:
-                return True
+                return stack_status
             if stack_status not in transition_states:
                 for event in self.get_stack_events():
                     log.error('Stack Events: {}'.format(event))
                 raise Exception('StackStatus changed unexpectedly to: {}'.format(stack_status))
             log.info('Continuing to wait...')
-            return False
 
-        wait_loop()
+        status = wait_loop()
+        log.info('wait complete')
+        return status
 
     @retry_boto_rate_limits
     def get_stack_events(self):
@@ -352,7 +353,7 @@ class CfStack:
         log.info('Delete successfully initiated for {}'.format(self.stack.stack_name))
 
 
-class CleanupS3BucketMixin:
+class CleanupS3BucketMixin(CfStack):
     """ Exhibitor S3 Buckets are not deleted with the rest of the resources
     in the cloudformation template so this method must be used to prevent
     leaking cloud resources.
@@ -364,9 +365,10 @@ class CleanupS3BucketMixin:
         except Exception:
             # Exhibitor S3 Bucket might not be a resource
             log.exception('Failed to get S3 bucket physical ID')
+        super().delete()
 
 
-class DcosCfStack(CleanupS3BucketMixin, CfStack):
+class DcosCfStack(CleanupS3BucketMixin):
     """ This abstraction will work for a simple DC/OS template.
     A simple template has its exhibitor bucket and auto scaling groups
     for each of the master, public agent, and private agent groups
@@ -408,7 +410,7 @@ class DcosCfStack(CleanupS3BucketMixin, CfStack):
         return instances_to_hosts(self.public_agent_instances)
 
 
-class MasterStack(CleanupS3BucketMixin, CfStack):
+class MasterStack(CleanupS3BucketMixin):
     @property
     def instances(self):
         yield from self.boto_wrapper.get_auto_scaling_instances(

@@ -85,18 +85,21 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
 
     def delete(self):
         self.stack.delete()
-        if len(self.config['temp_resources']) > 0:
-            # must wait for stack to be deleted before removing
-            # network resources on which it depends
-            self.stack.wait_for_complete(
-                transition_states=[
-                    'CREATE_COMPLETE',
-                    'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
-                    'UPDATE_IN_PROGRESS',
-                    'UPDATE_COMPLETE',
-                    'DELETE_IN_PROGRESS'
-                ],
-                end_states=['DELETE_COMPLETE'])
+        # we must wait for the stack to be deleted for 2 reasons:
+        # 1. required to remove network resources on which it depends
+        # 2. to make sure it successfully deletes. If not (for example got interrupted by tagging), we retry deleting
+        status = self.stack.wait_for_complete(
+            transition_states=[
+                'CREATE_COMPLETE',
+                'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+                'UPDATE_IN_PROGRESS',
+                'DELETE_IN_PROGRESS'
+            ],
+            end_states=['DELETE_COMPLETE', 'UPDATE_COMPLETE'])
+        if status == 'UPDATE_COMPLETE':
+            log.info('Deletion was interrupted by an update (most likely tagging). Retrying to delete...')
+            self.delete()
+        elif len(self.config['temp_resources']) > 0:
             self.delete_temp_resources(self.config['temp_resources'])
 
     def delete_temp_resources(self, temp_resources):
