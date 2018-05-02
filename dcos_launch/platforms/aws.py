@@ -68,8 +68,8 @@ def retry_boto_rate_limits(boto_fn, wait=2, timeout=60 * 60):
                 else:
                     raise
                 if error_code in ['Throttling', 'RequestLimitExceeded']:
-                    log.warn('AWS API Limiting error: {}'.format(error_code))
-                    log.warn('Sleeping for {} seconds before retrying'.format(local_wait))
+                    log.warning('AWS API Limiting error: {}'.format(error_code))
+                    log.warning('Sleeping for {} seconds before retrying'.format(local_wait))
                     time_to_next = next_time - time.time()
                     if time_to_next > 0:
                         time.sleep(time_to_next)
@@ -131,14 +131,16 @@ class BotoWrapper:
     def get_service_resources(self, service, resource_name):
         """Return resources and boto wrapper in every region for the given boto3 service and resource type."""
         for region in aws_region_names:
-            for resource in getattr(self.resource(service, region['id']), resource_name).all():
-                yield resource
+            # line below is needed because function get_all_stacks needs to copy the boto wrapper with the correct
+            # region when initializing each CfStack object
+            self.region = region['id']
+            yield from getattr(self.resource(service, region['id']), resource_name).all()
 
     @retry_boto_rate_limits
     def get_all_stacks(self):
         """Get all AWS CloudFormation stacks in all regions."""
         for stack in self.get_service_resources('cloudformation', 'stacks'):
-            yield CfStack(stack.stack_name, self)
+            yield CfStack(stack.stack_name, copy.deepcopy(self))
 
     @retry_boto_rate_limits
     def get_all_buckets(self):
@@ -309,7 +311,6 @@ class CfStack:
             log.info('Continuing to wait...')
 
         status = wait_loop()
-        log.info('wait complete')
         return status
 
     @retry_boto_rate_limits
