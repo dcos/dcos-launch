@@ -298,7 +298,9 @@ class CfStack:
         """
         log.info('Waiting for stack operation to complete')
 
+        # wait for 60 seconds before retry
         @retrying.retry(wait_fixed=60 * 1000,
+                        retry_on_result=lambda result: result is None,
                         retry_on_exception=lambda ex: False)
         def wait_loop():
             self.refresh_stack()
