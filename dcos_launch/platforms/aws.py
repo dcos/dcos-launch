@@ -291,26 +291,32 @@ class CfStack:
         UPDATE_COMPLETE, UPDATE_ROLLBACK_IN_PROGRESS
         UPDATE_ROLLBACK_FAILED, UPDATE_ROLLBACK_COMPLETE
         UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS
+
         :param transition_states: as long as the current state is in one of these, the wait continues
         :param end_states: when the current state becomes one of these, the wait stops as the operation completed
+
         """
         log.info('Waiting for stack operation to complete')
 
+        # wait for 60 seconds before retry
         @retrying.retry(wait_fixed=60 * 1000,
-                        retry_on_result=lambda res: not isinstance(res, str),
+                        retry_on_result=lambda result: result is None,
                         retry_on_exception=lambda ex: False)
         def wait_loop():
+            self.refresh_stack()
             stack_status = self.get_status()
-            log.info('stack status: ' + stack_status)
+            log.info("Stack status {status}. Continuing to wait... ".format(status=stack_status))
+
             if stack_status in end_states:
                 return stack_status
+
             if stack_status not in transition_states:
                 for event in self.get_stack_events():
                     log.error('Stack Events: {}'.format(event))
                 raise Exception('StackStatus changed unexpectedly to: {}'.format(stack_status))
-            log.info('Continuing to wait...')
 
         status = wait_loop()
+
         return status
 
     @retry_boto_rate_limits
@@ -333,9 +339,14 @@ class CfStack:
                                  Tags=cf_tags)
 
     @retry_boto_rate_limits
-    def get_status(self):
+    def refresh_stack(self):
         # we need to refresh the stack to get the latest info
         self.stack = self.boto_wrapper.resource('cloudformation').Stack(self.name)
+        return self.stack
+
+    @retry_boto_rate_limits
+    def get_status(self):
+        self.refresh_stack()
         return self.stack.stack_status
 
     def get_parameter(self, param):
@@ -383,7 +394,9 @@ class DcosCfStack(CleanupS3BucketMixin):
             'AdminLocation': admin_location,
             'PublicSlaveInstanceCount': str(public_agents),
             'SlaveInstanceCount': str(private_agents)}
+
         boto_wrapper.create_stack(stack_name, parameters, template_url=template_url)
+
         return cls(stack_name, boto_wrapper), SSH_INFO['coreos']
 
     @property
