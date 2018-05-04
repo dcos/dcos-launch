@@ -102,10 +102,8 @@ class TerraformLauncher(util.AbstractLauncher):
                             'to it i.e. "ssh-add /path/to/key.pem". ssh-agent usage is specific to terraform, not '
                             'dcos-launch.')
 
-            repo = 'terraform-dcos-enterprise' if self.config['dcos-enterprise'] else 'terraform-dcos'
-            version = self.config['terraform_dcos_enterprise_version'] if self.config['dcos-enterprise'] else \
-                self.config['terraform_dcos_version']
-            module = 'github.com/dcos/{}?ref={}/{}'.format(repo, version, self.config['platform'])
+            module = 'github.com/dcos/terraform-dcos?ref={}/{}'.format(self.config['terraform_dcos_version'],
+                                                                       self.config['platform'])
 
             # Converting our YAML config to the required format. You can find an example of that format in the
             # Advance YAML Configuration" section here:
@@ -242,6 +240,13 @@ cd `find /opt/mesosphere/active/ -name dcos-integration-test* | sort | tail -n 1
 
 class GcpLauncher(TerraformLauncher):
     def create(self):
+        if 'gcp_ssh_pub_key_file' not in self.config['terraform_config'] and not self.config['key_helper'] and\
+                'ssh_public_key' in self.config:
+            pub_key_file = os.path.join(self.init_dir, 'key.pub')
+            with open(pub_key_file, 'w') as f:
+                f.write(self.config['ssh_public_key'])
+            self.config['terraform_config']['gcp_ssh_pub_key_file'] = pub_key_file
+
         # if gcp region is nowhere to be found, the default value in terraform-dcos will be used
         if 'gcp_zone' not in self.config['terraform_config'] and 'GCE_ZONE' in os.environ:
             self.config['terraform_config']['gcp_zone'] = util.set_from_env('GCE_ZONE')[-1]
@@ -258,15 +263,13 @@ class GcpLauncher(TerraformLauncher):
         return super().create()
 
     def key_helper(self):
-        if 'gcp_ssh_pub_key_file' not in self.config['terraform_config'] or \
-                'ssh_private_key_filename' not in self.config:
-            private_key, public_key = util.generate_rsa_keypair(
-                priv_key_format=serialization.PrivateFormat.TraditionalOpenSSL)
-            self._key_helper_common(private_key)
-            pub_key_file = os.path.join(self.init_dir, 'key.pub')
-            with open(pub_key_file, 'wb') as f:
-                f.write(public_key)
-            self.config['terraform_config']['gcp_ssh_pub_key_file'] = pub_key_file
+        private_key, public_key = util.generate_rsa_keypair(
+            priv_key_format=serialization.PrivateFormat.TraditionalOpenSSL)
+        self._key_helper_common(private_key)
+        pub_key_file = os.path.join(self.init_dir, 'key.pub')
+        with open(pub_key_file, 'wb') as f:
+            f.write(public_key)
+        self.config['terraform_config']['gcp_ssh_pub_key_file'] = pub_key_file
 
 
 class AzureLauncher(TerraformLauncher):
@@ -281,20 +284,16 @@ class AzureLauncher(TerraformLauncher):
         return super().create()
 
     def key_helper(self):
-        if 'ssh_pub_key' not in self.config['terraform_config'] or \
-                'ssh_private_key_filename' not in self.config:
-            private_key, public_key = util.generate_rsa_keypair(
-                priv_key_format=serialization.PrivateFormat.TraditionalOpenSSL)
-            self._key_helper_common(private_key)
-            self.config['terraform_config']['ssh_pub_key'] = public_key.decode('utf-8')
+        private_key, public_key = util.generate_rsa_keypair(
+            priv_key_format=serialization.PrivateFormat.TraditionalOpenSSL)
+        self._key_helper_common(private_key)
+        self.config['terraform_config']['ssh_pub_key'] = public_key.decode('utf-8')
 
 
 class AwsLauncher(TerraformLauncher):
     def key_helper(self):
-        if 'ssh_key_name' not in self.config['terraform_config'] or \
-                'ssh_private_key_filename' not in self.config:
-            bw = aws.BotoWrapper(self.config['aws_region'])
-            key_name = 'terraform-dcos-launch-' + str(uuid.uuid4())
-            self.config['terraform_config']['ssh_key_name'] = key_name
-            private_key = bw.create_key_pair(key_name)
-            self._key_helper_common(private_key.encode())
+        bw = aws.BotoWrapper(self.config['aws_region'])
+        key_name = 'terraform-dcos-launch-' + str(uuid.uuid4())
+        self.config['terraform_config']['ssh_key_name'] = key_name
+        private_key = bw.create_key_pair(key_name)
+        self._key_helper_common(private_key.encode())

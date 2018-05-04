@@ -1,5 +1,6 @@
 """ Module for defining and validating user-provided configuration
 """
+import copy
 import logging
 import os
 import sys
@@ -94,6 +95,53 @@ def get_validated_config_from_path(config_path: str) -> dict:
     return get_validated_config(config, config_dir)
 
 
+def convert_to_terraform_format(config: dict, platform: str) -> dict:
+    """
+    Allows pre-terraform dcos-launch configs to work for terraform by mapping the appropriate dcos-launch parameters to
+        their matching terraform config parameters
+    :param config: dcos-launch config
+    :return: converted dcos-launch config
+    """
+    if 'ssh_user' in config['terraform_config']:
+        if platform in ('gcp', 'gce'):
+            config['terraform_config']['gcp_ssh_user'] = config['ssh_user']
+        else:
+            raise Exception('Cannot currently set ssh_user parameter for ' + platform)
+
+    if 'tags' in config:
+        if 'owner' not in config['terraform_config']:
+            config['terraform_config']['owner'] = config['tags']['owner']
+        if 'expiration' not in config['terraform_config']:
+            config['terraform_config']['expiration'] = config['tags']['expiration']
+
+    mappings = DCOS_LAUNCH_TO_TERRAFORM_CONFIG_COMMON_MAPPINGS
+    # we don't check for azure here because azure-onprem isn't supported in non-terraform dcos-launch
+    if platform == 'gcp':
+        mappings.update(DCOS_LAUNCH_TO_TERRAFORM_CONFIG_GCP_MAPPINGS)
+    elif platform == 'aws':
+        mappings.update(DCOS_LAUNCH_TO_TERRAFORM_CONFIG_AWS_MAPPINGS)
+
+    new_config = copy.deepcopy(config)
+    if 'dcos_config' in config:
+        new_config['terraform_config'].update('dcos_config')
+    for k, v in config.items():
+        if k in mappings:
+            # we don't convert a parameter if its equivalent is already in the dcos-launch sub-config 'terraform_config'
+            matching_params = mappings[k]
+            for mp in matching_params:
+                if mp not in config['terraform_config']:
+                    new_config['terraform_config'][mp] = v
+                else:
+                    log.info("The parameter '{}' you specified at the top level of your dcos-launch config has its "
+                             "terraform equivalent '{}' already specified in the 'terraform_config' section of your "
+                             "dcos-launch config. The latter will be used and the former ignored.".
+                             format(k, mp))
+
+    if platform == 'gcp' and '/family' in new_config['terraform_config'].get('os', ''):
+        new_config['terraform_config']['os'] = new_config['terraform_config']['os'][len('/family'):]
+    return new_config
+
+
 def get_validated_config(user_config: dict, config_dir: str) -> dict:
     """ Returns validated a finalized argument dictionary for dcos-launch
     Given the huge range of configuration space provided by this configuration
@@ -126,14 +174,7 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
     if not validator.validate(user_config):
         _raise_errors(validator)
 
-    # use the intermediate provider-validated config to add the platform schema
     platform = validator.normalized(user_config)['platform']
-    if provider == 'terraform' and 'ssh_user' in user_config['terraform_config']:
-        if platform in ('gcp', 'gce'):
-            user_config['terraform_config']['gcp_ssh_user'] = user_config['ssh_user']
-        else:
-            raise Exception('Cannot currently set ssh_user parameter for ' + platform)
-
     if platform == 'aws':
         region = None
         if provider == 'terraform':
@@ -178,6 +219,9 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
                     'default_setter': lambda doc: util.set_from_env('AZURE_LOCATION')}})
     else:
         raise NotImplementedError()
+
+    if provider == 'terraform':
+        user_config = convert_to_terraform_format(user_config, platform)
 
     # do final validation
     validator.allow_unknown = False
@@ -639,13 +683,9 @@ def get_latest_terraform_version(doc: dict):
 
 
 TERRAFORM_COMMON_SCHEMA = {
-    'dcos-enterprise': {
-        'type': 'boolean',
-        'default': False},
     'terraform_version': {
         'type': 'string',
-        'default_setter': get_latest_terraform_version
-    },
+        'default_setter': get_latest_terraform_version},
     'terraform_tarball_url': {
         'type': 'string',
         'default_setter': lambda doc: get_platform_dependent_url(
@@ -666,10 +706,36 @@ TERRAFORM_COMMON_SCHEMA = {
     'terraform_dcos_version': {
         'type': 'string',
         'default': 'master'},
-    'terraform_dcos_enterprise_version': {
-        'type': 'string',
-        'default': 'master'},
     'key_helper': {
         'type': 'boolean',
         'default_setter': lambda doc: set_key_helper(doc['platform'], doc['terraform_config'])},
+    'installer_url': {
+        'validator': validate_url,
+        'type': 'string',
+        'default': 'https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh'},
+}
+
+
+# maps dcos-launch parameters to their terraform equivalents
+DCOS_LAUNCH_TO_TERRAFORM_CONFIG_COMMON_MAPPINGS = {
+    'installer_url': ['custom_dcos_download_path'],
+    'onprem_install_parallelism': ['parallelism'],
+    'num_public_agents': ['num_of_public_agents'],
+    'num_masters': ['num_of_masters'],
+    'num_private_agents': ['num_of_private_agents'],
+}
+
+DCOS_LAUNCH_TO_TERRAFORM_CONFIG_GCP_MAPPINGS = {
+    'disk_size': ['instance_disk_size'],
+    'source_image': ['os'],
+    'machine_type': ['gcp_bootstrap_instance_type', 'gcp_master_instance_type', 'gcp_agent_instance_type'],
+}
+
+DCOS_LAUNCH_TO_TERRAFORM_CONFIG_AWS_MAPPINGS = {
+    'aws_key_name': ['ssh_key_name'],
+    'instance_ami': ['aws_ami'],
+    'instance_type': ['aws_public_agent_instance_type', 'aws_agent_instance_type', 'aws_bootstrap_instance_type',
+                      'aws_master_instance_type'],
+    'admin_location': ['admin_cidr'],
+
 }

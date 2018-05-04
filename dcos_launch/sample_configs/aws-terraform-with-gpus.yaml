@@ -4,6 +4,9 @@ platform: aws
 provider: terraform
 dcos-enterprise: False
 key_helper: true
+# if no installer url is specified, latest (master) will be used
+# you can find all download urls here: https://github.com/dcos/tf_dcos_core/blob/master/download-variables.tf
+installer_url: https://downloads.dcos.io/dcos/stable/1.10.4/dcos_generate_config.sh
 terraform_config:
   # for more fields, see https://github.com/dcos/terraform-dcos/tree/master/aws
   owner: "infinity"
