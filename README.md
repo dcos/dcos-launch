@@ -27,7 +27,8 @@ You must set environment variables depending on the platform and provider your c
 * GCP: Must set either `GCE_CREDENTIALS` to your JSON service account credentials or `GOOGLE_APPLICATION_CREDENTIALS` to the path of the file containing those JSON credentials.
 
 ## Config file
-dcos-launch takes a YAML file of provisioning options. See [config docs](dcos_launch/sample_configs/README.md) and [all possible config params](CONFIG_OPTIONS.md).
+
+dcos-launch takes a YAML file of provisioning options. See [config docs](CONFIG_OPTIONS.md).
 
 ## Installation
 
@@ -43,14 +44,14 @@ See the Developing section for instructions on how to install a development envi
 ## Features
 `dcos-launch` provides the following:
 * Consistent interface: launching on Azure or AWS can involve finding a suitable client API and then sifting through hundreds of specific API calls to find the combination that will allow deploying DC/OS. `dcos-launch` has the exact methods required to take a DC/OS build artifact and deploy it to an arbitrary provider with no other tools.
-* Turn-key deployment: The only input required by `dcos-launch` is the [launch config](sample_configs/README.md). In cases where artifacts are required to deploy DC/OS (e.g. SSH keys), `dcos-launch` provids helpers to automatically create and clean up those extra artifacts.
+* Turn-key deployment: The only input required by `dcos-launch` is the [launch config](CONFIG_OPTIONS.md). In cases where artifacts are required to deploy DC/OS (e.g. SSH keys), `dcos-launch` provids helpers to automatically create and clean up those extra artifacts.
 * Portable shipping: `dcos-launch` is shipped as a frozen python binary so that you never need to be concerned with maintaining an extremely specific development environment or deployment framework.
 * Build verification: besides launching clusters, `dcos-launch` can test that the provisioned cluster is healthy through the `pytest` subcommand. `dcos-launch` is capable of describing the cluster topology and verifying that the expected cluster is present. To learn more about the testing suite triggered by this command, see: [dcos-integration-test](http://github.com/dcos/dcos/tree/master/packages/dcos-integration-test/extra)
 * Programmatic consumption: all information necessary to interact with a given deployment configuration created by `dcos-launch` is contained in the generated `cluster_info.json` file. This allows dependent CI tasks to run other tests, describe the cluster, or completely delete the cluster
 
 ## Commands
 ### `dcos-launch create`
-Consumes a [launch config file](sample_configs/README.md) file, performs basic validation on the deployment parameters, and then signals the deployment provider to begin deployment. By default, `dcos-launch` will expect a launch config at `config.yaml` but any arbitrary path can be passed with the `-c` option. If creation is triggered successfully, then a `cluster_info.json` file will be produced for use with other `dcos-launch` commands. This path is also configurable via the `-i` command line option
+Consumes a [launch config file](CONFIG_OPTIONS.md) file, performs basic validation on the deployment parameters, and then signals the deployment provider to begin deployment. By default, `dcos-launch` will expect a launch config at `config.yaml` but any arbitrary path can be passed with the `-c` option. If creation is triggered successfully, then a `cluster_info.json` file will be produced for use with other `dcos-launch` commands. This path is also configurable via the `-i` command line option
 
 In the case of third-party provisioning (provider is AWS or Azure), the cluster will eventually finish deploying with no further action. In the case of onprem provisioning, `dcos-launch` needs to partially drive the deployment process, so the `dcos-launch create` command only triggers creation of the underlying bare hosts, while `dcos-launch wait` will step through the DC/OS installer stages.
 
