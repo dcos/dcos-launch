@@ -1,4 +1,7 @@
 # DC/OS Launch Configuration YAML
+
+For a (WIP) enumeration of all possible config options, see CONFIG_OPTIONS.md
+
 ## Design Intention
 The intention of this configuration file is to provide an interface by which
 all deployments of DC/OS, regardless of provider, have a similar format, thus

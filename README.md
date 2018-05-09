@@ -27,7 +27,7 @@ You must set environment variables depending on the platform and provider your c
 * GCP: Must set either `GCE_CREDENTIALS` to your JSON service account credentials or `GOOGLE_APPLICATION_CREDENTIALS` to the path of the file containing those JSON credentials.
 
 ## Config file
-See (config docs)[dcos_launch/sample_configs/README.md].
+See (config docs)[dcos_launch/sample_configs/README.md] and [all possible config params](CONFIG_OPTIONS.md).
 
 ## Installation
 

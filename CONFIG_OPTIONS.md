@@ -1,0 +1,496 @@
+# Config options
+
+This is a WIP to more thoroughly document all the parameters. The code this is based off of is in dcos_launch/config.py. Please report any errors or unclear items.
+
+TODO: blank template for each of the deployment types that contained all the possible params with blank values.
+
+Here `optional` means you don't have to manually provide it in the config.yaml file, and that it will be set to the default value if not provided.
+
+## Universal params
+
+These options are for any config
+
+### `provider`
+
+string, required
+
+Which provider you will deploy a cluster to.
+
+Allowed: aws, azure, acs-engine, onprem, terraform.
+
+### `launch_config_version`
+
+integer, required
+
+What version of the dcos-launch config schema are you using? Right now there is only v1.
+
+Allowed: 1
+
+### `ssh_port`
+
+integer, optional
+
+What port to use on SSH.
+
+Default: 22
+
+
+### `ssh_private_key_filename`
+
+string, optional (conditionally required)
+
+This is required if you don't use `key_helper` or `ssh_private_key`.
+
+### `ssh_private_key`
+
+string, optional
+
+If not set and you are not using `key_helper`, you must provide `ssh_private_key_filename`
+
+### `ssh_user`
+
+string, optional
+
+Username to log into cluster with.
+
+Default: core
+
+### `key_helper`
+
+boolean, optional
+
+Generate private SSH keys for the underlying hosts if `true`. In `platform: aws`, this means the user does not have to supply `KeyName` in the template parameters and dcos-launch will fill it in. Similarly, in `platform: azure`, `sshRSAPublicKey` is populated automatically. In the aws case, this key will be deleted from EC2 when the deployment is deleted with dcos-launch
+
+Default: false
+
+### `tags`
+
+dict, optional
+
+Arbitrary tags to set on your deployment.
+
+## Template-based deploy params
+
+These params should be present if you are deploying with a template.
+
+### `template_url`
+
+string, required
+
+URL of template to use. E.g. should resolve to a page with a CloudFormation template if you are deploying on AWS.
+
+### `template_parameters`
+
+dict, required
+
+Parameters that should be injected into the template you are using. Example params for an AWS template:
+
+```
+template_parameters:
+    AdminLocation: 0.0.0.0/0
+    PublicSlaveInstanceCount: 1
+    SlaveInstanceCount: 2
+    DefaultInstanceType: m4.large
+```
+
+## Onprem deploy params
+
+### `deployment_name`
+
+string, required
+
+### `platform`
+
+string, required
+
+Allowed: aws, gcp, gce
+
+### `installer_url`
+
+string, required
+
+URL to the DC/OS installer for the version of DC/OS you want to use. For latest stable open source DC/OS, this would be `https://downloads.dcos.io/dcos/stable/dcos_generate_config.sh`.
+
+### `installer_port`
+
+integer, optional
+
+Default: 9000
+
+### `num_private_agents`
+
+integer, optional
+
+How many private agents the cluster shoudl have.
+
+Default: 0
+
+### `num_public_agents`
+
+integer, optional
+
+Default: 0
+
+### `num_masters`
+
+integer, required
+
+Allowed: 1, 3, 5, 7, 9
+
+### `dcos_config`
+
+dict, required
+
+Config options for DC/OS itself (not options about resources for the provider).
+
+Params you can nest here include
+
+- `ip_detect_filename`
+- `ip_detect_public_filename`
+- `fault_domain_detect_filename`
+- `license_key_filename`
+
+but it will also accept other options (TODO: Where are these defined?)
+
+```
+dcos_config:
+    cluster_name: My Awesome DC/OS
+    resolvers:
+        - 8.8.4.4
+        - 8.8.8.8
+    dns_search: mesos
+    master_discovery: static
+```
+
+### `genconf_dir`
+
+string, optional
+
+Default: genconf
+
+### `fault_domain_helepr`
+
+dict, optional
+
+Params you can nest here are
+
+- `num_zones` int, required, default true
+- `num_private_agents`, int, required, default 0
+- `num_public_agents`, int, required, default 0
+- `local`, boolean, required, default false
+
+### `prereqs_script_filename`
+
+string, required if `install_rereqs` is true
+
+If the image you are going to be installing DC/OS on needs requirements (e.g. Docker) installed before running the installer script, provide a file to run to install those here.
+
+Default: dcos_launch/scripts/install_prereqs.sh
+
+### `install_prereqs`
+
+boolean, optional
+
+Do DC/OS [system requirements](https://docs.mesosphere.com/1.11/installing-upgrading/custom/system-requirements/) need to be installed before installing DC/OS? 
+
+Default: false
+
+### `onprem_install_parallelism`
+
+integer, optional
+
+Default: 10
+
+
+## AWS onprem params
+
+### `aws_key_name`
+
+string, required if `key_helper` is false
+
+### `os_name`
+
+string, optional (you can set the machine image directly with `instance_ami`)
+
+Default: `cent-os-7-dcos-prereqs`
+
+Allowed: see `OS_AMIS` in dcos_launch/aws.py
+
+### `instance_type`
+
+string, required
+
+E.g. m4.large
+
+### `instance_device_name`
+
+string, required
+
+Default: `/dev/xvda` if coreos else `/dev/sda1`
+
+### `admin_location`
+
+string, required
+
+Default: `0.0.0.0/0`
+
+### `bootstrap_ssh_user`
+
+string, required (if not set, this will be set based on `bootstrap_os_name`)
+
+### `ssh_user`
+
+string, required (if not set, will be set based on `os_name`)
+
+### `aws_block_device_mappings`
+
+list of dicts, optional
+
+### `iam_role_permissions`
+
+list of dict with keys `Resource`, `Action`, `Effect`, optional
+
+
+
+## ACS (Azure) deploy params 
+
+:warning: TODO: descriptions
+
+### `deployment_name`
+
+string, required
+
+### `acs_engine_tarball_url`
+
+string, optional
+
+Default: 'https://github.com/Azure/acs-engine/releases/download/v0.12.1/acs-engine-v0.12.1-<sys.platform>-amd64.tar.gz'
+
+### `acs_tempalte_filename`
+
+string, optional
+
+### `platform`
+string, optional
+
+Default: Azure
+
+### `ssh_public_key`
+
+string, optional
+
+### `num_masters`
+
+integer, required
+
+Allowed: 1, 3, 5, 7, 9
+
+### `master_vm_size`
+
+string, optional
+
+Default: Standard_D2_v2
+
+### `num_windows_private_agents`
+
+integer, optional
+
+Default: 0
+
+### `windows_private_vm_size`
+
+string, optional
+
+Default: Standard_D2_v2
+
+### `num_windows_public_agents`
+
+integer, optional
+
+Default: 0
+
+### `windows_public_vm_size`
+
+string, optional
+
+Default: Standard_D2_v2
+
+### `num_linux_private_agents`
+
+integer, optional
+
+Default: 0
+
+### `linux_private_vm_size`
+
+string, optional
+
+Default: Standard_D2_v2
+
+### `num_linux_public_agents`
+
+integer, optional
+
+Default: 0
+
+### `linux_public_vm_size`
+
+string, optional
+
+Default: Standard_D2_v2
+
+### `windows_admin_user`
+
+string, optional
+
+Default azureuser
+
+### `windows_admin_password`
+
+string, optional
+
+Default: Replacepassword123
+
+### `linux_admin_user`
+
+string, optional
+
+Default: azureuser
+
+### `template_parameters`
+
+dict, optional?
+
+### `dcos_linux_bootstrap_url`
+
+string, optional
+
+### `windows_image_source_url`
+
+string, optional
+
+### `dcos_linux_repository_url`
+
+string, optional
+
+### `dcos_linux_cluster_package_list_id`
+
+string, optional
+
+### `provider_package_id`
+
+string, optional
+
+
+## GCP (Google Cloud Platform) deploy params
+
+:warning: TODO: descriptions
+
+### `machine_type`
+
+string, optional
+
+Default: n1-standard-4
+
+### `os_name`
+
+string, optional
+
+To see all image families: https://cloud.google.com/compute/docs/images
+
+Default: coreos
+
+### `source_image`
+
+string, optional
+
+Default: family/<os_name>
+
+### `image_project`
+
+string, optional
+
+### `ssh_public_key`
+
+string, optional
+
+### `disk_size`
+
+integer, optional
+
+Default: 42
+
+### `disk_type`
+
+string, optional
+
+Default: pd-ssd
+
+### `disable_updates`
+
+boolean, optional
+
+Default: false
+
+### `use_preemptible_vms`
+
+boolean, optional
+
+Default: False
+
+## Terraform params
+
+### `dcos-enterprise`
+
+boolean
+
+Are you installing Enterprise DC/OS (not open source DC/OS)?
+
+Default: false
+
+### `terraform_version`
+
+string, optional
+
+Default: latest Terraform
+
+### `terraform_tarball_url`
+
+string, optional
+
+Defaults: `htts://releases.hashicorp.com/terraform/<terraform_version>/terraform_<terraform_version>_<system platform>_amd64.zip`
+
+### `platform`
+
+string, required
+
+Allowed: aws, gcp, gce, azure
+
+### `terraform_config`
+
+dict, optional
+
+Default: empty dict
+
+### `init_dir`
+
+string, optional
+
+Default: `terraform-init-<uuid4>`
+
+### `terraform_dcos_version`
+
+string, optional
+
+Default: master
+
+### `terraform_dcos_enterprise_version`
+
+string, optional
+
+Default: master
+
+### `key_helper`
+
+boolean, optional
+
