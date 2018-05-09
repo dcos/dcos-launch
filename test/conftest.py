@@ -185,6 +185,8 @@ def mocked_gcp(monkeypatch, mock_ssh_client):
 def mocked_aws_cfstack_bare_cluster(monkeypatch, mock_ssh_client, mocked_aws_cf):
     monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, '__init__', stub(None))
     monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, 'delete', stub(None))
+    monkeypatch.setattr(dcos_launch.aws.OnPremLauncher, 'get_onprem_cluster',
+                        dcos_launch.onprem.AbstractOnpremLauncher.get_onprem_cluster)
     monkeypatch.setattr(
         dcos_launch.platforms.aws.BareClusterCfStack, 'get_cluster_host_ips', stub([mock_pub_priv_host] * 4))
     monkeypatch.setattr(dcos_launch.platforms.aws.BareClusterCfStack, 'get_bootstrap_ip', stub(mock_pub_priv_host))

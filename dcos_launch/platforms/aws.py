@@ -18,6 +18,7 @@ BareClusterCfStack: Represents a homogeneous cluster of hosts with a specific AM
 import copy
 import functools
 import logging
+import random
 import time
 
 import boto3
@@ -47,20 +48,20 @@ def tag_dict_to_aws_format(tag_dict: dict):
     return [{'Key': k, 'Value': v} for k, v in tag_dict.items()]
 
 
-def retry_boto_rate_limits(boto_fn, wait=2, timeout=60 * 60):
+def retry_boto_rate_limits(boto_fn):
     """Decorator to make boto functions resilient to AWS rate limiting and throttling.
-    If one of these errors is encounterd, the function will sleep for a geometrically
-    increasing amount of time
+    Sleeps between retries using exponential backoff
     """
     @functools.wraps(boto_fn)
     def ignore_rate_errors(*args, **kwargs):
-        local_wait = copy.copy(wait)
-        local_timeout = copy.copy(timeout)
-        while local_timeout > 0:
-            next_time = time.time() + local_wait
+        max_sleep_time = 20 * 60
+        tries = 0
+        sleep_time = 1
+        while sleep_time < max_sleep_time:
             try:
                 return boto_fn(*args, **kwargs)
             except (ClientError, WaiterError) as e:
+                tries += 1
                 if isinstance(e, ClientError):
                     error_code = e.response['Error']['Code']
                 elif isinstance(e, WaiterError):
@@ -69,14 +70,9 @@ def retry_boto_rate_limits(boto_fn, wait=2, timeout=60 * 60):
                     raise
                 if error_code in ['Throttling', 'RequestLimitExceeded']:
                     log.warning('AWS API Limiting error: {}'.format(error_code))
-                    log.warning('Sleeping for {} seconds before retrying'.format(local_wait))
-                    time_to_next = next_time - time.time()
-                    if time_to_next > 0:
-                        time.sleep(time_to_next)
-                    else:
-                        local_timeout += time_to_next
-                    local_timeout -= local_wait
-                    local_wait *= 2
+                    log.warning('Sleeping for {} seconds before retrying'.format(sleep_time))
+                    time.sleep(sleep_time)
+                    sleep_time = random.randint(0, 2 ** tries - 1)
                     continue
                 raise
         raise Exception('Rate-limit timeout encountered waiting for {}'.format(boto_fn.__name__))
