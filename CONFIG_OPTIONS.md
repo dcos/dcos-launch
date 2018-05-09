@@ -15,6 +15,9 @@ complementing the goal of dcos-launch to provide a single tool for launching
 across a variety of provider APIs.
 
 ## Supported Deployments and Examples
+
+See [sample_configs](dcos_launch/sample_configs/) for a full list.
+
 - [Simple AWS Cloudformation](dcos_launch/sample_configs/aws-cf.yaml)
 - [Zen AWS Cloudformation](dcos_launch/sample_configs/aws-zen-cf.yaml)
 - [Onprem Install on AWS Bare Cluster](dcos_launch/sample_configs/aws-onprem.yaml)
