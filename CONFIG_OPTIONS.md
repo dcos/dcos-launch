@@ -1,10 +1,29 @@
-# Config options
+# dcos-launch configuration YAML
+
+To see sample config files, see the [sample_configs](dcos_launch/sample_configs/) directory.
 
 This is a WIP to more thoroughly document all the parameters. The code this is based off of is in dcos_launch/config.py. Please report any errors or unclear items.
 
 TODO: blank template for each of the deployment types that contained all the possible params with blank values.
 
 Here `optional` means you don't have to manually provide it in the config.yaml file, and that it will be set to the default value if not provided.
+
+## Design Intention
+The intention of this configuration file is to provide an interface by which
+all deployments of DC/OS, regardless of provider, have a similar format, thus
+complementing the goal of dcos-launch to provide a single tool for launching
+across a variety of provider APIs.
+
+## Supported Deployments and Examples
+- [Simple AWS Cloudformation](aws-cf.yaml)
+- [Zen AWS Cloudformation](aws-zen-cf.yaml)
+- [Onprem Install on AWS Bare Cluster](aws-onprem.yaml)
+- [Azure Template Deployment](azure.yaml)
+- [Onprem Installation on Google Cloud Platform](gcp-onprem-with-helper.yaml)
+- [GCP Onprem with fault-domain helper](gcp-onprem-with-fd-helper.yaml)
+
+* `onprem` can only be provisioned via `aws` and `gcp` platforms
+* DC/OS deployed from aws or azure provider do not technically need `ssh_user` or `ssh_private_key_filename`. However, without this additional data, the integration tests will not be trigger-able from dcos-launch. Thus, it is not recommended, but allowable, to omit these fields when not using the onprem provider
 
 ## Universal params
 
@@ -16,13 +35,18 @@ string, required
 
 Which provider you will deploy a cluster to.
 
+* `aws`: Uses Amazon Web Services (AWS) CloudFormation console. Supports both zen and simple templates. (Can only be used with `platform: aws`. Requires: `template_url`, `template_parameters`
+* `azure`: Uses Azure Resource Manager deployment templates. Supports both ACS (Azure Container Service) and DC/OS templates. (Can only be used with `platform: azure`. Requires `template_url`, and `template_parameters`
+* `onprem`: Uses the DC/OS bash installer to orchestrate a deployment on arbitrary hosts of a bare cluster. Requires `num_masters`, `num_private_agents`, `num_public_agents`, `installer_url`, `instance_type`, `os_name`, and `dcos_config`
+
+
 Allowed: aws, azure, acs-engine, onprem, terraform.
 
 ### `launch_config_version`
 
 integer, required
 
-What version of the dcos-launch config schema are you using? Right now there is only v1.
+This is still a tool under active development and as such a strict version specifier must be included. (Right now there is only v1.)
 
 Allowed: 1
 
@@ -37,21 +61,24 @@ Default: 22
 
 ### `ssh_private_key_filename`
 
-string, optional (conditionally required)
+string, optional (required if you are doing an onprem deploy)
 
 This is required if you don't use `key_helper` or `ssh_private_key`.
+
+If `key_helper: true` then this field cannot be supplied.
 
 ### `ssh_private_key`
 
 string, optional
 
-If not set and you are not using `key_helper`, you must provide `ssh_private_key_filename`
+If this is not set and you are not using `key_helper`, you must provide `ssh_private_key_filename`.
+
 
 ### `ssh_user`
 
 string, optional
 
-Username to log into cluster with.
+Username to log into cluster with. If `provider: onprem` then the host VM configuraiton is known to dcos-launch and this value will be calculated based on `os_name`.
 
 Default: core
 
@@ -60,6 +87,14 @@ Default: core
 boolean, optional
 
 Generate private SSH keys for the underlying hosts if `true`. In `platform: aws`, this means the user does not have to supply `KeyName` in the template parameters and dcos-launch will fill it in. Similarly, in `platform: azure`, `sshRSAPublicKey` is populated automatically. In the aws case, this key will be deleted from EC2 when the deployment is deleted with dcos-launch
+
+Default: false
+
+### `zen_helper`
+
+boolean, optional
+
+Only to be used with `provider: aws` and zen templates. If `true`, then the network prerequisites for launching a zen cluster will be provided if missing. The resources potentially covered are: Vpc, InternetGateway, PrivateSubnet, and PublicSubnet. As with `key_helper`, these resources will be deleted if dcos-launch is used for destroying the deployment.
 
 Default: false
 
@@ -98,6 +133,8 @@ template_parameters:
 ### `deployment_name`
 
 string, required
+
+The name of the cloud resource that will be provided by `dcos-launch`. E.g. if you are deploying with an AWS CloudFormation template, then this will be the name of your stack.
 
 ### `platform`
 
@@ -168,16 +205,53 @@ string, optional
 
 Default: genconf
 
-### `fault_domain_helepr`
+### `fault_domain_helper`
 
 dict, optional
 
-Params you can nest here are
+Items in the dict should have dicts containing:
 
 - `num_zones` int, required, default true
 - `num_private_agents`, int, required, default 0
 - `num_public_agents`, int, required, default 0
 - `local`, boolean, required, default false
+
+Only to be used with `provider: onprem`. This option allows defining an abitrary number of named regions by creating a spoofed fault-domain-detect script. Each region can configure the number of private agents, public agents, and sub-zones. One region *must* declared with `local: true` to designate it as the region which will host the masters. Agents are assigned distributed evenly amongst the zones within a region per a given role (master/private/public). Do not set the `num_private_agents` and `num_public_agents` in the top-level config. These values will computed automatically from the numbers you provide in the fault_domain_helper.
+For example consider this fault domain helper:
+```
+num_masters: 3
+fault_domain_helper:
+    USA:
+        num_zones: 2
+        num_private_agents: 3
+        local: true
+    Germany:
+        num_zones: 3
+        num_public_agents: 2
+        num_private_agents: 4
+    Europe:
+        num_private_agents: 1
+```
+will produce the following region/zones:
+```
+USA-1:
+    masters: 2
+    private_agents: 1
+USA-2:
+    masters: 1
+    private_agents: 2
+Germany-1:
+    public_agents: 1
+    private_agents: 1
+Germany-2:
+    public_agents: 1
+    private_agents: 1
+Germany-3:
+    public_agents: 0
+    private_agents: 2
+Europe-1:
+    private_agents: 1
+```
 
 ### `prereqs_script_filename`
 
@@ -206,7 +280,9 @@ Default: 10
 
 ### `aws_key_name`
 
-string, required if `key_helper` is false
+string, required if `key_helper:false` and `provider:aws` and `platform:aws`
+
+Pre-existing EC2 SSH KeyPair to be supplied for launching the VPC
 
 ### `os_name`
 
