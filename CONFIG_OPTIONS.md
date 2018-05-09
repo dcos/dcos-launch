@@ -15,12 +15,12 @@ complementing the goal of dcos-launch to provide a single tool for launching
 across a variety of provider APIs.
 
 ## Supported Deployments and Examples
-- [Simple AWS Cloudformation](aws-cf.yaml)
-- [Zen AWS Cloudformation](aws-zen-cf.yaml)
-- [Onprem Install on AWS Bare Cluster](aws-onprem.yaml)
-- [Azure Template Deployment](azure.yaml)
-- [Onprem Installation on Google Cloud Platform](gcp-onprem-with-helper.yaml)
-- [GCP Onprem with fault-domain helper](gcp-onprem-with-fd-helper.yaml)
+- [Simple AWS Cloudformation](dcos_launch/sample_configs/aws-cf.yaml)
+- [Zen AWS Cloudformation](dcos_launch/sample_configs/aws-zen-cf.yaml)
+- [Onprem Install on AWS Bare Cluster](dcos_launch/sample_configs/aws-onprem.yaml)
+- [Azure Template Deployment](dcos_launch/sample_configs/azure.yaml)
+- [Onprem Installation on Google Cloud Platform](dcos_launch/sample_configs/gcp-onprem-with-helper.yaml)
+- [GCP Onprem with fault-domain helper](dcos_launch/sample_configs/gcp-onprem-with-fd-helper.yaml)
 
 * `onprem` can only be provisioned via `aws` and `gcp` platforms
 * DC/OS deployed from aws or azure provider do not technically need `ssh_user` or `ssh_private_key_filename`. However, without this additional data, the integration tests will not be trigger-able from dcos-launch. Thus, it is not recommended, but allowable, to omit these fields when not using the onprem provider
