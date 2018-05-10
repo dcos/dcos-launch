@@ -84,27 +84,30 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
             'public_agents': dcos_launch.util.convert_host_list(self.stack.get_public_agent_ips())}
 
     def delete(self):
-        # If the stack is in the middle of being updated (probably because its tags were being updated), wait for
-        # the update to complete before trying to delete it
-        stack = self.boto_wrapper.resource('cloudformation').Stack(stack_id)
-        status = stack.get_stack_details()['StackStatus']
-        update_transition_states = ['UPDATE_COMPLETE_CLEANUP_IN_PROGRESS', 'UPDATE_IN_PROGRESS']
-        if status in update_transition_states:
-            self.stack.wait_for_complete(transition_states=update_transition_states, end_states=['UPDATE_COMPLETE'])
+        # If the stack is in the middle of another operation (probably because its tags were being updated), wait for
+        # the operation to complete before trying to delete it
+        if 'IN_PROGRESS' in self.stack.get_status():
+            self.stack.wait_for_complete(transition_states=['ROLLBACK_IN_PROGRESS', 'UPDATE_IN_PROGRESS',
+                                                            'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS',
+                                                            'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+                                                            'UPDATE_ROLLBACK_IN_PROGRESS'],
+                                         end_states=['CREATE_COMPLETE', 'ROLLBACK_FAILED', 'ROLLBACK_COMPLETE',
+                                                     'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_FAILED',
+                                                     'UPDATE_ROLLBACK_COMPLETE'])
         self.stack.delete()
         # we must wait for the stack to be deleted for 2 reasons:
         # 1. required to remove network resources on which it depends
         # 2. to make sure it successfully deletes. If not (for example got interrupted by tagging), we retry deleting
         status = self.stack.wait_for_complete(
             transition_states=[
-                'CREATE_COMPLETE',
-                'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
-                'UPDATE_IN_PROGRESS',
-                'DELETE_IN_PROGRESS'
+                'DELETE_IN_PROGRESS', 'CREATE_COMPLETE', 'ROLLBACK_IN_PROGRESS', 'UPDATE_IN_PROGRESS',
+                'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS', 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+                'UPDATE_ROLLBACK_IN_PROGRESS'
             ],
-            end_states=['DELETE_COMPLETE', 'UPDATE_COMPLETE'])
-        if status == 'UPDATE_COMPLETE':
-            log.info('Deletion was interrupted by an update (most likely tagging). Retrying to delete...')
+            end_states=['DELETE_COMPLETE', 'ROLLBACK_FAILED', 'ROLLBACK_COMPLETE', 'UPDATE_COMPLETE',
+                        'UPDATE_ROLLBACK_FAILED', 'UPDATE_ROLLBACK_COMPLETE'])
+        if status != 'DELETE_COMPLETE':
+            log.info('Deletion was interrupted by another operation (most likely tagging). Retrying to delete...')
             self.delete()
         elif len(self.config['temp_resources']) > 0:
             self.delete_temp_resources(self.config['temp_resources'])

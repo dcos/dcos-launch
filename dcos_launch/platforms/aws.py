@@ -305,11 +305,10 @@ class CfStack:
         def wait_loop():
             self.refresh_stack()
             stack_status = self.get_status()
-            log.info("Stack status {status}. Continuing to wait... ".format(status=stack_status))
-
             if stack_status in end_states:
+                log.info("Final stack status: " + stack_status)
                 return stack_status
-
+            log.info("Stack status {status}. Continuing to wait... ".format(status=stack_status))
             if stack_status not in transition_states:
                 for event in self.get_stack_events():
                     log.error('Stack Events: {}'.format(event))
