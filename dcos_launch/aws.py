@@ -86,7 +86,8 @@ class DcosCloudformationLauncher(dcos_launch.util.AbstractLauncher):
     def delete(self):
         # If the stack is in the middle of being updated (probably because its tags were being updated), wait for
         # the update to complete before trying to delete it
-        status = self.get_stack_details()['StackStatus']
+        stack = self.boto_wrapper.resource('cloudformation').Stack(stack_id)
+        status = stack.get_stack_details()['StackStatus']
         update_transition_states = ['UPDATE_COMPLETE_CLEANUP_IN_PROGRESS', 'UPDATE_IN_PROGRESS']
         if status in update_transition_states:
             self.stack.wait_for_complete(transition_states=update_transition_states, end_states=['UPDATE_COMPLETE'])
