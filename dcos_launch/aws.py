@@ -1,7 +1,7 @@
 import json
 import logging
-import random
-import time
+
+from retrying import retry
 
 import dcos_test_utils.onprem
 from dcos_launch import util
@@ -193,42 +193,44 @@ class OnPremLauncher(DcosCloudformationLauncher, onprem.AbstractOnpremLauncher):
         num_masters = int(self.config['num_masters'])
         num_private_agents = int(self.config['num_private_agents'])
         num_public_agents = int(self.config['num_public_agents'])
-        cluster = dcos_test_utils.onprem.OnpremCluster.from_hosts(
-            bootstrap_host=self.get_bootstrap_host(),
-            cluster_hosts=self.get_cluster_hosts(),
-            num_masters=num_masters,
-            num_private_agents=num_private_agents,
-            num_public_agents=num_public_agents)
 
-        # Whenever an AWS rate limiting error occurs, for a reason still unknown, there's a strong possibility that the
-        # hosts will not be found inside the stack. So here we implement a retrying logic with exponential backoff that
-        # asserts all the cluster hosts are found in the stack.
-        tries = 0
-        max_sleep_time = 20 * 60
-        msg = ("Not all required hosts were found:\n"
-               "\tmaster count: expected {}, found {}\n"
-               "\tprivate agent count: expected {}, found {}\n"
-               "\tpublic agent count: expected {}, found {}\n"
-               "\tbootstrap host found: {}")
-        while True:
+        @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
+               retry_on_result=lambda res: res[1])
+        def _get_cluster():
+            """ Whenever an AWS rate limiting error occurs, for a reason still unknown, there's a strong possibility
+            that the hosts will not be found inside the stack. So here we implement a retrying logic with exponential
+            backoff that asserts all the cluster hosts are found in the stack.
+            """
+            cluster = dcos_test_utils.onprem.OnpremCluster.from_hosts(
+                bootstrap_host=self.get_bootstrap_host(),
+                cluster_hosts=self.get_cluster_hosts(),
+                num_masters=num_masters,
+                num_private_agents=num_private_agents,
+                num_public_agents=num_public_agents)
+
             num_masters_found = len(cluster.masters)
             num_private_agents_found = len(cluster.private_agents)
             num_public_agents_found = len(cluster.public_agents)
             bootstrap_host_found = bool(cluster.bootstrap_host)
-            if num_masters_found == num_masters and num_private_agents_found == num_private_agents and \
-                    num_public_agents_found == num_public_agents and bootstrap_host_found:
-                break
-            msg = msg.format(num_masters, num_masters_found,
-                             num_private_agents, num_private_agents_found,
-                             num_public_agents, num_public_agents_found,
-                             bootstrap_host_found)
-            tries += 1
-            # exponential backoff
-            sleep_time = random.randint(0, 2 ** tries - 1)
-            if sleep_time > max_sleep_time:
-                raise Exception(msg)
-            log.info("Stack not ready yet for dcos installation. " + msg)
-            log.info("Retrying in {} seconds".format(sleep_time))
-            time.sleep(sleep_time)
-            self.stack.refresh_stack()
+
+            cluster_matches_config = (num_masters_found == num_masters and
+                                      num_private_agents_found == num_private_agents and
+                                      num_public_agents_found == num_public_agents and
+                                      bootstrap_host_found)
+
+            if not cluster_matches_config:
+                msg = ("Not all required hosts were found:\n"
+                       "\tmaster count: expected {}, found {}\n"
+                       "\tprivate agent count: expected {}, found {}\n"
+                       "\tpublic agent count: expected {}, found {}\n"
+                       "\tbootstrap host found: {}".format(num_masters, num_masters_found,
+                                                           num_private_agents, num_private_agents_found,
+                                                           num_public_agents, num_public_agents_found,
+                                                           bootstrap_host_found))
+                log.info("Stack not ready yet for DC/OS installation. " + msg)
+                self.stack.refresh_stack()
+
+            return cluster, not cluster_matches_config
+
+        cluster, _ = _get_cluster()
         return cluster
