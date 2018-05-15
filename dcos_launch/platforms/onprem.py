@@ -133,7 +133,7 @@ def do_genconf(
     # copy config to genconf/
     ssh_tunnel.copy_file(genconf_dir, installer_dir)
     # try --genconf
-    log.info('Runnnig --genconf command...')
+    log.info('Running --genconf command...')
     ssh_tunnel.command(['sudo', 'bash', installer_path, '--genconf'], stdout=sys.stdout.buffer)
     # if OK we just need to restart nginx
     host_share_path = os.path.join(installer_dir, 'genconf/serve')
