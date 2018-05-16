@@ -104,6 +104,9 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
         config_dir: path for the config file for resolving relative
             file links
     """
+    owner = os.environ.get('USER')
+    if owner:
+        user_config.setdefault('tags', {'owner': owner})
     # validate against the fields common to all configs
     validator = LaunchValidator(COMMON_SCHEMA, config_dir=config_dir, allow_unknown=True)
     if not validator.validate(user_config):
