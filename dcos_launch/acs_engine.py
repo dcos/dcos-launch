@@ -40,7 +40,7 @@ def generate_acs_engine_template(
         "properties": {
             "orchestratorProfile": {
                 "orchestratorType": "DCOS",
-                "orchestratorVersion": "1.11.0"
+                "orchestratorRelease": "1.11"
             },
             "masterProfile": {
                 "count": num_masters,
