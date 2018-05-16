@@ -477,7 +477,6 @@ ACS_ENGINE_SCHEMA = {
     },
     'acs_engine_tarball_url': {
         'type': 'string',
-        'readonly': True,
         'default_setter': lambda doc: get_platform_dependent_url(
             'https://github.com/Azure/acs-engine/releases/download/v{0}/acs-engine-v{0}-{1}-amd64.tar.gz'.
                 format(doc['acs_version'], '{}'),
