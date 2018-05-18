@@ -31,6 +31,7 @@ def generate_acs_engine_template(
         windows_admin_user: str,
         windows_admin_password: str,
         linux_admin_user: str,
+        acs_engine_dcos_orchestrator_release: str,
         ):
     """ Generates the template provided to ACS-engine
     """
@@ -40,7 +41,7 @@ def generate_acs_engine_template(
         "properties": {
             "orchestratorProfile": {
                 "orchestratorType": "DCOS",
-                "orchestratorRelease": "1.11"
+                "orchestratorRelease": acs_engine_dcos_orchestrator_release
             },
             "masterProfile": {
                 "count": num_masters,
@@ -173,7 +174,8 @@ class ACSEngineLauncher(dcos_launch.util.AbstractLauncher):
             self.config['linux_public_vm_size'],
             self.config['windows_admin_user'],
             self.config['windows_admin_password'],
-            self.config['linux_admin_user'])
+            self.config['linux_admin_user'],
+            self.config['acs_engine_dcos_orchestrator_release'])
         windows_image_source_url = self.config.get('windows_image_source_url')
         if windows_image_source_url:
             acs_engine_template["properties"]["windowsProfile"]["WindowsImageSourceUrl"] = windows_image_source_url

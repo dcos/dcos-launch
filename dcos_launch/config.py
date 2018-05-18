@@ -487,6 +487,9 @@ ACS_ENGINE_SCHEMA = {
     'acs_template_filename': {
         'type': 'string',
         'required': False},
+    'acs_engine_dcos_orchestrator_release': {
+        'type': 'string',
+        'default': '1.11'},
     'platform': {
         'type': 'string',
         'readonly': True,
