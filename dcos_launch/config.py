@@ -709,10 +709,63 @@ TERRAFORM_COMMON_SCHEMA = {
     'key_helper': {
         'type': 'boolean',
         'default_setter': lambda doc: set_key_helper(doc['platform'], doc['terraform_config'])},
+    #next parameters are copied from other sections
     'installer_url': {
         'validator': validate_url,
         'type': 'string',
         'default': 'https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh'},
+    'onprem_install_parallelism': {
+        'type': 'integer',
+        'required': False,
+        'default': 10
+    },
+    'num_public_agents': {
+        'type': 'integer',
+        'required': False,
+        'min': 0,
+        # note: cannot assume nested schema values will be populated with defaults
+        #   when the default setter runs
+        'default_setter': lambda doc:
+            sum([v.get('num_public_agents',  0) for v in doc['fault_domain_helper'].values()])
+            if 'fault_domain_helper' in doc else 0},
+    'num_masters': {
+        'type': 'integer',
+        'allowed': [1, 3, 5, 7, 9],
+        'required': True},
+    'num_private_agents': {
+        'type': 'integer',
+        'required': False,
+        'min': 0,
+        # note: cannot assume nested schema values will be populated with defaults
+        #   when the default setter runs
+        'default_setter': lambda doc:
+            sum([v.get('num_private_agents',  0) for v in doc['fault_domain_helper'].values()])
+            if 'fault_domain_helper' in doc else 0},
+    'disk_size': {
+        'type': 'integer',
+        'required': False,
+        'default': 42},
+    'source_image': {
+        'type': 'string',
+        'required': False,
+        'default_setter': lambda doc: 'family/' + gcp.OS_IMAGE_FAMILIES.get(doc['os_name'], doc['os_name'])},
+    'machine_type': {
+        'type': 'string',
+        'required': False,
+        'default': 'n1-standard-4'},
+    'aws_key_name': {
+        'type': 'string',
+        'dependencies': {
+            'key_helper': False}},
+    'instance_ami': {
+        'type': 'string',
+        'default_setter': lambda doc: aws.OS_AMIS[doc['os_name']][doc['aws_region']]},
+    'instance_type': {
+        'type': 'string'},
+    'admin_location': {
+        'type': 'string',
+        'required': True,
+        'default': '0.0.0.0/0'},
 }
 
 
