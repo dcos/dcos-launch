@@ -177,6 +177,12 @@ class ACSEngineLauncher(dcos_launch.util.AbstractLauncher):
         windows_image_source_url = self.config.get('windows_image_source_url')
         if windows_image_source_url:
             acs_engine_template["properties"]["windowsProfile"]["WindowsImageSourceUrl"] = windows_image_source_url
+        else:
+            # Use the official Azure image if a custom VHD was not specified
+            # via the windows_image_source_url config option
+            acs_engine_template["properties"]["windowsProfile"]["WindowsPublisher"] = self.config.get('windows_publisher')
+            acs_engine_template["properties"]["windowsProfile"]["WindowsOffer"] = self.config.get('windows_offer')
+            acs_engine_template["properties"]["windowsProfile"]["WindowsSku"] = self.config.get('windows_sku')
         linux_bs_url = self.config.get('dcos_linux_bootstrap_url')
         arm_template, self.config['template_parameters'] = run_acs_engine(self.config['acs_engine_tarball_url'], acs_engine_template)  # noqa
         if linux_bs_url:
