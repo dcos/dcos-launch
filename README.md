@@ -22,9 +22,39 @@ The primary purpose of `dcos-launch` is to provide a turn-key deployment experie
 
 You must set environment variables depending on the platform and provider your clusters will be running on. Credentials should be kept secure and as such, they are read exclusively through the environment.
 
-* AWS: Must set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. Can optionally provide `AWS_REGION` which can be set as `aws_region` in the config. Having these set in `~/.aws/credentials` rather than directly in your shell is fine too (e.g. if you are using [MAWS](https://github.com/mesosphere/maws))
-* Azure: Must set `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`. Can optionally provide `AZURE_LOCATION` which can be set as `azure_location` in the config
-* GCP: Must set either `GCE_CREDENTIALS` to your JSON service account credentials or `GOOGLE_APPLICATION_CREDENTIALS` to the path of the file containing those JSON credentials.
+#### AWS
+
+If you are part of the Mesosphere org:
+
+1. Install [maws]() (download the binary, run through all the steps in the installation section of the README)
+2. Verify that maws is installed
+    a. `which maws`
+    b. `maws ls`
+3. Log into your AWS account via maws
+    a. `eval $(maws li <AWS-ACCOUNT>)` Where `<AWS-ACCOUNT>` is one of the outputs of `maws li`.
+    b. It should automatically redirect you to your browser for auth, then return a confirmation message that it has successfully retrieved your credentials.
+
+Otherwise:
+
+Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` as environment variables, optionally with `AWS_REGION` in your shell or in `~/.aws/credentials`.
+
+#### GCP
+
+Set either `GCE_CREDENTIALS` to your JSON service account credentials or `GOOGLE_APPLICATION_CREDENTIALS` to the paht of hte file containing those JSON credentials.
+
+#### Azure
+
+Use the `az` CLI or
+
+1. Create an Azure Service Principal
+2. Set the following environment variables with the keys from your service principal:
+
+```
+AZURE_SUBSCRIPTION_ID
+AZURE_CLIENT_ID
+AZURE_CLIENT_SECRET
+AZURE_TENANT_ID
+```
 
 ## Config file
 
@@ -157,3 +187,12 @@ Simply run `tox` and the following will be executed:
 * pyinstaller for packaging dcos-launch
 
 Note: these can be triggered individually by supplying the `-e` option to `tox`
+
+<details>
+    This should be hidden!
+</details>
+
+:snake:
+
+- [ ] check one
+- [ ] check two
