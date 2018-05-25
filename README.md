@@ -40,7 +40,7 @@ Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` as environment variables, op
 
 #### GCP
 
-Set either `GCE_CREDENTIALS` to your JSON service account credentials or `GOOGLE_APPLICATION_CREDENTIALS` to the paht of hte file containing those JSON credentials.
+Set either `GCE_CREDENTIALS` to your JSON service account credentials or `GOOGLE_APPLICATION_CREDENTIALS` to the path of the file containing those JSON credentials.
 
 #### Azure
 
