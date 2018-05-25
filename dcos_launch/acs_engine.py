@@ -67,7 +67,7 @@ def generate_acs_engine_template(
                     "name": "linpub",
                     "count": num_linux_public_agents,
                     "vmSize": linux_public_vm_size,
-                    "osType": "linux",
+                    "osType": "Linux",
                     "dnsPrefix": "linpub" + unique_id,
                     "ports": [80, 443, 22]
                 },
@@ -75,7 +75,7 @@ def generate_acs_engine_template(
                     "name": "linpri",
                     "count": num_linux_private_agents,
                     "vmSize": linux_private_vm_size,
-                    "osType": "linux"
+                    "osType": "Linux"
                 }
             ],
             "windowsProfile": {
