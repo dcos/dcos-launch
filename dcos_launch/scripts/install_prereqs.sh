@@ -165,7 +165,7 @@ ExecStart=/usr/bin/dockerd --storage-driver=overlay --data-root=${docker_data_ro
 EOF
 
   # Install and enable Docker
-  sudo yum install -y docker-engine-17.05.0.ce docker-engine-selinux-17.05.0.ce
+  sudo yum install -y docker-engine-17.06.2.ce docker-engine-selinux-17.06.2.ce
   sudo systemctl start docker
   sudo systemctl enable docker
 fi
