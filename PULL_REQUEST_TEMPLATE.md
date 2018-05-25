@@ -7,14 +7,14 @@ What features does this change enable? / What bugs does this change fix?
 
 These JIRA ticket(s) must be updated (ideally closed) in the moment this PR lands:
 
-  - [QUALITY-<number>](https://jira.mesosphere.com/browse/QUALITY-<number>) Foo the Bar so it stops Bazzing.
+  - [DCOS-<number>](https://jira.mesosphere.com/browse/DCOS-<number>) Foo the Bar so it stops Bazzing.
 
 
 ## Related tickets (optional)
 
 Other tickets related to this change
 
-  - [QUALITY-<number>](https://jira.mesosphere.com/browse/QUALITY-<number>) Foo the Bar so it stops Bazzing.
+  - [DCOS-<number>](https://jira.mesosphere.com/browse/DCOS-<number>) Foo the Bar so it stops Bazzing.
 
 
 ## Related PRs (optional)
