@@ -28,6 +28,16 @@ See [sample_configs](dcos_launch/sample_configs/) for a full list.
 * `onprem` can only be provisioned via `aws` and `gcp` platforms
 * DC/OS deployed from aws or azure provider do not technically need `ssh_user` or `ssh_private_key_filename`. However, without this additional data, the integration tests will not be trigger-able from dcos-launch. Thus, it is not recommended, but allowable, to omit these fields when not using the onprem provider
 
+Sections
+
+- [Universal params](#universal-params)
+- [Template-based deploy params](#template-based-deploy-params)
+- [Onprem deploy params](#onprem-deploy-params)
+- [AWS onprem params](#aws-onprem-params)
+- [ACS (Azure) deploy params](#acs-azure-deploy-params)
+- [GCP (Google Cloud Platform) deploy params](#gcp-google-cloud-platform-deploy-params)
+- [Terraform params](#terraform-params)
+
 ## Universal params
 
 These options are for any config
