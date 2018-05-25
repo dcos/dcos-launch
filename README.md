@@ -187,12 +187,3 @@ Simply run `tox` and the following will be executed:
 * pyinstaller for packaging dcos-launch
 
 Note: these can be triggered individually by supplying the `-e` option to `tox`
-
-<details>
-    This should be hidden!
-</details>
-
-:snake:
-
-- [ ] check one
-- [ ] check two
