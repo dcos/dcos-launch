@@ -97,7 +97,8 @@ def mocked_aws_cf(monkeypatch, mocked_test_runner):
     # mock create
     monkeypatch.setattr(dcos_launch.platforms.aws.BotoWrapper, 'create_stack', stub(MockStack()))
     # mock wait
-    monkeypatch.setattr(dcos_launch.platforms.aws.CfStack, 'wait_for_complete', stub(None))
+    monkeypatch.setattr(dcos_launch.platforms.aws.CfStack, 'wait_for_complete', stub('DELETE_COMPLETE'))
+    monkeypatch.setattr(dcos_launch.platforms.aws.CfStack, 'get_status', stub('CREATE_COMPLETE'))
     # mock describe
     monkeypatch.setattr(dcos_launch.platforms.aws.DcosCfStack, 'get_master_ips',
                         stub([mock_pub_priv_host]))
