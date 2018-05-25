@@ -2,7 +2,7 @@
 
 To see sample config files, see the [sample_configs](dcos_launch/sample_configs/) directory.
 
-This is a WIP to more thoroughly document all the parameters. The code this is based off of is in dcos_launch/config.py. Please report any errors or unclear items.
+This is a WIP to more thoroughly document all the parameters. The code this is based off of is in [dcos_launch/config.py](https://github.com/dcos/dcos-launch/tree/master/dcos_launch/config.py). Please report any errors or unclear items.
 
 TODO: blank template for each of the deployment types that contained all the possible params with blank values.
 
@@ -43,7 +43,7 @@ Which provider you will deploy a cluster to.
 * `onprem`: Uses the DC/OS bash installer to orchestrate a deployment on arbitrary hosts of a bare cluster. Requires `num_masters`, `num_private_agents`, `num_public_agents`, `installer_url`, `instance_type`, `os_name`, and `dcos_config`
 
 
-Allowed: aws, azure, acs-engine, onprem, terraform.
+Allowed: aws, azure, acs-engine, onprem, gcp, terraform.
 
 ### `launch_config_version`
 
@@ -105,7 +105,11 @@ Default: false
 
 dict, optional
 
-Arbitrary tags to set on your deployment.
+Arbitrary tags to set on your deployment. This can be anything (subject to tag length restrictions according to which provider you're deploying on) as dcos-launch does not do anything with these other than pass them through.
+
+One example on how to use this would be setting `KubernetesCluster` tags when deploying via AWS CloudFormation templates (these are [required](https://github.com/kubernetes/kubernetes/blob/70a8ea5817ec412ae9f647a060cb93c55ac0e311/docs/design/aws_under_the_hood.md#tagging) if the cluster is running k8s).
+
+Note that the `expiration` tags in some of the example configurations are something meant to run with internal Mesosphere services that garbage collect clusters (e.g. `expiration: 4h` creates a cluster that will be deleted after 4 hours, whereas leaving this blank will default to the cluster being deleted after 2 hours). An option to update tags after a cluster has been deployed is in the backlog.
 
 ## Template-based deploy params
 
@@ -161,7 +165,7 @@ Default: 9000
 
 integer, optional
 
-How many private agents the cluster shoudl have.
+How many private agents the cluster should have.
 
 Default: 0
 
@@ -175,6 +179,8 @@ Default: 0
 
 integer, required
 
+Number of DC/OS masters
+
 Allowed: 1, 3, 5, 7, 9
 
 ### `dcos_config`
@@ -183,7 +189,7 @@ dict, required
 
 Config options for DC/OS itself (not options about resources for the provider).
 
-Params you can nest here include
+Params that can be nested include:
 
 - `ip_detect_filename`
 - `ip_detect_public_filename`
@@ -219,7 +225,7 @@ Items in the dict should have dicts containing:
 - `num_public_agents`, int, required, default 0
 - `local`, boolean, required, default false
 
-Only to be used with `provider: onprem`. This option allows defining an abitrary number of named regions by creating a spoofed fault-domain-detect script. Each region can configure the number of private agents, public agents, and sub-zones. One region *must* declared with `local: true` to designate it as the region which will host the masters. Agents are assigned distributed evenly amongst the zones within a region per a given role (master/private/public). Do not set the `num_private_agents` and `num_public_agents` in the top-level config. These values will computed automatically from the numbers you provide in the fault_domain_helper.
+Only to be used with `provider: onprem`. This option allows defining an arbitrary number of named regions by creating a spoofed fault-domain-detect script. Each region can configure the number of private agents, public agents, and sub-zones. One region *must* declared with `local: true` to designate it as the region which will host the masters. Agents are assigned distributed evenly amongst the zones within a region per a given role (master/private/public). Do not set the `num_private_agents` and `num_public_agents` in the top-level config. These values will computed automatically from the numbers you provide in the fault_domain_helper.
 For example consider this fault domain helper:
 ```
 num_masters: 3
