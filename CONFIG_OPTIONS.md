@@ -388,6 +388,12 @@ string, optional
 
 Default: Standard_D2_v2
 
+### `windows_publisher`
+
+string, optional
+
+Default: MicrosoftWindowsServer
+
 ### `num_windows_public_agents`
 
 integer, optional
@@ -578,4 +584,3 @@ Default: master
 ### `key_helper`
 
 boolean, optional
-
