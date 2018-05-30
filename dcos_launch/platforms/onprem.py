@@ -271,12 +271,16 @@ function run_checks() {
     return $check_status
 }
 
-if [ -f /opt/mesosphere/etc/dcos-diagnostics-runner-config.json ]; then
-    # Cluster with dcos-diagnostics checks available.
+if [ -f /opt/mesosphere/bin/dcos-check-runner ]; then
+    # Cluster with dcos-check-runner available.
+    run_checks sudo /opt/mesosphere/bin/dcos-shell /opt/mesosphere/bin/dcos-check-runner check
+    RETCODE=$?
+elif [ -f /opt/mesosphere/etc/dcos-diagnostics-runner-config.json ]; then
+    # Older version cluster with dcos-diagnostics checks available.
     run_checks sudo /opt/mesosphere/bin/dcos-shell /opt/mesosphere/bin/dcos-diagnostics check
     RETCODE=$?
 else
-    # Older version cluster without checks.
+    # Even older version cluster without checks.
     run_command_until_success sudo /opt/mesosphere/bin/3dt --diag
     RETCODE=$?
 fi
