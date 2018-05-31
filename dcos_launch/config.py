@@ -487,6 +487,9 @@ ACS_ENGINE_SCHEMA = {
     'acs_template_filename': {
         'type': 'string',
         'required': False},
+    'acs_engine_dcos_orchestrator_release': {
+        'type': 'string',
+        'default': '1.11'},
     'platform': {
         'type': 'string',
         'readonly': True,
@@ -539,6 +542,18 @@ ACS_ENGINE_SCHEMA = {
     'dcos_linux_bootstrap_url': {
         'type': 'string',
         'required': False},
+    'windows_publisher': {
+        'type': 'string',
+        'default': 'MicrosoftWindowsServer'
+    },
+    'windows_offer': {
+        'type': 'string',
+        'default': 'WindowsServerSemiAnnual'
+    },
+    'windows_sku': {
+        'type': 'string',
+        'default': 'Datacenter-Core-1803-with-Containers-smalldisk'
+    },
     'windows_image_source_url': {
         'type': 'string',
         'required': False},
