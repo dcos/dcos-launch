@@ -331,6 +331,15 @@ class DcosAzureResourceGroup:
 
 
 class HybridDcosAzureResourceGroup(DcosAzureResourceGroup):
+    @property
+    def master_nics(self):
+        for resource in self.list_resources("resourceType eq 'Microsoft.Network/networkInterfaces'"):
+            if 'bootstrap' in resource.name:
+                # Skipping the bootstrap NICs
+                continue
+            assert 'master' in resource.name, 'Expected to find master NICs, not: {}'.format(resource.name)
+            yield self.azure_wrapper.nmc.network_interfaces.get(self.group_name, resource.name)
+
     def get_master_ips(self):
         public_lb_ip = self.public_master_lb_fqdn
         return [nic_to_host(nic, public_lb_ip) for nic in self.master_nics]
