@@ -141,17 +141,6 @@ fi
 
 if [[ "${install_docker}" == 'true' ]]; then
   echo "Installing Docker..."
-
-  # Add Docker Yum Repo
-  sudo tee /etc/yum.repos.d/docker.repo <<-'EOF'
-[dockerrepo]
-name=Docker Repository
-baseurl=https://yum.dockerproject.org/repo/main/centos/7
-enabled=1
-gpgcheck=1
-gpgkey=https://yum.dockerproject.org/gpg
-EOF
-
   # Add Docker systemd service
   sudo mkdir -p /etc/systemd/system/docker.service.d
   sudo tee /etc/systemd/system/docker.service.d/override.conf <<- EOF
@@ -164,8 +153,29 @@ ExecStart=
 ExecStart=/usr/bin/dockerd --storage-driver=overlay --data-root=${docker_data_root}
 EOF
 
+sudo yum remove -y docker \
+                   docker-client \
+                   docker-client-latest \
+                   docker-common \
+                   docker-latest \
+                   docker-latest-logrotate \
+                   docker-logrotate \
+                   docker-selinux \
+                   docker-engine-selinux \
+                   docker-engine
+
+sudo yum install -y yum-utils \
+  device-mapper-persistent-data \
+  lvm2
+
+sudo yum-config-manager \
+    --add-repo \
+    https://download.docker.com/linux/centos/docker-ce.repo
+
+sudo yum-config-manager --enable docker-ce-edge
+
+sudo yum install -y docker-ce-17.06.2.ce-1.el7.centos
   # Install and enable Docker
-  sudo yum install -y docker-engine-17.06.2.ce docker-engine-selinux-17.06.2.ce
   sudo systemctl start docker
   sudo systemctl enable docker
 fi
