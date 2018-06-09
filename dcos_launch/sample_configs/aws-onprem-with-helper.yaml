@@ -1,13 +1,14 @@
 ---
 launch_config_version: 1
-deployment_name: dcos-onprem-with-new-stack
+deployment_name: test-oracle-cpro
 installer_url: https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh
 platform: aws
 provider: onprem
 aws_region: us-west-2
-os_name: cent-os-7-dcos-prereqs
 instance_type: m4.xlarge
-bootstrap_os_name: cent-os-7-dcos-prereqs
+install_prereqs: True
+bootstrap_instance_ami: ami-7c4b7e6b
+instance_ami: ami-7c4b7e6b
 bootstrap_instance_type: m4.xlarge
 dcos_config:
   cluster_name: My Awesome DC/OS
@@ -18,7 +19,8 @@ dcos_config:
   master_discovery: static
   exhibitor_storage_backend: static
 num_masters: 1
-num_private_agents: 1
+num_private_agents: 2
 num_public_agents: 1
-ssh_user: centos
 key_helper: true
+ssh_user: opc
+

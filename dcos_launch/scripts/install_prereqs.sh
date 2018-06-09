@@ -6,6 +6,9 @@ set -o errexit -o nounset -o pipefail
 # For setenforce & xfs_info
 PATH=$PATH:/usr/sbin:/sbin
 
+echo "deleting ip tables entry"
+sudo iptables -D INPUT -j REJECT --reject-with icmp-host-prohibited
+
 echo "Validating distro..."
 distro="$(source /etc/os-release && echo "${ID}")"
 if [[ "${distro}" == 'coreos' ]]; then
