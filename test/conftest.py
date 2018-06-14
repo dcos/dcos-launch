@@ -238,6 +238,11 @@ def aws_onprem_config_path(tmpdir, ssh_key_path, mocked_aws_cfstack_bare_cluster
 
 
 @pytest.fixture
+def aws_onprem_install_prereqs_config_path(tmpdir, mocked_aws_cfstack_bare_cluster):
+    return get_temp_config_path(tmpdir, 'aws-onprem-install-prereqs.yaml')
+
+
+@pytest.fixture
 def aws_onprem_with_helper_config_path(tmpdir, mocked_aws_cfstack_bare_cluster):
     return get_temp_config_path(tmpdir, 'aws-onprem-with-helper.yaml')
 
