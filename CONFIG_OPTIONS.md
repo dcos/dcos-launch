@@ -69,7 +69,7 @@ Which provider you will deploy a cluster to.
 * `onprem`: Uses the DC/OS bash installer to orchestrate a deployment on arbitrary hosts of a bare cluster. Requires `num_masters`, `num_private_agents`, `num_public_agents`, `installer_url`, `instance_type`, `os_name`, and `dcos_config`
 
 
-Allowed: aws, azure, acs-engine, onprem, gcp, terraform.
+Allowed: aws, azure, dcos-engine, onprem, gcp, terraform.
 
 ### `ssh_port`
 
@@ -354,11 +354,11 @@ string, required (if not set, will be set based on `os_name`)
 
 :warning: TODO: descriptions
 
-### `acs_engine_tarball_url`
+### `dcos_engine_tarball_url`
 
 string, optional
 
-Default: 'https://github.com/Azure/acs-engine/releases/download/v0.12.1/acs-engine-v0.12.1-<sys.platform>-amd64.tar.gz'
+Default: 'https://github.com/Azure/dcos-engine/releases/download/v0.1.0/dcos-engine-v0.1.0-<sys.platform>-amd64.tar.gz'
 
 ### `acs_template_filename`
 
