@@ -368,14 +368,6 @@ string, optional
 
 string, optional
 
-### `dcos_linux_cluster_package_list_id`
-
-string, optional
-
-### `dcos_linux_repository_url`
-
-string, optional
-
 ### `deployment_name`
 
 string, required
