@@ -1,7 +1,7 @@
-azure-storage
-azure-mgmt-network
-azure-mgmt-resource
-azure-monitor
+azure-storage==0.36.0
+azure-mgmt-network==2.0.0
+azure-mgmt-resource==2.0.0
+azure-monitor==0.3.1
 boto3
 botocore
 cerberus
@@ -9,6 +9,8 @@ docopt
 git+https://github.com/dcos/dcos-test-utils@3ebfc18ff9c5a1aa382311474a9192a68c98b0a7
 google-api-python-client
 keyring
+# Pinning msrestazure because of failing dependncy - see DCOS-40236
+msrestazure==0.4.34
 oauth2client==3.0.0
 pyinstaller==3.3
 py
