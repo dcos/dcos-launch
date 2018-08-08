@@ -190,6 +190,9 @@ class ACSEngineLauncher(dcos_launch.util.AbstractLauncher):
         arm_template, self.config['template_parameters'] = run_acs_engine(self.config['acs_engine_tarball_url'], acs_engine_template)  # noqa
         if linux_bs_url:
             self.config['template_parameters']['dcosBootstrapURL'] = linux_bs_url
+        windows_bs_url = self.config.get('dcos_windows_bootstrap_url')
+        if windows_bs_url:
+            self.config['template_parameters']['dcosWindowsBootstrapURL'] = windows_bs_url
         self.azure_wrapper.deploy_template_to_new_resource_group(
             self.config.get('template_url'),
             self.config['deployment_name'],

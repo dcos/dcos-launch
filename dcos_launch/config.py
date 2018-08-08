@@ -552,6 +552,9 @@ ACS_ENGINE_SCHEMA = {
     'dcos_linux_bootstrap_url': {
         'type': 'string',
         'required': False},
+    'dcos_windows_bootstrap_url': {
+        'type': 'string',
+        'required': False},
     'windows_publisher': {
         'type': 'string',
         'default': 'MicrosoftWindowsServer'
