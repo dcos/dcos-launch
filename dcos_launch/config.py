@@ -263,7 +263,7 @@ def _validate_fault_domain_helper(field, value, error):
 
 def _validate_genconf_dir(field, value, error):
     if not value.endswith('genconf'):
-        error(field, 'genconf_dir must be named geconf')
+        error(field, 'genconf_dir must be named genconf')
 
 
 ONPREM_DEPLOY_COMMON_SCHEMA = {
@@ -311,16 +311,12 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'default_setter': lambda doc: yaml.load(util.read_file(os.path.join(doc['genconf_dir'], 'config.yaml'))),
         'schema': {
             'ip_detect_filename': {
-                'coerce': 'expand_local_path',
                 'excludes': 'ip_detect_contents'},
             'ip_detect_public_filename': {
-                'coerce': 'expand_local_path',
                 'excludes': 'ip_detect_public_contents'},
             'fault_domain_detect_filename': {
-                'coerce': 'expand_local_path',
                 'excludes': 'fault_domain_detect_contents'},
             'license_key_filename': {
-                'coerce': 'expand_local_path',
                 'excludes': 'license_key_contents'},
             # the following are fields that will be injected by dcos-launch
             'agent_list': {'readonly': True},
@@ -331,7 +327,6 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'type': 'string',
         'required': False,
         'default': 'genconf',
-        'coerce': 'expand_local_path',
         'validator': _validate_genconf_dir
         },
     'fault_domain_helper': {
