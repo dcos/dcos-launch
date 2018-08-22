@@ -50,7 +50,7 @@ setup(
             'ip-detect/gcp.sh',
             'ip-detect-public/aws.sh',
             'ip-detect-public/gcp.sh',
-            'scripts/install_prereqs.sh',
+            'scripts/*',
             'templates/vpc-cluster-template.json',
             'templates/vpc-ebs-only-cluster-template.json',
             'fault-domain-detect/aws.sh',
