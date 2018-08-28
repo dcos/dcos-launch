@@ -86,9 +86,10 @@ def install_dcos(
     if install_prereqs:
         log.info('Installing prerequisites on cluster hosts')
         with open(prereqs_script_path, 'r') as p:
-            commands = p.readlines()
+            command = [line.rstrip() for line in p]
+            command = ' && '.join(command)
             check_results(
-                all_client.run_command('run', commands), node_client, 'install_prereqs')
+                all_client.run_command('run', command), node_client, 'install_prereqs')
         log.info('Prerequisites installed.')
     # download install script from boostrap host and run it
     remote_script_path = '/tmp/install_dcos.sh'
