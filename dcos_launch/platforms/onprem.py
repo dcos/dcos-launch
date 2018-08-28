@@ -65,8 +65,7 @@ def generate_log_filename(target_name: str):
 def install_dcos(
         cluster: onprem.OnpremCluster,
         node_client: ssh_client.SshClient,
-        prereqs_script_path: str,
-        install_prereqs: bool,
+        prereqs: list,
         bootstrap_script_url: str,
         parallelism: int):
     """
@@ -83,12 +82,9 @@ def install_dcos(
     # do genconf and configure bootstrap if necessary
     all_client = get_client(cluster, 'cluster_hosts', node_client, parallelism=parallelism)
     # install prereqs if enabled
-    if install_prereqs:
+    if prereqs:
         log.info('Installing prerequisites on cluster hosts')
-        with open(prereqs_script_path, 'r') as p:
-            commands = p.readlines()
-            check_results(
-                all_client.run_command('run', commands), node_client, 'install_prereqs')
+        check_results(all_client.run_command('run', prereqs), node_client, 'install_prereqs')
         log.info('Prerequisites installed.')
     # download install script from boostrap host and run it
     remote_script_path = '/tmp/install_dcos.sh'
@@ -106,12 +102,16 @@ def install_dcos(
 
 def prepare_bootstrap(
         ssh_tunnel: ssh_client.Tunnelled,
-        download_url: str) -> str:
+        download_url: str,
+        prereqs: list) -> str:
     """ Will setup a host as a 'bootstrap' host. This includes:
     * creating a genconf dir so its not owned by the root user, which happens
         if you run the installer without a genconf directory
     * downloading the installer from `download_url`
     """
+    if prereqs:
+        log.info('Installing prerequisites on bootstrap host')
+        ssh_tunnel.command(prereqs)
     log.info('Setting up installer on bootstrap host')
     ssh_tunnel.command(['mkdir', '-p', 'genconf'])
     bootstrap_home = ssh_tunnel.command(['pwd']).decode().strip()

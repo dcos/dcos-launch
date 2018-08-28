@@ -184,20 +184,22 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
         bootstrap_host = cluster.bootstrap_host.public_ip
         bootstrap_ssh_client = self.get_bootstrap_ssh_client()
         bootstrap_ssh_client.wait_for_ssh_connection(bootstrap_host)
+        prereqs_script_path = config.expand_path(pkg_resources.resource_filename(
+            dcos_launch.__name__, 'scripts/' + self.config['prereqs_script_filename']), self.config['config_dir'])
+        prereqs = []
+        if self.config['install_prereqs']:
+            with open(prereqs_script_path, 'r') as p:
+                prereqs = p.readlines()
         with bootstrap_ssh_client.tunnel(bootstrap_host) as t:
-            installer_path = platforms_onprem.prepare_bootstrap(t, self.config['installer_url'])
+            installer_path = platforms_onprem.prepare_bootstrap(t, self.config['installer_url'], prereqs)
             genconf_dir = config.expand_path(self.config['genconf_dir'], self.config['config_dir'])
             complete_config = self.get_completed_onprem_config(genconf_dir)
             platforms_onprem.do_genconf(t, genconf_dir, installer_path)
 
-        prereqs_script_path = config.expand_path(pkg_resources.resource_filename(
-            dcos_launch.__name__, 'scripts/' + self.config['prereqs_script_filename']), self.config['config_dir'])
-
         platforms_onprem.install_dcos(
             cluster,
             self.get_ssh_client(),
-            prereqs_script_path,
-            self.config['install_prereqs'],
+            prereqs,
             complete_config['bootstrap_url'] + '/dcos_install.sh',
             self.config['onprem_install_parallelism'])
 

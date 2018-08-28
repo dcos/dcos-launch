@@ -406,7 +406,7 @@ AWS_ONPREM_SCHEMA = {
         'type': 'string',
         'required': False,
         # bootstrap node requires docker to be installed
-        'default': 'coreos',
+        'default_setter': lambda doc: doc['os_name'],
         'allowed': list(aws.OS_AMIS.keys())},
     'instance_ami': {
         'type': 'string',
