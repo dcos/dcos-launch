@@ -605,6 +605,7 @@ SSH_INFO = {
 OS_SSH_INFO = {
     'cent-os-7': SSH_INFO['centos'],
     'cent-os-7-dcos-prereqs': SSH_INFO['centos'],
+    'cent-os-7-with-docker': SSH_INFO['centos'],
     'coreos': SSH_INFO['coreos'],
     'debian-8': SSH_INFO['debian'],
     'rhel-7-dcos-prereqs': SSH_INFO['rhel'],
@@ -632,6 +633,22 @@ OS_AMIS = {
     # CentOS 7.4
     'cent-os-7': CENTOS_74_AMIS,
     'cent-os-7-dcos-prereqs': CENTOS_74_AMIS,  # run_centos74_prereqs.sh will also be ran when this option is specified
+    # used for the bootstrap host
+    'cent-os-7-with-docker': {'ap-northeast-1': 'ami-07a4391e62e03e760',
+                              'ap-northeast-2': 'ami-00a6365c8529f9813',
+                              'ap-south-1': 'ami-00b687bacf8a2a6a8',
+                              'ap-southeast-1': 'ami-0324128c14daa5e10',
+                              'ap-southeast-2': 'ami-0810da1decd208378',
+                              'ca-central-1': 'ami-07fe876d1138adcda',
+                              'eu-central-1': 'ami-02603e110c1350ad3',
+                              'eu-west-1': 'ami-06b11cddfb19a238c',
+                              'eu-west-2': 'ami-075b60c8200158e6d',
+                              'eu-west-3': 'ami-03b8ec805a8442c46',
+                              'sa-east-1': 'ami-02230e3e7fa38a150',
+                              'us-east-1': 'ami-064d38af6212e0b05',
+                              'us-east-2': 'ami-0366409db5fe6f193',
+                              'us-west-1': 'ami-02c789dffc045adcf',
+                              'us-west-2': 'ami-09b4c9ac5f5d63ff4'},
     'coreos': {'ap-northeast-1': 'ami-884835ee',
                'ap-southeast-1': 'ami-b9c280c5',
                'ap-southeast-2': 'ami-04be7b66',
