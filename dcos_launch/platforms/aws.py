@@ -617,7 +617,9 @@ CF_OS_SSH_INFO = {
 }
 
 
-CENTOS_74_AMIS = {'ap-northeast-1': 'ami-965345f8',
+OS_AMIS = {
+    # CentOS 7.4
+    'cent-os-7': {'ap-northeast-1': 'ami-965345f8',
                   'ap-southeast-1': 'ami-8af586e9',
                   'ap-southeast-2': 'ami-427d9c20',
                   'eu-central-1': 'ami-2d0cbc42',
@@ -625,13 +627,16 @@ CENTOS_74_AMIS = {'ap-northeast-1': 'ami-965345f8',
                   'sa-east-1': 'ami-a5acd0c9',
                   'us-east-1': 'ami-771beb0d',
                   'us-west-1': 'ami-866151e6',
-                  'us-west-2': 'ami-a9b24bd1'}
-
-
-OS_AMIS = {
-    # CentOS 7.4
-    'cent-os-7': CENTOS_74_AMIS,
-    'cent-os-7-dcos-prereqs': CENTOS_74_AMIS,  # run_centos74_prereqs.sh will also be ran when this option is specified
+                  'us-west-2': 'ami-a9b24bd1'},
+    'cent-os-7-dcos-prereqs': {'ap-northeast-1': 'ami-72f93314',
+                               'ap-southeast-1': 'ami-cac2b2a9',
+                               'ap-southeast-2': 'ami-a0d736c2',
+                               'eu-central-1': 'ami-b371c1dc',
+                               'eu-west-1': 'ami-4d4f8634',
+                               'sa-east-1': 'ami-1264187e',
+                               'us-east-1': 'ami-b05aadca',
+                               'us-west-1': 'ami-63cafb03',
+                               'us-west-2': 'ami-1de01e65'},
     'coreos': {'ap-northeast-1': 'ami-884835ee',
                'ap-southeast-1': 'ami-b9c280c5',
                'ap-southeast-2': 'ami-04be7b66',
