@@ -84,11 +84,14 @@ def install_dcos(
     all_client = get_client(cluster, 'cluster_hosts', node_client, parallelism=parallelism)
     # install prereqs if enabled
     if install_prereqs:
+        log.info('Copying prereqs installation script on cluster hosts')
+        check_results(
+            all_client.run_command('copy', prereqs_script_path, '~/install_prereqs.sh', False), node_client,
+            'copy install_prereqs script')
         log.info('Installing prerequisites on cluster hosts')
-        with open(prereqs_script_path, 'r') as p:
-            commands = p.readlines()
-            check_results(
-                all_client.run_command('run', commands), node_client, 'install_prereqs')
+        check_results(
+            all_client.run_command('run', ['chmod +x ~/install_prereqs.sh', '&&', '~/install_prereqs.sh']), node_client,
+            'install DC/OS prerequisites')
         log.info('Prerequisites installed.')
     # download install script from boostrap host and run it
     remote_script_path = '/tmp/install_dcos.sh'
