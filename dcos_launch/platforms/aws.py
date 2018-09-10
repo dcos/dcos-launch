@@ -603,9 +603,10 @@ SSH_INFO = {
 
 # Update these mappings to expand OS support
 OS_SSH_INFO = {
-    'cent-os-7': SSH_INFO['centos'],
+    'cent-os-7.4': SSH_INFO['centos'],
     'cent-os-7-dcos-prereqs': SSH_INFO['centos'],
-    'cent-os-7-with-docker': SSH_INFO['centos'],
+    'cent-os-7.4-with-docker-selinux-disabled': SSH_INFO['centos'],
+    'cent-os-7.4-with-docker-selinux-enforcing': SSH_INFO['centos'],
     'coreos': SSH_INFO['coreos'],
     'debian-8': SSH_INFO['debian'],
     'rhel-7-dcos-prereqs': SSH_INFO['rhel'],
@@ -617,38 +618,50 @@ CF_OS_SSH_INFO = {
     'coreos': SSH_INFO['coreos']
 }
 
-
-CENTOS_74_AMIS = {'ap-northeast-1': 'ami-965345f8',
-                  'ap-southeast-1': 'ami-8af586e9',
-                  'ap-southeast-2': 'ami-427d9c20',
-                  'eu-central-1': 'ami-2d0cbc42',
-                  'eu-west-1': 'ami-e46ea69d',
-                  'sa-east-1': 'ami-a5acd0c9',
-                  'us-east-1': 'ami-771beb0d',
-                  'us-west-1': 'ami-866151e6',
-                  'us-west-2': 'ami-a9b24bd1'}
-
+CENTOS_74_WITH_DOCKER_SELINUX_ENFORCING = {'ap-northeast-1': 'ami-0bc386484490ade7f',
+                                           'ap-northeast-2': 'ami-04be7998b246727cb',
+                                           'ap-south-1': 'ami-05df5a77e02a3e66f',
+                                           'ap-southeast-1': 'ami-0a7ca9fe50e8b6882',
+                                           'ap-southeast-2': 'ami-0fe85a17db4dc8cd3',
+                                           'ca-central-1': 'ami-0af6de696e00750aa',
+                                           'eu-central-1': 'ami-0fd78465e18a6450a',
+                                           'eu-west-1': 'ami-056a9758ebedad71a',
+                                           'eu-west-2': 'ami-06267aa2f48954032',
+                                           'eu-west-3': 'ami-0760a4919cd3e034f',
+                                           'sa-east-1': 'ami-047b3e4ef6a6d7be7',
+                                           'us-east-1': 'ami-079bfc2b0c5f1db87',
+                                           'us-east-2': 'ami-0f0494bd2aad99db9',
+                                           'us-west-1': 'ami-02af2dc49f253922c',
+                                           'us-west-2': 'ami-0ff76065de2567eec'}
 
 OS_AMIS = {
-    # CentOS 7.4
-    'cent-os-7': CENTOS_74_AMIS,
-    'cent-os-7-dcos-prereqs': CENTOS_74_AMIS,  # run_centos74_prereqs.sh will also be ran when this option is specified
-    # used for the bootstrap host
-    'cent-os-7-with-docker': {'ap-northeast-1': 'ami-023fe9ba88dfc1339',
-                              'ap-northeast-2': 'ami-085f7275040429a2f',
-                              'ap-south-1': 'ami-07b913395ee5282df',
-                              'ap-southeast-1': 'ami-06890ad7295bd4e4b',
-                              'ap-southeast-2': 'ami-01a1c6ded405b43a9',
-                              'ca-central-1': 'ami-010bd16a1ea7d010a',
-                              'eu-central-1': 'ami-0b6a8b2453889f012',
-                              'eu-west-1': 'ami-0f4101e8c6c46f86a',
-                              'eu-west-2': 'ami-0c64993daba80da53',
-                              'eu-west-3': 'ami-02f3169248abeab2f',
-                              'sa-east-1': 'ami-0c6bf10f43f4ab65c',
-                              'us-east-1': 'ami-0df90d83033b1c207',
-                              'us-east-2': 'ami-07f48e9948906d95d',
-                              'us-west-1': 'ami-0b1320a3d397fa07a',
-                              'us-west-2': 'ami-0116dcbe0583de7ca'},
+    'cent-os-7.4': {'ap-northeast-1': 'ami-965345f8',
+                    'ap-southeast-1': 'ami-8af586e9',
+                    'ap-southeast-2': 'ami-427d9c20',
+                    'eu-central-1': 'ami-2d0cbc42',
+                    'eu-west-1': 'ami-e46ea69d',
+                    'sa-east-1': 'ami-a5acd0c9',
+                    'us-east-1': 'ami-771beb0d',
+                    'us-west-1': 'ami-866151e6',
+                    'us-west-2': 'ami-a9b24bd1'},
+    # run_centos74_prereqs.sh will also be ran when this option is specified
+    'cent-os-7-dcos-prereqs': CENTOS_74_WITH_DOCKER_SELINUX_ENFORCING,
+    'cent-os-7.4-with-docker-selinux-disabled': {'ap-northeast-1': 'ami-023fe9ba88dfc1339',
+                                                 'ap-northeast-2': 'ami-085f7275040429a2f',
+                                                 'ap-south-1': 'ami-07b913395ee5282df',
+                                                 'ap-southeast-1': 'ami-06890ad7295bd4e4b',
+                                                 'ap-southeast-2': 'ami-01a1c6ded405b43a9',
+                                                 'ca-central-1': 'ami-010bd16a1ea7d010a',
+                                                 'eu-central-1': 'ami-0b6a8b2453889f012',
+                                                 'eu-west-1': 'ami-0f4101e8c6c46f86a',
+                                                 'eu-west-2': 'ami-0c64993daba80da53',
+                                                 'eu-west-3': 'ami-02f3169248abeab2f',
+                                                 'sa-east-1': 'ami-0c6bf10f43f4ab65c',
+                                                 'us-east-1': 'ami-0df90d83033b1c207',
+                                                 'us-east-2': 'ami-07f48e9948906d95d',
+                                                 'us-west-1': 'ami-0b1320a3d397fa07a',
+                                                 'us-west-2': 'ami-0116dcbe0583de7ca'},
+    'cent-os-7.4-with-docker-selinux-enforcing': CENTOS_74_WITH_DOCKER_SELINUX_ENFORCING,
     'coreos': {'ap-northeast-1': 'ami-884835ee',
                'ap-southeast-1': 'ami-b9c280c5',
                'ap-southeast-2': 'ami-04be7b66',
@@ -687,6 +700,7 @@ OS_AMIS = {
                      'us-west-1': 'ami-a9a8e4c9',
                      'us-west-2': 'ami-746aba14'}
 }
+
 
 aws_region_names = [
     {
