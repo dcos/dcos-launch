@@ -267,8 +267,8 @@ function run_command_until_success() {
 }
 
 function run_checks() {
-    # Run checks with the base command $@ until they succeed or the attempt limit has been reached. Prints shell output and
-    # returns the status of the last attempted check run.
+    # Run checks with the base command $@ until they succeed or the attempt limit has been reached. Prints shell output
+    # and returns the status of the last attempted check run.
     check_cmd=$@
 
     for check_type in node-poststart cluster; do
