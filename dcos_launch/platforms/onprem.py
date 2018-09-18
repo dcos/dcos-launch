@@ -243,14 +243,17 @@ def do_deploy(
 
 
 def do_postflight(client: ssh_client.AsyncSshClient):
-    """ Runs a script that will check if DC/OS is operational without needing to authenticate
+    """Runs a script that will check if DC/OS is operational without needing to authenticate
+
+    It waits 20mins+ for the cluster poststart checks to succeed.
+    See https://jira.mesosphere.com/browse/DCOS-41568.
     """
     postflight_script = """
 function run_command_until_success() {
-    # Run $@ until it exits 0 or until it has been tried 900 times. Prints shell output and returns the status of the
+    # Run $@ until it exits 0 or until it has been tried 1200 times. Prints shell output and returns the status of the
     # last attempted run.
     cmd=$@
-    max_runs=900
+    max_runs=1200
 
     runs=$max_runs
     until out=$($cmd) || [[ runs -eq 0 ]]; do
@@ -264,8 +267,8 @@ function run_command_until_success() {
 }
 
 function run_checks() {
-    # Run checks with the base command $@ until they succeed or have been tried 900 times. Prints shell output and
-    # returns the status of the last attempted check run.
+    # Run checks with the base command $@ until they succeed or the attempt limit has been reached. Prints shell output
+    # and returns the status of the last attempted check run.
     check_cmd=$@
 
     for check_type in node-poststart cluster; do
