@@ -48,6 +48,12 @@ def test_gcp_onprem_with_helper(check_cli_success, gcp_onprem_with_helper_config
     assert 'template_body' not in desc  # distracting irrelevant information
     assert 'bootstrap_host' in desc
 
+def test_gcp_onprem_with_additional_disks(check_cli_success, gcp_onprem_with_additional_disks_path):
+    info, desc = check_cli_success(gcp_onprem_with_additional_disks_path)
+    assert info['ssh_private_key'] == dcos_launch.util.MOCK_SSH_KEY_DATA
+    assert info['ssh_public_key'] == dcos_launch.util.MOCK_SSH_KEY_DATA
+    assert 'template_body' not in desc  # distracting irrelevant information
+    assert 'bootstrap_host' in desc
 
 def test_fault_domain_helper(check_cli_success, gcp_onprem_with_fd_helper_config_path, monkeypatch, tmpdir):
 

@@ -495,6 +495,19 @@ Default: Datacenter-Core-1803-with-Containers-smalldisk
 
 :warning: TODO: descriptions
 
+### `additional_disks`
+
+list of dicts, optional
+
+Allows for requesting extra disks for each instance. Items must be in the following format:
+
+```yaml
+additional_disks:
+- name: foo,    # disk name (reflected in /dev/disk/by-id/google-*)
+  size: 10,     # disk size (gb)
+  type: pd-ssd  # disk type (one of pd-standard, pd-ssd or local-ssd)
+```
+
 ### `disable_updates`
 
 boolean, optional

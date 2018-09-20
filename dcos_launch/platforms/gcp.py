@@ -388,6 +388,7 @@ class BareClusterDeployment(Deployment):
             ssh_public_key: str,
             disable_updates: bool,
             use_preemptible_vms: bool,
+            additional_disks: list=None,
             tags: dict=None):
 
         deployment = cls(gcp_wrapper, name, zone)
@@ -407,6 +408,20 @@ class BareClusterDeployment(Deployment):
             diskType=disk_type,
             usePreemptibleVMs=use_preemptible_vms,
             deploymentName=deployment.name)
+
+        # parse the yaml content early-on so we can include additional disks
+        instance_template_obj = yaml.load(instance_template_resource)
+
+        # include any additional disks that may have been requested
+        for disk in additional_disks:
+            instance_template_obj["properties"]["properties"]["disks"].append({
+                "deviceName": disk["name"],
+                "initializeParams": {
+                    "diskSizeGb": disk["size"],
+                    "diskType": disk["type"],
+                },
+            })
+
         instance_group_resource = MANAGED_INSTANCE_GROUP_TEMPLATE.format(
             name=deployment.instance_group_name,
             instance_template_name=deployment.template_name,
@@ -423,7 +438,7 @@ class BareClusterDeployment(Deployment):
 
         deployment_config = {
             'resources': [yaml.load(network_resource),
-                          yaml.load(instance_template_resource),
+                          instance_template_obj,
                           yaml.load(instance_group_resource),
                           yaml.load(external_firewall_resource),
                           yaml.load(internal_firewall_resource)]

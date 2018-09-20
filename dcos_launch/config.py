@@ -643,6 +643,27 @@ GCP_ONPREM_SCHEMA = {
         'type': 'boolean',
         'required': False,
         'default': False},
+    'additional_disks': {
+        'required': False,
+        'type': 'list',
+        'valueschema': {
+            'type': 'dict',
+            'schema': {
+                'name': {
+                    'required': True,
+                    'type': 'string',
+                },
+                'size': {
+                    'required': True,
+                    'type': 'integer',
+                },
+                'type': {
+                    'required': True,
+                    'allowed': ['pd-standard', 'pd-ssd', 'local-ssd'],
+                },
+            },
+        },
+    },
 }
 
 
