@@ -25,7 +25,7 @@ setup(
         'cerberus',
         'docopt',
         'google-api-python-client',
-        'keyring',
+        'keyring==12.0.2',
         # Pinning msrestazure because of failing dependncy - see DCOS-40236
         'msrestazure==0.4.34',
         'oauth2client==3.0.0',

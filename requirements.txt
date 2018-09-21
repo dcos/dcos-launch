@@ -6,9 +6,9 @@ boto3
 botocore
 cerberus
 docopt
-git+https://github.com/dcos/dcos-test-utils@5361c8623cd0751f9312cf79b66dde6f09da1e74
+git+https://github.com/dcos/dcos-test-utils@8f1820f537b0caa4bbb697beaae4d1e4940bfbb6
 google-api-python-client
-keyring
+keyring==12.0.2
 # Pinning msrestazure because of failing dependncy - see DCOS-40236
 msrestazure==0.4.34
 oauth2client==3.0.0
