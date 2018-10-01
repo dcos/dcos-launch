@@ -546,6 +546,12 @@ boolean, optional
 
 Default: False
 
+### `min_cpu_platform`
+
+string, optional
+
+Allows for defining the minimum [CPU platform](https://cloud.google.com/compute/docs/cpu-platforms) to use.
+
 ## Terraform params
 
 ### `dcos-enterprise`

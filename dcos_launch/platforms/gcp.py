@@ -388,6 +388,7 @@ class BareClusterDeployment(Deployment):
             ssh_public_key: str,
             disable_updates: bool,
             use_preemptible_vms: bool,
+            min_cpu_platform: str,
             tags: dict=None):
 
         deployment = cls(gcp_wrapper, name, zone)
@@ -435,6 +436,10 @@ class BareClusterDeployment(Deployment):
                 'value': IGNITION_CONFIG
             }
             deployment_config['resources'][1]['properties']['properties']['metadata']['items'].append(user_data)
+
+        # set minCpuPlatform if one has been defined
+        if min_cpu_platform:
+            deployment_config['resources'][1]['properties']['properties']['minCpuPlatform'] = min_cpu_platform
 
         gcp_wrapper.create_deployment(name, deployment_config, tags=tags)
         return deployment

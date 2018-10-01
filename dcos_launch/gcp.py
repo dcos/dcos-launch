@@ -72,6 +72,7 @@ class OnPremLauncher(onprem.AbstractOnpremLauncher):
             self.config['ssh_public_key'],
             self.config['disable_updates'],
             self.config['use_preemptible_vms'],
+            min_cpu_platform=self.config.get('min_cpu_platform'),
             tags=self.config.get('tags'))
         return self.config
 

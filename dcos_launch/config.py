@@ -643,6 +643,9 @@ GCP_ONPREM_SCHEMA = {
         'type': 'boolean',
         'required': False,
         'default': False},
+    'min_cpu_platform': {
+        'type': 'string',
+        'required': False},
 }
 
 
