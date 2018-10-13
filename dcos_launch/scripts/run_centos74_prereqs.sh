@@ -1,4 +1,4 @@
-sudo setenforce 0
+sudo setenforce 1
 sudo bash -c 'echo -e "nameserver 8.8.8.8\n" >> /etc/resolv.conf'
 
 sudo yum install -y yum-utils \
@@ -8,16 +8,15 @@ sudo yum install -y yum-utils \
 sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 sudo yum-config-manager --enable docker-ce-edge
 
-sudo mkdir -p /etc/systemd/system/docker.service.d
-sudo tee /etc/systemd/system/docker.service.d/override.conf <<- EOF
-[Service]
-ExecStart=
-ExecStart=/usr/bin/docker daemon --storage-driver=overlay
-EOF
-
 sudo yum install -y --setopt=obsoletes=0 \
   docker-ce-17.05.0.ce-1.el7.centos \
   docker-ce-selinux-17.05.0.ce-1.el7.centos
+
+sudo tee /etc/docker/daemon.json <<- EOF
+{
+  "storage-driver": "overlay2"
+}
+EOF
 
 sudo systemctl start docker
 sudo systemctl enable docker
