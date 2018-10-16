@@ -26,7 +26,7 @@ You must set environment variables depending on the platform and provider your c
 
 If you are part of the Mesosphere org:
 
-1. Install [maws]() (download the binary, run through all the steps in the installation section of the README)
+1. Install [maws](https://github.com/mesosphere/maws) (download the binary, run through all the steps in the installation section of the README)
 2. Verify that maws is installed
     a. `which maws`
     b. `maws ls`
