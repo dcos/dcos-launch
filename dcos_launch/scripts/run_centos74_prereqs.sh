@@ -1,4 +1,4 @@
-sudo setenforce 1
+sudo setenforce 0
 sudo bash -c 'echo -e "nameserver 8.8.8.8\n" >> /etc/resolv.conf'
 
 sudo yum install -y yum-utils \
@@ -6,22 +6,18 @@ sudo yum install -y yum-utils \
   lvm2
 
 sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-# Docker 17.05 is an edge release
 sudo yum-config-manager --enable docker-ce-edge
 
-# Docker 17.05 has a separate package for SELinux
+sudo mkdir -p /etc/systemd/system/docker.service.d
+sudo tee /etc/systemd/system/docker.service.d/override.conf <<- EOF
+[Service]
+ExecStart=
+ExecStart=/usr/bin/docker daemon --storage-driver=overlay
+EOF
+
 sudo yum install -y --setopt=obsoletes=0 \
   docker-ce-17.05.0.ce-1.el7.centos \
   docker-ce-selinux-17.05.0.ce-1.el7.centos
-
-# Previously, when using Docker Engine, we would use the overlay storage driver configured in /etc/systemd/system/docker.service.d/override.conf
-# Now that we are using a Docker CE release, the recommended storage driver is overlay2 and configured in /etc/docker/daemon.json
-# read more here: https://docs.docker.com/storage/storagedriver/overlayfs-driver/
-sudo tee /etc/docker/daemon.json <<- EOF
-{
-  "storage-driver": "overlay2"
-}
-EOF
 
 sudo systemctl start docker
 sudo systemctl enable docker
