@@ -165,7 +165,7 @@ class BotoWrapper:
         Starts stack creation if validation is successful
         """
         log.info('Requesting AWS CloudFormation: {}'.format(name))
-        role_arn = os.getenv('DCOS_LAUNCH_ROLE_ARN', None)
+        role_arn = os.getenv('DCOS_LAUNCH_ROLE_ARN')
         args = {
             'StackName': name,
             'DisableRollback': disable_rollback,
