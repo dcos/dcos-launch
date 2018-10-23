@@ -17,6 +17,7 @@ BareClusterCfStack: Represents a homogeneous cluster of hosts with a specific AM
 """
 import copy
 import logging
+import os
 
 import boto3
 import pkg_resources
@@ -164,6 +165,7 @@ class BotoWrapper:
         Starts stack creation if validation is successful
         """
         log.info('Requesting AWS CloudFormation: {}'.format(name))
+        role_arn = os.getenv('DCOS_LAUNCH_ROLE_ARN')
         args = {
             'StackName': name,
             'DisableRollback': disable_rollback,
@@ -180,6 +182,9 @@ class BotoWrapper:
             args['TemplateURL'] = template_url
         if tags is not None:
             args['Tags'] = tag_dict_to_aws_format(tags)
+        if role_arn is not None:
+            log.info('Passing effective role as per DCOS_LAUNCH_ROLE_ARN')
+            args['RoleARN'] = role_arn
         return self.resource('cloudformation').create_stack(**args)
 
     def create_vpc_tagged(self, cidr, name_tag):

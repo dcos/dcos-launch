@@ -38,6 +38,9 @@ Otherwise:
 
 Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` as environment variables, optionally with `AWS_REGION` in your shell or in `~/.aws/credentials`.
 
+Certain classes of CloudFormation (CF) stack errors can arise if the [implicit temporary session](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html), associated with the above credentials, times out.
+To avoid these errors, you may use a CF [service role](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html) with `dcos-launch` by specifying the `DCOS_LAUNCH_ROLE_ARN` environment variable.
+
 #### GCP
 
 Set either `GCE_CREDENTIALS` to your JSON service account credentials or `GOOGLE_APPLICATION_CREDENTIALS` to the path of the file containing those JSON credentials.
