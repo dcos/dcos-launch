@@ -207,8 +207,10 @@ COMMON_SCHEMA = {
             'terraform']},
     'config_dir': {
         'type': 'string',
-        'required': False
-    },
+        'required': False},
+    'dcos_cli_version': {
+        'type': 'float',
+        'default': 1.12},
     'launch_config_version': {
         'type': 'integer',
         'required': True,
