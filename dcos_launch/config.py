@@ -207,8 +207,10 @@ COMMON_SCHEMA = {
             'terraform']},
     'config_dir': {
         'type': 'string',
-        'required': False
-    },
+        'required': False},
+    'dcos_version': {
+        'type': 'string',
+        'required': False},
     'launch_config_version': {
         'type': 'integer',
         'required': True,
@@ -288,6 +290,11 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
     'deployment_name': {
         'type': 'string',
         'required': True},
+    'enable_selinux': {
+        'type': 'boolean',
+        'default_setter': lambda doc:
+            doc.get('dcos_version', '') >= '1.12' and 'dcos-enterprise' in doc['installer_url'] and
+            doc['os_name'] == 'cent-os-7-dcos-prereqs'},
     'platform': {
         'type': 'string',
         'required': True,
