@@ -209,8 +209,8 @@ COMMON_SCHEMA = {
         'type': 'string',
         'required': False},
     'dcos_cli_version': {
-        'type': 'float',
-        'default': 1.12},
+        'type': 'string',
+        'default_setter': lambda doc: os.environ.get('DCOS_CLI_VERSION', 'master')},
     'launch_config_version': {
         'type': 'integer',
         'required': True,
