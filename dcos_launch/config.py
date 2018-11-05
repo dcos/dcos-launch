@@ -286,10 +286,20 @@ def _validate_genconf_scripts(genconf_dir, dcos_config):
                     dcos_config[filename_key], genconf_dir))
 
 
+def get_dcos_version_from_url(installer_url: str):
+    # e.g. https://downloads.dcos.io/dcos/EarlyAccess/1.11.0-rc1/dcos_generate_config.sh
+    return installer_url.split('/')[-2]
+
+
 ONPREM_DEPLOY_COMMON_SCHEMA = {
     'deployment_name': {
         'type': 'string',
         'required': True},
+    'enable_selinux': {
+        'type': 'boolean',
+        'default_setter': lambda doc:
+            get_dcos_version_from_url(doc['installer_url']) >= '1.12' and 'dcos-enterprise' in doc['installer_url'] and
+            doc['os_name'] == 'cent-os-7-dcos-prereqs'},
     'platform': {
         'type': 'string',
         'required': True,
