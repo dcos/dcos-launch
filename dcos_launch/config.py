@@ -2,6 +2,7 @@
 """
 import logging
 import os
+import re
 import sys
 import uuid
 
@@ -210,7 +211,7 @@ COMMON_SCHEMA = {
         'required': False},
     'dcos_cli_version': {
         'type': 'string',
-        'default_setter': lambda doc: os.environ.get('DCOS_CLI_VERSION', 'master')},
+        'required': False},
     'launch_config_version': {
         'type': 'integer',
         'required': True,
@@ -291,6 +292,16 @@ def get_dcos_version_from_url(installer_url: str):
     return installer_url.split('/')[-2]
 
 
+def dcos_full_version_to_major_version(full_version: str) -> str:
+    """
+    If a version contains numbers, cut that version down from the sequence of digits after the first dot.
+    :param full_version: e.g. 1.11.0-rc1
+    :return: the major version e.g. 1.11
+    """
+    m = re.search('\d+\.\d+', full_version)
+    return m.group(0) if m else full_version
+
+
 ONPREM_DEPLOY_COMMON_SCHEMA = {
     'deployment_name': {
         'type': 'string',
@@ -309,6 +320,10 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'validator': validate_url,
         'type': 'string',
         'required': True},
+    'dcos_cli_version': {
+        'type': 'string',
+        'default_setter': lambda doc:
+            dcos_full_version_to_major_version(get_dcos_version_from_url(doc['installer_url']))},
     'installer_port': {
         'type': 'integer',
         'default': 9000},
