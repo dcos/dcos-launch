@@ -70,8 +70,7 @@ def install_dcos(
         prereqs_script_path: str,
         install_prereqs: bool,
         bootstrap_script_url: str,
-        parallelism: int,
-        enable_selinux: bool):
+        parallelism: int):
     """
     Args:
         cluster: cluster abstraction for handling network addresses
@@ -79,7 +78,6 @@ def install_dcos(
         prereqs_script_path: if given, this will be run before preflight on any nodes
         bootstrap_script_url: where the installation script will be pulled from (see do_genconf)
         parallelism: how many concurrent SSH tunnels to run
-        enable_selinux: attempmt to enable selinux on every node
     """
     # Check to make sure we can talk to the cluster
     for host in cluster.cluster_hosts:
@@ -96,10 +94,6 @@ def install_dcos(
         check_results(
             all_client.run_command('run', ['chmod +x ~/install_prereqs.sh', '&&', '~/install_prereqs.sh']), node_client,
             'install DC/OS prerequisites')
-        setenforce = '1' if enable_selinux else '0'
-        check_results(all_client.run_command('run', ['sudo setenforce ' + setenforce]), node_client,
-                      'Enable SELinux in enforcing mode')
-
         log.info('Prerequisites installed.')
     # download install script from boostrap host and run it
     remote_script_path = '/tmp/install_dcos.sh'
