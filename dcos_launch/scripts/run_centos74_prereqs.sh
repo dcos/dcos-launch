@@ -29,6 +29,7 @@ sudo yum install -y curl
 sudo yum install -y xz
 sudo yum install -y ipset
 sudo yum install -y ntp
+sudo yum install -y krb5-workstation
 sudo systemctl enable ntpd
 sudo systemctl start ntpd
 sudo getent group nogroup || sudo groupadd nogroup
