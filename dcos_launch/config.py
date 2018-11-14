@@ -209,7 +209,7 @@ COMMON_SCHEMA = {
         'type': 'string',
         'required': False},
     'dcos_version': {
-        'type': 'string',
+        'type': 'float',
         'required': False},
     'launch_config_version': {
         'type': 'integer',
@@ -293,7 +293,7 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
     'enable_selinux': {
         'type': 'boolean',
         'default_setter': lambda doc:
-            doc.get('dcos_version', '') >= '1.12' and 'dcos-enterprise' in doc['installer_url'] and
+            doc.get('dcos_version', 0) >= 1.12 and 'dcos-enterprise' in doc['installer_url'] and
             doc['os_name'] == 'cent-os-7-dcos-prereqs'},
     'platform': {
         'type': 'string',
