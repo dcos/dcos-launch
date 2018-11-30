@@ -96,9 +96,6 @@ def install_dcos(
         check_results(
             all_client.run_command('run', ['chmod +x ~/install_prereqs.sh', '&&', '~/install_prereqs.sh']), node_client,
             'install DC/OS prerequisites')
-        setenforce = '1' if enable_selinux else '0'
-        check_results(all_client.run_command('run', ['sudo setenforce ' + setenforce]), node_client,
-                      'Enable SELinux in enforcing mode')
 
         log.info('Prerequisites installed.')
     # download install script from boostrap host and run it
