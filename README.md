@@ -119,21 +119,31 @@ Custom environment variables to include. This option allows passing through envi
 
 0. Install dcos-launch (see Usage > Installation > Binary Installation).
 
-1. Make a file config.yaml. Here is one based off [aws-cf-with-helper.yaml](dcos_launch/sample_configs/aws-cf-with-helper.yaml) in the sample_configs directory which will deploy a bleeding-edge open-source DC/OS cluster on AWS CloudFormation with 1 private agent and 2 public agents, and one master. Note that `deployment_name` needs to be unique within your AWS account, so you may want to append the date.
+1. Make a file config.yaml. Here is one based off [aws-onprem-with-helper.yaml](dcos_launch/sample_configs/aws-onprem-with-helper.yaml) in the sample_configs directory which will deploy a bleeding-edge open-source DC/OS cluster on AWS CloudFormation with 1 private agent and 2 public agents, and one master. Note that `deployment_name` needs to be unique within your AWS account, so you may want to append the date.
 
 ```
 ---
 launch_config_version: 1
-deployment_name: aws-cf-with-helper-test
-template_url: https://s3.amazonaws.com/downloads.dcos.io/dcos/testing/master/cloudformation/single-master.cloudformation.json
-provider: aws
+deployment_name: dcos-onprem-with-helper-demo
+installer_url: https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh
+platform: aws
+provider: onprem
 aws_region: us-west-2
+instance_type: m4.xlarge
+bootstrap_instance_type: m4.xlarge
+dcos_config:
+  cluster_name: My Awesome DC/OS
+  resolvers:
+    - 8.8.4.4
+    - 8.8.8.8
+  dns_search: mesos
+  master_discovery: static
+  exhibitor_storage_backend: static
+num_masters: 1
+num_private_agents: 2
+num_public_agents: 1
+ssh_user: centos
 key_helper: true
-template_parameters:
-    AdminLocation: 0.0.0.0/0
-    PublicSlaveInstanceCount: 2
-    SlaveInstanceCount: 1
-ssh_user: core
 
 ```
 
