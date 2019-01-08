@@ -105,6 +105,8 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
     owner = os.environ.get('USER')
     if owner:
         user_config.setdefault('tags', {'owner': owner})
+    if 'dcos_version' in user_config:
+        user_config['dcos_version'] = str(user_config['dcos_version'])
     # validate against the fields common to all configs
     user_config['config_dir'] = config_dir
     validator = LaunchValidator(COMMON_SCHEMA, config_dir=config_dir, allow_unknown=True)
@@ -209,7 +211,7 @@ COMMON_SCHEMA = {
         'type': 'string',
         'required': False},
     'dcos_version': {
-        'type': 'float',
+        'type': 'string',
         'required': False},
     'launch_config_version': {
         'type': 'integer',
@@ -293,7 +295,7 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
     'enable_selinux': {
         'type': 'boolean',
         'default_setter': lambda doc:
-            doc.get('dcos_version', 0) >= 1.12 and 'dcos-enterprise' in doc['installer_url'] and
+            doc.get('dcos_version', '') >= '1.12' and 'dcos-enterprise' in doc['installer_url'] and
             doc['os_name'] == 'cent-os-7-dcos-prereqs'},
     'platform': {
         'type': 'string',
