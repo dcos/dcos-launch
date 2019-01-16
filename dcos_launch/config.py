@@ -105,8 +105,7 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
     owner = os.environ.get('USER')
     if owner:
         user_config.setdefault('tags', {'owner': owner})
-    if 'dcos_version' in user_config:
-        user_config['dcos_version'] = str(user_config['dcos_version'])
+
     # validate against the fields common to all configs
     user_config['config_dir'] = config_dir
     validator = LaunchValidator(COMMON_SCHEMA, config_dir=config_dir, allow_unknown=True)
@@ -192,8 +191,7 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
         _raise_errors(validator)
     if 'genconf_dir' in user_config:
         if 'dcos_config' in user_config:
-            genconf_dir = expand_path(user_config['genconf_dir'], user_config['config_dir'])
-            _validate_genconf_scripts(genconf_dir, user_config['dcos_config'])
+            _validate_genconf_scripts(user_config['genconf_dir'], user_config['dcos_config'])
     return validator.normalized(user_config)
 
 
@@ -211,8 +209,9 @@ COMMON_SCHEMA = {
         'type': 'string',
         'required': False},
     'dcos_version': {
-        'type': 'string',
-        'required': False},
+        'type': ['string', 'float'],
+        'required': False,
+        'coerce': lambda version: str(version)},
     'launch_config_version': {
         'type': 'integer',
         'required': True,
@@ -354,6 +353,7 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'type': 'string',
         'required': False,
         'default': 'genconf',
+        'coerce': 'expand_local_path',
         'validator': _validate_genconf_dir
         },
     'fault_domain_helper': {
