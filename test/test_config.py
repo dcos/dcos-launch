@@ -80,6 +80,9 @@ class TestAwsOnprem:
     def test_basic(self, aws_onprem_config_path):
         get_validated_config_from_path(aws_onprem_config_path)
 
+    def test_enterprise(self, aws_onprem_enterprise_config_path):
+        get_validated_config_from_path(aws_onprem_enterprise_config_path)
+
     def test_with_key_helper(self, aws_onprem_with_helper_config_path):
         get_validated_config_from_path(aws_onprem_with_helper_config_path)
 
