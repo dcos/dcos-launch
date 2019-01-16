@@ -109,6 +109,7 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
     # validate against the fields common to all configs
     user_config['config_dir'] = config_dir
     validator = LaunchValidator(COMMON_SCHEMA, config_dir=config_dir, allow_unknown=True)
+    user_config['dcos_version'] = validator.normalized(user_config)['dcos_version']
     if not validator.validate(user_config):
         _raise_errors(validator)
 
