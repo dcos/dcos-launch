@@ -158,7 +158,7 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
         # To support 1.8.9-EE, try using the dcos-integration-test-ee folder if possible
         pytest_cmd = """ "source /opt/mesosphere/environment.export &&
 cd `find /opt/mesosphere/active/ -name dcos-integration-test* | sort | tail -n 1` &&
-{env} py.test {args}" """.format(env=env_string, args=arg_string)
+{env} py.test {args} | tee ~/pytest_output" """.format(env=env_string, args=arg_string)
         log.info('Running integration test...')
         if test_host is None:
             test_host = details['masters'][0]['public_ip']
