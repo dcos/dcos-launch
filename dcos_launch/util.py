@@ -159,7 +159,8 @@ class AbstractLauncher(metaclass=abc.ABCMeta):
         # 2) Here we are using "| tee ~/pytest_output" so that we can parse that output in CI. When trying to create
         #    that pytest_output file in CI instead (e.g. "./dcos-launch pytest | tee pytest_output"), ssh times out and
         #    our CI builds time out.
-        pytest_cmd = """ "source /opt/mesosphere/environment.export &&
+        pytest_cmd = """ "set -o pipefail &&
+source /opt/mesosphere/environment.export &&
 cd `find /opt/mesosphere/active/ -name dcos-integration-test* | sort | tail -n 1` &&
 {env} py.test {args} | tee ~/pytest_output" """.format(env=env_string, args=arg_string)
         log.info('Running integration test...')
