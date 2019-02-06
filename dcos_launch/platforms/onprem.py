@@ -86,6 +86,11 @@ def install_dcos(
         node_client.wait_for_ssh_connection(host.public_ip)
     # do genconf and configure bootstrap if necessary
     all_client = get_client(cluster, 'cluster_hosts', node_client, parallelism=parallelism)
+
+    # enable or disable selinux depending on the config
+    setenforce = '1' if enable_selinux else '0'
+    check_results(all_client.run_command('run', ['sudo setenforce ' + setenforce]), node_client, 'Set SELinux mode')
+
     # install prereqs if enabled
     if install_prereqs:
         log.info('Copying prereqs installation script on cluster hosts')
@@ -96,8 +101,8 @@ def install_dcos(
         check_results(
             all_client.run_command('run', ['chmod +x ~/install_prereqs.sh', '&&', '~/install_prereqs.sh']), node_client,
             'install DC/OS prerequisites')
-
         log.info('Prerequisites installed.')
+
     # download install script from boostrap host and run it
     remote_script_path = '/tmp/install_dcos.sh'
     log.info('Starting preflight')
