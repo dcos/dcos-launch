@@ -93,8 +93,6 @@ def install_dcos(
             all_client.run_command('copy', prereqs_script_path, '~/install_prereqs.sh', False), node_client,
             'copy install_prereqs script')
         log.info('Installing prerequisites on cluster hosts')
-        setenforce = '1' if enable_selinux else '0'
-        check_results(all_client.run_command('run', ['sudo setenforce ' + setenforce]), node_client, 'Set SELinux mode')
         check_results(
             all_client.run_command('run', ['chmod +x ~/install_prereqs.sh', '&&', '~/install_prereqs.sh']), node_client,
             'install DC/OS prerequisites')
