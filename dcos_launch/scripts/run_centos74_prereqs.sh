@@ -1,3 +1,4 @@
+sudo setenforce 0
 sudo bash -c 'echo -e "nameserver 8.8.8.8\n" >> /etc/resolv.conf'
 
 sudo yum install -y yum-utils \

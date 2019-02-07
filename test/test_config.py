@@ -1,8 +1,7 @@
 import os
 
 import pytest
-import yaml
-from dcos_launch.config import LaunchValidator, get_validated_config_from_path, get_validated_config
+from dcos_launch.config import LaunchValidator, get_validated_config_from_path
 from dcos_launch.util import LauncherError, get_temp_config_path
 
 
@@ -101,36 +100,6 @@ class TestAwsOnprem:
             get_temp_config_path(
                 tmpdir, 'aws-onprem-with-helper.yaml',
                 update={'dcos_config': {'provider': 'aws'}}))
-
-    def test_selinux(self, aws_onprem_config_path):
-        config_dir = os.path.dirname(aws_onprem_config_path)
-
-        # [{config values}, expected value of enable_selinux]
-        scenarios = [
-            [{}, False],
-            [{'auto_set_selinux': True}, False],
-            [{'auto_set_selinux': True, 'dcos_version': '1.12'}, False],
-            [{'auto_set_selinux': True, 'dcos_version': '1.10'}, False],
-            [{'auto_set_selinux': False, 'enable_selinux': True, 'dcos_version': '1.10'}, True],
-            [{'auto_set_selinux': True, 'installer_url':
-                'https://downloads.mesosphere.com/dcos-enterprise/testing/master/dcos_generate_config.ee.sh'}, False],
-            [{'auto_set_selinux': True, 'dcos_version': 1.11, 'installer_url':
-                'https://downloads.mesosphere.com/dcos-enterprise/testing/master/dcos_generate_config.ee.sh'}, False],
-            [{'auto_set_selinux': True, 'dcos_version': 'master', 'installer_url':
-                'https://downloads.mesosphere.com/dcos-enterprise/testing/master/dcos_generate_config.ee.sh'}, True],
-            [{'auto_set_selinux': True, 'dcos_version': 'master', 'enable_selinux': False, 'installer_url':
-                'https://downloads.mesosphere.com/dcos-enterprise/testing/master/dcos_generate_config.ee.sh'}, False],
-            [{'auto_set_selinux': False, 'dcos_version': 'master', 'installer_url':
-                'https://downloads.mesosphere.com/dcos-enterprise/testing/master/dcos_generate_config.ee.sh'}, False],
-        ]
-
-        for s in scenarios:
-            values, expected_selinux = s
-            with open(aws_onprem_config_path) as f:
-                config = yaml.load(f)
-                config.update(values)
-                config = get_validated_config(config, config_dir)
-                assert config['enable_selinux'] is expected_selinux
 
 
 class TestGcpOnprem:
