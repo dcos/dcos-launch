@@ -34,6 +34,7 @@ setup(
         'pytest',
         'pyyaml',
         'requests',
+        'requests-oauthlib==0.8.0',
         'retrying'],
     entry_points={
         'console_scripts': [

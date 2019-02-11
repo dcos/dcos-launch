@@ -17,5 +17,6 @@ py
 pytest
 pyyaml
 requests
+requests-oauthlib==0.8.0
 retrying
 tox
