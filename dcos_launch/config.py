@@ -439,7 +439,7 @@ AWS_ONPREM_SCHEMA = {
     'bootstrap_instance_type': {
         'type': 'string',
         'required': True,
-        'default': 'm5.xlarge'},
+        'default': 'm4.xlarge'},
     'bootstrap_instance_device_name': {
         'type': 'string',
         'required': True,
