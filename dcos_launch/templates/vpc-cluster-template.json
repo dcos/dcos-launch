@@ -80,7 +80,7 @@
     "PublicSubnet" : {
       "Type" : "AWS::EC2::Subnet",
       "Properties" : {
-        "AvailabilityZones": { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AZ" ]},
+        "AvailabilityZone": { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AZ" ]},
         "VpcId" : { "Ref" : "VPC" },
         "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "Public", "CIDR" ]},
         "Tags" : [
