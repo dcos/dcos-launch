@@ -128,6 +128,11 @@ class BotoWrapper:
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
            retry_on_exception=retry_on_rate_limiting)
+    def get_all_instances(self):
+        yield from self.get_service_resources('ec2', 'instances')
+
+    @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
+           retry_on_exception=retry_on_rate_limiting)
     def get_all_stacks(self):
         """Get all AWS CloudFormation stacks in all regions."""
         for stack in self.get_service_resources('cloudformation', 'stacks'):
