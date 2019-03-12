@@ -15,7 +15,6 @@ PrivateAgentStack: thin wrapper for public agent stack in a zen template
 PublicAgentStack: thin wrapper for public agent stack in a zen template
 BareClusterCfStack: Represents a homogeneous cluster of hosts with a specific AMI
 """
-import copy
 import logging
 import os
 
@@ -136,7 +135,8 @@ class BotoWrapper:
     def get_all_stacks(self):
         """Get all AWS CloudFormation stacks in all regions."""
         for stack in self.get_service_resources('cloudformation', 'stacks'):
-            yield CfStack(stack.stack_name, copy.deepcopy(self))
+            boto_wrapper_copy = BotoWrapper(self.region)
+            yield CfStack(stack.stack_name, boto_wrapper_copy)
 
     @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
            retry_on_exception=retry_on_rate_limiting)
