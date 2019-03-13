@@ -93,8 +93,6 @@ class BotoWrapper:
     def client(self, name):
         return self.session.client(service_name=name, region_name=self.region)
 
-    @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
-           retry_on_exception=retry_on_rate_limiting)
     def resource(self, name, region=None):
         region = self.region if region is None else region
         return self.session.resource(service_name=name, region_name=region)
@@ -106,8 +104,6 @@ class BotoWrapper:
         key = self.client('ec2').create_key_pair(KeyName=key_name)
         return key['KeyMaterial']
 
-    @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
-           retry_on_exception=retry_on_rate_limiting)
     def get_service_resources(self, service, resource_name):
         """Return resources and boto wrapper in every region for the given boto3 service and resource type."""
         for region in aws_region_names:
@@ -125,27 +121,22 @@ class BotoWrapper:
                 else:
                     raise e
 
-    @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
-           retry_on_exception=retry_on_rate_limiting)
+    def get_all_vpcs(self):
+        yield from self.get_service_resources('ec2', 'vpcs')
+
     def get_all_instances(self):
         yield from self.get_service_resources('ec2', 'instances')
 
-    @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
-           retry_on_exception=retry_on_rate_limiting)
     def get_all_stacks(self):
         """Get all AWS CloudFormation stacks in all regions."""
         for stack in self.get_service_resources('cloudformation', 'stacks'):
             boto_wrapper_copy = BotoWrapper(self.region)
             yield CfStack(stack.stack_name, boto_wrapper_copy)
 
-    @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
-           retry_on_exception=retry_on_rate_limiting)
     def get_all_buckets(self):
         """Get all S3 buckets in all regions."""
         yield from self.get_service_resources('s3', 'buckets')
 
-    @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
-           retry_on_exception=retry_on_rate_limiting)
     def get_all_keypairs(self):
         """Get all EC2 key pairs in all regions."""
         yield from self.get_service_resources('ec2', 'key_pairs')
