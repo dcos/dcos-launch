@@ -121,6 +121,9 @@ class BotoWrapper:
                 else:
                     raise e
 
+    def get_all_vpcs(self):
+        yield from self.get_service_resources('ec2', 'vpcs')
+
     def get_all_instances(self):
         yield from self.get_service_resources('ec2', 'instances')
 
