@@ -120,6 +120,7 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
         validator.schema.update(ONPREM_DEPLOY_COMMON_SCHEMA)
         user_config.setdefault('dcos_config', {})
         user_config['dcos_config'].setdefault('platform', user_config['platform'])
+        user_config['dcos_config'].setdefault('rexray_config_preset', user_config['platform'])
     elif provider == 'terraform':
         validator.schema.update(TERRAFORM_COMMON_SCHEMA)
     elif provider in ('aws', 'azure'):
