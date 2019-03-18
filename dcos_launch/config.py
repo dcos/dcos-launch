@@ -298,7 +298,6 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'default': False},
     'enable_selinux': {
         'type': 'boolean',
-        'readonly': True,
         'default_setter': lambda doc:
             doc['auto_set_selinux'] and
             doc.get('dcos_version', '') >= '1.12' and

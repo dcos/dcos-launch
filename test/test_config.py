@@ -111,12 +111,15 @@ class TestAwsOnprem:
             [{'auto_set_selinux': True}, False],
             [{'auto_set_selinux': True, 'dcos_version': '1.12'}, False],
             [{'auto_set_selinux': True, 'dcos_version': '1.10'}, False],
+            [{'auto_set_selinux': False, 'enable_selinux': True, 'dcos_version': '1.10'}, True],
             [{'auto_set_selinux': True, 'installer_url':
                 'https://downloads.mesosphere.com/dcos-enterprise/testing/master/dcos_generate_config.ee.sh'}, False],
             [{'auto_set_selinux': True, 'dcos_version': 1.11, 'installer_url':
                 'https://downloads.mesosphere.com/dcos-enterprise/testing/master/dcos_generate_config.ee.sh'}, False],
             [{'auto_set_selinux': True, 'dcos_version': 'master', 'installer_url':
                 'https://downloads.mesosphere.com/dcos-enterprise/testing/master/dcos_generate_config.ee.sh'}, True],
+            [{'auto_set_selinux': True, 'dcos_version': 'master', 'enable_selinux': False, 'installer_url':
+                'https://downloads.mesosphere.com/dcos-enterprise/testing/master/dcos_generate_config.ee.sh'}, False],
             [{'auto_set_selinux': False, 'dcos_version': 'master', 'installer_url':
                 'https://downloads.mesosphere.com/dcos-enterprise/testing/master/dcos_generate_config.ee.sh'}, False],
         ]
