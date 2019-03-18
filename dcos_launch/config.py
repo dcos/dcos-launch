@@ -92,6 +92,24 @@ def get_validated_config_from_path(config_path: str) -> dict:
     return get_validated_config(config, config_dir)
 
 
+def check_selinux_compatible(version: str):
+    """ Checks if the version is higher or equal to 1.12
+    """
+    if not version:
+        return False
+    if version == 'master':
+        return True
+    split_version = version.split('.')
+    major = int(split_version[0])
+    minor = int(split_version[1])
+    if major > 1:
+        return True
+    if major == 1:
+        if minor >= 12:
+            return True
+    return False
+
+
 def get_validated_config(user_config: dict, config_dir: str) -> dict:
     """ Returns validated a finalized argument dictionary for dcos-launch
     Given the huge range of configuration space provided by this configuration
@@ -141,6 +159,20 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
             user_config['terraform_config']['gcp_ssh_user'] = user_config['ssh_user']
         else:
             raise Exception('Cannot currently set ssh_user parameter for ' + platform)
+
+    if validator.normalized(user_config).get('auto_set_selinux'):
+        if 'enable_selinux' in user_config:
+            raise Exception('Parameter conflict: enable_selinux cannot be in config if auto_set_selinux is true')
+
+        selinux_compatible = False
+        try:
+            selinux_compatible = check_selinux_compatible(user_config.get('dcos_version', ''))
+        except Exception:
+            pass
+
+        user_config['enable_selinux'] = selinux_compatible and \
+            'dcos-enterprise' in user_config['installer_url'] and \
+            user_config['os_name'] == 'cent-os-7-dcos-prereqs'
 
     if platform == 'aws':
         region = None
@@ -297,12 +329,7 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'type': 'boolean',
         'default': False},
     'enable_selinux': {
-        'type': 'boolean',
-        'default_setter': lambda doc:
-            doc['auto_set_selinux'] and
-            doc.get('dcos_version', '') >= '1.12' and
-            'dcos-enterprise' in doc['installer_url'] and
-            doc['os_name'] == 'cent-os-7-dcos-prereqs'},
+        'type': 'boolean'},
     'platform': {
         'type': 'string',
         'required': True,

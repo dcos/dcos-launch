@@ -200,7 +200,7 @@ echo "{{\\"fault_domain\\":{{\\"region\\":{{\\"name\\": \\"$REGION\\"}},\\"zone\
             self.config['install_prereqs'],
             complete_config['bootstrap_url'] + '/dcos_install.sh',
             self.config['onprem_install_parallelism'],
-            self.config['enable_selinux'])
+            self.config.get('enable_selinux'))
 
     def describe(self):
         """ returns host information stored in the config as

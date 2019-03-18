@@ -8,6 +8,7 @@ import sys
 import retrying
 
 from dcos_test_utils import onprem, ssh_client
+from typing import Union
 
 log = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ def install_dcos(
         install_prereqs: bool,
         bootstrap_script_url: str,
         parallelism: int,
-        enable_selinux: bool):
+        enable_selinux: Union[bool, None]):
     """
     Args:
         cluster: cluster abstraction for handling network addresses
@@ -79,7 +80,7 @@ def install_dcos(
         prereqs_script_path: if given, this will be run before preflight on any nodes
         bootstrap_script_url: where the installation script will be pulled from (see do_genconf)
         parallelism: how many concurrent SSH tunnels to run
-        enable_selinux: attempmt to enable selinux on every node
+        enable_selinux: attempt to enable selinux on every node
     """
     # Check to make sure we can talk to the cluster
     for host in cluster.cluster_hosts:
@@ -88,8 +89,9 @@ def install_dcos(
     all_client = get_client(cluster, 'cluster_hosts', node_client, parallelism=parallelism)
 
     # enable or disable selinux depending on the config
-    setenforce = '1' if enable_selinux else '0'
-    check_results(all_client.run_command('run', ['sudo setenforce ' + setenforce]), node_client, 'Set SELinux mode')
+    if enable_selinux is not None:
+        setenforce = '1' if enable_selinux else '0'
+        check_results(all_client.run_command('run', ['sudo setenforce ' + setenforce]), node_client, 'Set SELinux mode')
 
     # install prereqs if enabled
     if install_prereqs:
