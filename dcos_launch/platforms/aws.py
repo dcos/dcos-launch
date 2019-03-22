@@ -661,7 +661,7 @@ OS_AMIS = {
                                                  'us-west-1': 'ami-0b1320a3d397fa07a',
                                                  'us-west-2': 'ami-0116dcbe0583de7ca'},
     'cent-os-7.4-with-docker-selinux-enforcing': CENTOS_74_WITH_DOCKER_SELINUX_ENFORCING,
-    # cent-os-7-dcos-prereqs runs centos 7.5. Taken from https://github.com/dcos/dcos-images/blob/master/centos/7.5/aws/DCOS-1.12.1/docker-1.13.1.git8633870/selinux_enabled_enforcing/dcos_images.yaml # noqa
+    # cent-os-7-dcos-prereqs runs centos 7.5. Taken from https://github.com/dcos/dcos-images/blob/e758f0cecc3d749c82e5d63e5061892ee1fae10d/centos/7.5/aws/DCOS-1.12.2/docker-18.09.2-ce/selinux_enabled_enforcing/dcos_images.yaml # noqa
     'cent-os-7-dcos-prereqs': {'ap-northeast-1': 'ami-024a2c14073a03750',
                                'ap-northeast-2': 'ami-0cccb188ce41c0f7c',
                                'ap-south-1': 'ami-095866349bc1121a4',
