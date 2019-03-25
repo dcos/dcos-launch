@@ -116,7 +116,7 @@ class BotoWrapper:
                 yield from getattr(self.resource(service, region['id']), resource_name).all()
             except ClientError as e:
                 if e.response['Error']['Code'] == 'UnauthorizedOperation':
-                    log.error("Failed getting resources ({}) for region {} with exception: {}".format(
+                    log.debug("Failed getting resources ({}) for region {} with exception: {}".format(
                         resource_name, self.region, repr(e)))
                 else:
                     raise e
