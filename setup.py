@@ -57,7 +57,7 @@ setup(
         'oauthlib==2.1.0',
         'pathlib2==2.3.3',
         'pefile==2018.8.8',
-        'pluggy==0.8.1',
+        'pluggy==0.9',
         'py==1.7.0',
         'pyasn1==0.4.5',
         'pyasn1-modules==0.2.3',
