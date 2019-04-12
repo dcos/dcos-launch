@@ -663,8 +663,8 @@ OS_AMIS = {
     'cent-os-7.4-with-docker-selinux-enforcing': CENTOS_74_WITH_DOCKER_SELINUX_ENFORCING,
     # cent-os-7-dcos-prereqs (CentOS 7.5) uses manually built AMIs for now, see DCOS-51289.
     # All regions except us-west-2 & us-east-1 have been disabled.
-    'cent-os-7-dcos-prereqs': {'us-east-1': 'ami-0d1146efdb3283dc3',
-                               'us-west-2': 'ami-0d6d47b0d709cce5e'},
+    'cent-os-7-dcos-prereqs': {'us-east-1': 'ami-006219aba10688d0b',
+                               'us-west-2': 'ami-03daaf0b90fc7c71b'},
     'coreos': {'ap-northeast-1': 'ami-884835ee',
                'ap-southeast-1': 'ami-b9c280c5',
                'ap-southeast-2': 'ami-04be7b66',
