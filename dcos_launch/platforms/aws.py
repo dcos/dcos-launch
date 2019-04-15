@@ -97,6 +97,8 @@ class BotoWrapper:
         region = self.region if region is None else region
         return self.session.resource(service_name=name, region_name=region)
 
+    @retry(wait_exponential_multiplier=1000, wait_exponential_max=20 * 60 * 1000,
+           retry_on_exception=retry_on_rate_limiting)
     def create_key_pair(self, key_name):
         """Returns private key of newly generated pair
         """
