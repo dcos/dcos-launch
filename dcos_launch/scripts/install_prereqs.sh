@@ -50,14 +50,14 @@ if [[ ${kernel_major_version} -lt 3 ]] ||
 fi
 
 echo "Validating kernel modules..."
-if ! lsmod | grep -q overlay; then
-  echo "Enabling OverlayFS kernel module..."
+kernelmods=(overlay dm_raid raid1)
+for k in "${kernelmods[@]}"
+if ! lsmod | grep -q $k; then
+  echo "Enabling '$k' kernel module..."
   # Enable now
-  sudo modprobe overlay
+  sudo modprobe $k
   # Load on reboot via systemd
-  sudo tee /etc/modules-load.d/overlay.conf <<-'EOF'
-overlay
-EOF
+  echo "$k" | sudo tee --append /etc/modules-load.d/dcos-launch.conf
 fi
 
 echo "Detecting Docker..."
