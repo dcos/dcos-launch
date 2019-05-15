@@ -176,4 +176,17 @@ if ! sudo getent group nogroup >/dev/null; then
   sudo groupadd nogroup
 fi
 
+# hacky workaround for missing journald logs
+# via https://bugs.centos.org/view.php?id=11014
+mkdir -p /etc/systemd/system/systemd-journald.service.d
+sudo tee /etc/systemd/system/systemd-journald.service.d/journal_after_varlog.conf < <(
+  cat <<EOF
+[Unit]
+Wants=local-fs.target
+After=local-fs.target
+EOF
+)
+sudo systemctl daemon-reload
+sudo systemctl restart systemd-journald
+
 echo "Prerequisites installed."
