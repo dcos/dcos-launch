@@ -663,11 +663,10 @@ OS_AMIS = {
                                                  'us-west-1': 'ami-0b1320a3d397fa07a',
                                                  'us-west-2': 'ami-0116dcbe0583de7ca'},
     'cent-os-7.4-with-docker-selinux-enforcing': CENTOS_74_WITH_DOCKER_SELINUX_ENFORCING,
-    # cent-os-7-dcos-prereqs AMIs run CentOS 7.5
-    # source: https://github.com/dcos/dcos-images/blob/master/centos/7.5/aws/DCOS-1.13.0/docker-18.09.2-ce/selinux_disabled/dcos_images.yaml # noqa
+    # cent-os-7-dcos-prereqs (CentOS 7.5) uses manually built AMIs for now, see DCOS-51289.
     # All regions except us-west-2 & us-east-1 have been disabled.
-    'cent-os-7-dcos-prereqs': {'us-east-1': 'ami-0e628007fef1be402',
-                               'us-west-2': 'ami-0b4abee154ee87f7d'},
+    'cent-os-7-dcos-prereqs': {'us-east-1': 'ami-006219aba10688d0b',
+                               'us-west-2': 'ami-03daaf0b90fc7c71b'},
     'coreos': {'ap-northeast-1': 'ami-884835ee',
                'ap-southeast-1': 'ami-b9c280c5',
                'ap-southeast-2': 'ami-04be7b66',
