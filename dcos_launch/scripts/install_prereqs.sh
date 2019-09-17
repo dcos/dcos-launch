@@ -171,9 +171,4 @@ EOF
   sudo systemctl enable docker
 fi
 
-if ! sudo getent group nogroup >/dev/null; then
-  echo "Creating 'nogroup' group..."
-  sudo groupadd nogroup
-fi
-
 echo "Prerequisites installed."
