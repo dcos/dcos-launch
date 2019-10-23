@@ -188,6 +188,7 @@ class DcosEngineLauncher(dcos_launch.util.AbstractLauncher):
             dcos_engine_template["properties"]["windowsProfile"]["WindowsSku"] = windows_sku
         linux_bs_url = self.config.get('dcos_linux_bootstrap_url')
         arm_template, self.config['template_parameters'] = run_dcos_engine(self.config['dcos_engine_tarball_url'], dcos_engine_template)  # noqa
+        self.config['generated_arm_template'] = arm_template
         if linux_bs_url:
             self.config['template_parameters']['dcosBootstrapURL'] = linux_bs_url
         windows_bs_url = self.config.get('dcos_windows_bootstrap_url')
