@@ -66,7 +66,7 @@ setup(
         'PyJWT==1.7.1',
         'pytest==4.1.0',
         'python-dateutil==2.7.5',
-        'PyYAML==3.13',
+        'PyYAML==5.1',
         'requests==2.21.0',
         'requests-oauthlib==1.1.0',
         'retrying==1.3.3',
