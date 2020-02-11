@@ -10,3 +10,5 @@ template_parameters:
     AdminLocation: 0.0.0.0/0
     PublicSlaveInstanceCount: 2
     SlaveInstanceCount: 1
+dcos_config:
+    calico_network_cidr: 172.28.0.0/16

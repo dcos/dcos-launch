@@ -17,6 +17,7 @@ dcos_config:
   dns_search: mesos
   master_discovery: static
   exhibitor_storage_backend: static
+  calico_network_cidr: 172.28.0.0/16
 num_masters: 1
 num_private_agents: 2
 num_public_agents: 1

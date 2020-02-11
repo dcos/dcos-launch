@@ -15,4 +15,5 @@ template_parameters:
   enableVMDiagnostics: false
   oauthEnabled: "true" # Azure specifically expects the boolean value for this field as a string
 ssh_user: dcos
-
+dcos_config:
+  calico_network_cidr: 172.28.0.0/16

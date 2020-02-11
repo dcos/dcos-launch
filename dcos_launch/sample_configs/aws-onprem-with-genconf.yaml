@@ -14,3 +14,5 @@ num_public_agents: 1
 ssh_user: centos
 key_helper: true
 genconf_dir: ~/genconf
+dcos_config:
+  calico_network_cidr: 172.28.0.0/16

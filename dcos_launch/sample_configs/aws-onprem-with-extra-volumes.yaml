@@ -29,3 +29,4 @@ dcos_config:
   resolvers:
     - 8.8.8.8
     - 8.8.4.4
+  calico_network_cidr: 172.28.0.0/16

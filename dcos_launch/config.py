@@ -127,6 +127,7 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
     # validate against the fields common to all configs
     user_config['config_dir'] = config_dir
     validator = LaunchValidator(COMMON_SCHEMA, config_dir=config_dir, allow_unknown=True)
+    user_config.setdefault('dcos_config', {})
     if 'dcos_version' in user_config:
         user_config['dcos_version'] = validator.normalized(user_config)['dcos_version']
     if not validator.validate(user_config):
@@ -136,7 +137,6 @@ def get_validated_config(user_config: dict, config_dir: str) -> dict:
     provider = validator.normalized(user_config)['provider']
     if provider == 'onprem':
         validator.schema.update(ONPREM_DEPLOY_COMMON_SCHEMA)
-        user_config.setdefault('dcos_config', {})
         user_config['dcos_config'].setdefault('platform', user_config['platform'])
         user_config['dcos_config'].setdefault('rexray_config_preset', user_config['platform'])
     elif provider == 'terraform':
@@ -242,6 +242,18 @@ COMMON_SCHEMA = {
     'config_dir': {
         'type': 'string',
         'required': False},
+    'dcos_config': {
+        'type': 'dict',
+        'required': True,
+        'allow_unknown': True,
+        'default_setter': lambda doc: yaml.load(util.read_file(os.path.join(doc['genconf_dir'], 'config.yaml'))),
+        'schema': {
+            'calico_network_cidr': {
+                'type': 'string',
+                'required': True,
+            },
+        },
+    },
     'dcos_version': {
         'type': ['string', 'float'],
         'required': False,
@@ -368,7 +380,6 @@ ONPREM_DEPLOY_COMMON_SCHEMA = {
         'type': 'dict',
         'required': True,
         'allow_unknown': True,
-        'default_setter': lambda doc: yaml.load(util.read_file(os.path.join(doc['genconf_dir'], 'config.yaml'))),
         'schema': {
             'ip_detect_filename': {
                 'excludes': 'ip_detect_contents'},

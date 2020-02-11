@@ -10,3 +10,5 @@ template_parameters:
     PublicSlaveInstanceCount: 2
     SlaveInstanceCount: 1
 ssh_user: core
+dcos_config:
+    calico_network_cidr: 172.28.0.0/16

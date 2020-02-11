@@ -14,6 +14,7 @@ dcos_config:
     master_discovery: static
     exhibitor_storage_backend: zookeeper
     exhibitor_zk_path: /exhibitor
+    calico_network_cidr: 172.28.0.0/16
 num_masters: 1
 key_helper: true
 ssh_user: dcos

@@ -100,7 +100,8 @@ class TestAwsOnprem:
         get_validated_config_from_path(
             get_temp_config_path(
                 tmpdir, 'aws-onprem-with-helper.yaml',
-                update={'dcos_config': {'provider': 'aws'}}))
+                update={'dcos_config': {'provider': 'aws',
+                                        'calico_network_cidr': '172.28.0.0/16'}}))
 
     def test_selinux(self, aws_onprem_config_path):
         config_dir = os.path.dirname(aws_onprem_config_path)
