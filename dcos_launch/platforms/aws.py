@@ -610,6 +610,7 @@ OS_SSH_INFO = {
     'cent-os-7-dcos-prereqs': SSH_INFO['centos'],
     'cent-os-7.4-with-docker-selinux-disabled': SSH_INFO['centos'],
     'cent-os-7.4-with-docker-selinux-enforcing': SSH_INFO['centos'],
+    'cent-os-8.0-with-docker-selinux-permissive': SSH_INFO['centos'],
     'coreos': SSH_INFO['coreos'],
     'debian-8': SSH_INFO['debian'],
     'rhel-7-dcos-prereqs': SSH_INFO['rhel'],
@@ -662,6 +663,9 @@ OS_AMIS = {
                                                  'us-east-2': 'ami-07f48e9948906d95d',
                                                  'us-west-1': 'ami-0b1320a3d397fa07a',
                                                  'us-west-2': 'ami-0116dcbe0583de7ca'},
+    # https://github.com/dcos/dcos-images/blob/master/centos/8.0/aws/DCOS-1.14.0-beta/docker-18.09.1-ce/selinux_permissive/dcos_images.yaml # noqa
+    'cent-os-8.0-with-docker-selinux-permissive': {'us-east-1': 'ami-0c298469d9dcbba34',
+                                                   'us-west-2': 'ami-0009a3f7859e07083'},
     'cent-os-7.4-with-docker-selinux-enforcing': CENTOS_74_WITH_DOCKER_SELINUX_ENFORCING,
     # cent-os-7-dcos-prereqs (CentOS 7.5) uses manually built AMIs for now, see DCOS-51289.
     # All regions except us-west-2 & us-east-1 have been disabled.
