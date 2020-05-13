@@ -146,11 +146,11 @@ if [[ "${install_docker}" == 'true' ]]; then
   # Add Docker Yum Repo
   sudo tee /etc/yum.repos.d/docker.repo <<-'EOF'
 [dockerrepo]
-name=Docker Repository
-baseurl=https://yum.dockerproject.org/repo/main/centos/7
+name=Docker CE Stable - $basearch
+baseurl=https://download.docker.com/linux/centos/7/$basearch/stable
 enabled=1
 gpgcheck=1
-gpgkey=https://yum.dockerproject.org/gpg
+gpgkey=https://download.docker.com/linux/centos/gpg
 EOF
 
   # Add Docker systemd service
