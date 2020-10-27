@@ -35,7 +35,7 @@ setup(
         'certifi==2018.11.29',
         'cffi==1.11.5',
         'chardet==3.0.4',
-        'cryptography==2.4.2',
+        'cryptography==3.2',
         'docopt==0.6.2',
         'docutils==0.14',
         'entrypoints==0.3',
