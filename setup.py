@@ -70,7 +70,7 @@ setup(
         'requests==2.21.0',
         'requests-oauthlib==1.1.0',
         'retrying==1.3.3',
-        'rsa==4.0',
+        'rsa==4.1',
         's3transfer==0.1.13',
         'SecretStorage==2.3.1',
         'six==1.12.0',
