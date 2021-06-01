@@ -78,7 +78,7 @@ setup(
         'toml==0.10.0',
         'tox==3.6.1',
         'uritemplate==3.0.0',
-        'urllib3==1.24.1',
+        'urllib3==1.26.5',
         'virtualenv==16.2.0'],
     entry_points={
         'console_scripts': [
