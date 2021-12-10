@@ -50,14 +50,14 @@ if [[ ${kernel_major_version} -lt 3 ]] ||
 fi
 
 echo "Validating kernel modules..."
-if ! lsmod | grep -q overlay; then
-  echo "Enabling OverlayFS kernel module..."
+kernelmods=(overlay dm_raid raid1)
+for k in "${kernelmods[@]}"
+if ! lsmod | grep -q $k; then
+  echo "Enabling '$k' kernel module..."
   # Enable now
-  sudo modprobe overlay
+  sudo modprobe $k
   # Load on reboot via systemd
-  sudo tee /etc/modules-load.d/overlay.conf <<-'EOF'
-overlay
-EOF
+  echo "$k" | sudo tee --append /etc/modules-load.d/dcos-launch.conf
 fi
 
 echo "Detecting Docker..."
@@ -175,5 +175,18 @@ if ! sudo getent group nogroup >/dev/null; then
   echo "Creating 'nogroup' group..."
   sudo groupadd nogroup
 fi
+
+# hacky workaround for missing journald logs
+# via https://bugs.centos.org/view.php?id=11014
+mkdir -p /etc/systemd/system/systemd-journald.service.d
+sudo tee /etc/systemd/system/systemd-journald.service.d/journal_after_varlog.conf < <(
+  cat <<EOF
+[Unit]
+Wants=local-fs.target
+After=local-fs.target
+EOF
+)
+sudo systemctl daemon-reload
+sudo systemctl restart systemd-journald
 
 echo "Prerequisites installed."
