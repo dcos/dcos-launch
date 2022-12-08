@@ -32,7 +32,7 @@ setup(
         'botocore==1.12.76',
         'cachetools==3.0.0',
         'Cerberus==1.2',
-        'certifi==2018.11.29',
+        'certifi==2022.12.7',
         'cffi==1.11.5',
         'chardet==3.0.4',
         'cryptography==2.4.2',
